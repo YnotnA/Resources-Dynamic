@@ -84,17 +84,11 @@ class MappingCache {
     }
   }
 
-  /**
-   * Recharge le cache (à appeler périodiquement ou sur événement)
-   */
   async reload(): Promise<void> {
     cacheLogger.info("🔄 Reloading mapping cache...");
     await this.load();
   }
 
-  /**
-   * Récupère le mapping complet par UUID (< 1µs)
-   */
   getByUuid(uuid: string): CachedMapping | undefined {
     if (!this.isLoaded) {
       cacheLogger.warn("⚠️ Cache not loaded, call load() first");

@@ -94,8 +94,14 @@ db-logs: ## Show PostgreSQL logs
 .PHONY: db-migrate
 db-migrate: check-env ## Apply Drizzle migrations
 	@echo "$(CYAN)🔄 Applying database migrations...$(RESET)"
-	@$(COMPOSE) exec $(DEV_SERVICE) sh -c "corepack enable && corepack install && pnpm db:push"
+	@$(COMPOSE) exec $(DEV_SERVICE) sh -c "corepack enable && corepack install && pnpm db:migrate"
 	@echo "$(GREEN)✅ Migrations applied$(RESET)"
+
+.PHONY: db-push
+db-push: check-env ## Apply Drizzle migrations push
+	@echo "$(CYAN)🔄 Applying database push migrations...$(RESET)"
+	@$(COMPOSE) exec $(DEV_SERVICE) sh -c "corepack enable && corepack install && pnpm db:push"
+	@echo "$(GREEN)✅ Migrations push applied$(RESET)"
 
 .PHONY: db-studio
 db-studio: check-env ## Open Drizzle Studio
@@ -174,9 +180,9 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(CYAN)%-15s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST) | grep -E "(logs|shell|status|clean-volumes)"
 	@echo ""
 	@echo "$(YELLOW)Examples:$(RESET)"
-	@echo "  $(CYAN)make start$(RESET)           # Start app for testing (CP/PO/Others)"
+	@echo "  $(CYAN)make start$(RESET)          # Start app for testing (CP/PO/Others)"
 	@echo "  $(CYAN)make up$(RESET)             # Start dev environment (Dev)"
-	@echo "  $(CYAN)make pnpm dev$(RESET)       # Start Next.js dev server"
+	@echo "  $(CYAN)make pnpm dev$(RESET)       # Start dev server"
 	@echo "  $(CYAN)make pnpm build$(RESET)     # Build the application"
 	@echo "  $(CYAN)make install$(RESET)        # Install dependencies"
 
