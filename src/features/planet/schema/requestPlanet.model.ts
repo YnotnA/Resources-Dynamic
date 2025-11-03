@@ -6,3 +6,5 @@ export const nextTicksSchema = z.object({
   fromTime: z.float32(),
   count: z.number().int().positive().default(60),
 });
+
+export type NextTicksType = z.infer<typeof nextTicksSchema>;

@@ -1,13 +1,12 @@
 {
   "scripts": {
-    "dev": "tsup --watch --onSuccess \"node dist/server.js\"",
+    "dev": "tsx watch src/index.ts",
     "build": "tsup",
-    "client": "tsup --watch --onSuccess \"node dist/client.js\""
+    "client": "tsx watch src/client.ts"
   },
   "tsup": {
     "entry": [
-      "src/server.ts",
-      "src/client.ts"
+      "src/index.ts"
     ],
     "splitting": false,
     "sourcemap": true,
@@ -15,11 +14,14 @@
   },
   "dependencies": {
     "@duckdb/node-api": "1.4.1-r.4",
+    "@hono/node-server": "^1.19.6",
     "@msgpack/msgpack": "^3.1.2",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "hono": "^4.10.4",
     "prettier": "^3.6.2",
     "prettier-plugin-sort-json": "^4.1.1",
     "tslog": "^4.10.2",
+    "tsx": "^4.20.6",
     "ws": "^8.18.3",
     "zod": "^4.1.12"
   },

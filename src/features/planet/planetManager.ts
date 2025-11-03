@@ -1,6 +1,7 @@
 import { DOUBLE, DuckDBConnection, INTEGER } from "@duckdb/node-api";
 import { duckDbInstance } from "@lib/duckDb";
-import { ClientMessageType } from "schema/clientMessage.model";
+
+import { NextTicksType } from "./schema/requestPlanet.model";
 
 let duckConnectPromise: Promise<DuckDBConnection> | null = null;
 
@@ -15,7 +16,7 @@ const uuidMapper = (uuid: string): number => {
   return 12;
 };
 
-export const getNextTicks = async (clientMessage: ClientMessageType) => {
+export const getNextTicks = async (clientMessage: NextTicksType) => {
   const duckConnect = await getDuckConnect();
 
   const prepared = await duckConnect.prepare(`
