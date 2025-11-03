@@ -1,4 +1,4 @@
-import { getNextTicks } from "@feat/planet/planetManager";
+import { getNextTicks } from "@duckdb/queries/positions";
 import { createTimer, logError, wsLogger } from "@lib/logger";
 import { decode, encode } from "@msgpack/msgpack";
 import {

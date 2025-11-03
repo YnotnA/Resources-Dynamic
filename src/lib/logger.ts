@@ -1,3 +1,4 @@
+import { DrizzleError } from "drizzle-orm";
 import * as fs from "fs";
 import * as path from "path";
 import { ILogObj, Logger } from "tslog";
@@ -173,14 +174,13 @@ const formatZodError = (error: ZodError) => {
 /**
  * Formatte une erreur Drizzle ORM
  */
-const formatDrizzleError = (error: any) => {
+const formatDrizzleError = (error: DrizzleError) => {
   return {
     type: "DrizzleError",
     message: error.message,
-    code: error.code,
-    detail: error.detail,
-    hint: error.hint,
-    position: error.position,
+    name: error.name,
+    cause: error.cause,
+    stack: error.stack,
   };
 };
 
@@ -260,6 +260,17 @@ export const logError = (
 
     logger.error({
       msg: `Validation error: ${formattedError.summary}`,
+      error: formattedError,
+      ...context,
+    });
+    return;
+  }
+
+  if (error instanceof DrizzleError) {
+    const formattedError = formatDrizzleError(error);
+
+    logger.error({
+      msg: `Drizzle error: ${formattedError.message}`,
       error: formattedError,
       ...context,
     });

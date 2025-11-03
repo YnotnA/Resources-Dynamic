@@ -12,7 +12,7 @@
     "paths": {
       "@app/*": ["./*"],
       "@db/*": ["./db/*"],
-      "@feat/*": ["./features/*"],
+      "@duckdb/*": ["./duckdb/*"],
       "@lib/*": ["./lib/*"],
       "@routes/*": ["./routes/*"],
       "@websocket/*": ["./websocket/*"]
