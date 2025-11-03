@@ -10,7 +10,7 @@ import { mappingCache } from "@websocket/cache/mapping-cache";
 
 import { getDuckDBConnection } from "../connection";
 
-const duckQueryLogger = duckDbLogger.getSubLogger({ name: "Query" });
+const duckQueryLogger = duckDbLogger.child({ name: "Query" });
 
 /**
  * Récupère les prochaines positions d'un objet céleste
@@ -27,13 +27,16 @@ export const getNextTicks = async (clientMessage: NextTicksType) => {
       throw new Error(`Target not found: ${clientMessage.target}`);
     }
 
-    duckQueryLogger.debug("Querying positions", {
-      target: mapping.name,
-      type: mapping.type,
-      id: mapping.id,
-      fromTime: clientMessage.fromTime,
-      count: clientMessage.count,
-    });
+    duckQueryLogger.debug(
+      {
+        target: mapping.name,
+        type: mapping.type,
+        id: mapping.id,
+        fromTime: clientMessage.fromTime,
+        count: clientMessage.count,
+      },
+      "Querying positions",
+    );
 
     // Connexion DuckDB
     const conn = await getDuckDBConnection();

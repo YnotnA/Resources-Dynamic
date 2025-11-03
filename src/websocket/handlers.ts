@@ -21,7 +21,7 @@ export const handleConnection = (ws: WebSocket) => {
     connectedAt: new Date(),
   });
 
-  wsLogger.info(`🟢 Horizon connected`, { clientId });
+  wsLogger.info({ clientId }, `🟢 Horizon connected`);
 
   sendMessage(ws, {
     type: "connected",
@@ -49,10 +49,13 @@ const handleMessage = async (ws: WebSocket, data: any) => {
     // Validate with Zod
     const msg: ClientMessageType = clientMessageSchema.parse(decoded);
 
-    wsLogger.debug("Message received", {
-      clientId: client?.id,
-      action: msg.action,
-    });
+    wsLogger.debug(
+      {
+        clientId: client?.id,
+        action: msg.action,
+      },
+      "Message received",
+    );
 
     await routeMessage(ws, msg);
   } catch (err: unknown) {
@@ -76,23 +79,29 @@ const handleNextTicks = async (ws: WebSocket, msg: NextTicksType) => {
   const timer = createTimer();
   const clientId = clients.get(ws)?.id;
 
-  wsLogger.debug("Processing next-ticks request", {
-    clientId,
-    target: msg.target,
-    fromTime: msg.fromTime,
-    count: msg.count,
-  });
+  wsLogger.debug(
+    {
+      clientId,
+      target: msg.target,
+      fromTime: msg.fromTime,
+      count: msg.count,
+    },
+    "Processing next-ticks request",
+  );
 
   try {
     const coords = await getNextTicks(msg);
     const duration = timer.end();
 
-    wsLogger.debug(`✅ Sent ${coords.count} positions`, {
-      clientId,
-      target: coords.target.name,
-      count: coords.count,
-      duration,
-    });
+    wsLogger.debug(
+      {
+        clientId,
+        target: coords.target.name,
+        count: coords.count,
+        duration,
+      },
+      `✅ Sent ${coords.count} positions`,
+    );
 
     sendMessage(ws, coords);
   } catch (error) {
@@ -118,7 +127,7 @@ const handleDisconnection = (ws: WebSocket) => {
   const client = clients.get(ws);
 
   if (client) {
-    wsLogger.info(`🔴 Horizon disconnected`, { clientId: client.id });
+    wsLogger.info({ clientId: client.id }, `🔴 Horizon disconnected`);
     clients.delete(ws);
   }
 };

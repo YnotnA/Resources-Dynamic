@@ -67,12 +67,15 @@ class MappingCache {
       const duration = timer.end();
       const stats = this.getStats();
 
-      cacheLogger.debug("✅ Cache loaded successfully", {
-        duration,
-        totalEntries: stats.totalEntries,
-        byType: stats.byType,
-        memoryKB: stats.memoryUsageKB,
-      });
+      cacheLogger.debug(
+        {
+          duration,
+          totalEntries: stats.totalEntries,
+          byType: stats.byType,
+          memoryKB: stats.memoryUsageKB,
+        },
+        "✅ Cache loaded successfully",
+      );
 
       logPerformance(cacheLogger, "Load cache", duration);
     } catch (error) {

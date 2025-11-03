@@ -10,7 +10,7 @@ ws.on("open", () => {
     encode({
       action: "next-ticks",
       count: 60,
-      fromTime: 60,
+      fromTime: 80,
       target: "55ad9203-68c6-4d52-a4dd-601fe1c97852",
     }),
   );

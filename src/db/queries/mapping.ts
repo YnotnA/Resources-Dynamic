@@ -104,13 +104,16 @@ export const syncMappingTable = async (): Promise<void> => {
 
   const duration = timer.end();
   const totalCount = starsData.length + planetsData.length + moonsData.length;
-  pgDbLogger.debug("✅ Mapping table synced", {
-    duration,
-    totalCount,
-    stars: starsData.length,
-    planets: planetsData.length,
-    moons: moonsData.length,
-  });
+  pgDbLogger.debug(
+    {
+      duration,
+      totalCount,
+      stars: starsData.length,
+      planets: planetsData.length,
+      moons: moonsData.length,
+    },
+    "✅ Mapping table synced",
+  );
 
   logPerformance(pgDbLogger, "Sync mapping table", duration);
   // ⚠️ Warning entries without UUID

@@ -29,9 +29,12 @@ const start = async () => {
 
   logger.info("📥 Loading mapping cache...");
   await mappingCache.load();
-  logger.info(`✅ Cache ready`, {
-    entries: mappingCache.getStats().totalEntries,
-  });
+  logger.info(
+    {
+      entries: mappingCache.getStats().totalEntries,
+    },
+    `✅ Cache ready`,
+  );
 
   // WebSocket standalone
   createStandaloneWebSocket(WS_PORT);

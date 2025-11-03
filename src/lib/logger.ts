@@ -1,147 +1,21 @@
 import { DrizzleError } from "drizzle-orm";
 import * as fs from "fs";
 import * as path from "path";
-import { ILogObj, Logger } from "tslog";
+import pino from "pino";
 import { ZodError } from "zod";
 
 // Détection de l'environnement
 const isDev = process.env.NODE_ENV !== "production";
 const isTest = process.env.NODE_ENV === "test";
 
-// Configuration du logger principal
-const baseLogger = new Logger<ILogObj>({
-  name: "App",
-
-  // Niveaux de log
-  minLevel: isDev ? 0 : 3, // 0=silly, 1=trace, 2=debug, 3=info, 4=warn, 5=error, 6=fatal
-
-  // ✨ Affichage en DEV (coloré et lisible)
-  type: isDev ? "pretty" : "json",
-
-  // ✨ Format date/heure
-  prettyLogTimeZone: "local",
-  prettyLogTemplate: "{{hh}}:{{MM}}:{{ss}}.{{ms}} {{logLevelName}} {{name}} ",
-
-  // ✨ Couleurs personnalisées
-  stylePrettyLogs: true,
-  prettyLogStyles: {
-    logLevelName: {
-      "*": ["bold", "black", "bgWhiteBright", "dim"],
-      SILLY: ["bold", "white"],
-      TRACE: ["bold", "whiteBright"],
-      DEBUG: ["bold", "cyan"],
-      INFO: ["bold", "blue"],
-      WARN: ["bold", "yellow"],
-      ERROR: ["bold", "red"],
-      FATAL: ["bold", "redBright"],
-    },
-    dateIsoStr: "white",
-    filePathWithLine: "white",
-    name: ["white", "bold"],
-    nameWithDelimiterPrefix: ["white", "bold"],
-    nameWithDelimiterSuffix: ["white", "bold"],
-    errorName: ["bold", "bgRedBright", "whiteBright"],
-    fileName: ["yellow"],
-  },
-
-  // ✨ Masquer certains champs en dev
-  hideLogPositionForProduction: !isDev,
-});
-
 // ===================================
-// Créer les sub-loggers de base
+// Configuration Pino
 // ===================================
 
-const baseWsLogger = baseLogger.getSubLogger({ name: "🔌 WebSocket" });
-const baseDuckDbLogger = baseLogger.getSubLogger({ name: "🦆 DuckDB" });
-const basePgDbLogger = baseLogger.getSubLogger({ name: "🐘 Postgres" });
-const baseApiLogger = baseLogger.getSubLogger({ name: "🌐 API" });
-const baseCacheLogger = baseLogger.getSubLogger({ name: "💾 Cache" });
-
-// ===================================
-// Wrapper pour API cohérente
-// ===================================
-
-type LogLevel =
-  | "silly"
-  | "trace"
-  | "debug"
-  | "info"
-  | "warn"
-  | "error"
-  | "fatal";
-
-interface WrappedLogger {
-  silly: (message: string, metadata?: Record<string, any>) => void;
-  trace: (message: string, metadata?: Record<string, any>) => void;
-  debug: (message: string, metadata?: Record<string, any>) => void;
-  info: (message: string, metadata?: Record<string, any>) => void;
-  warn: (message: string, metadata?: Record<string, any>) => void;
-  error: (message: string, metadata?: Record<string, any>) => void;
-  fatal: (message: string, metadata?: Record<string, any>) => void;
-  getSubLogger: (options: { name: string }) => WrappedLogger;
-}
-
-const wrapLogger = (logger: Logger<ILogObj>): WrappedLogger => {
-  const createLogMethod = (level: LogLevel) => {
-    return (message: string, metadata?: Record<string, any>) => {
-      if (isDev) {
-        // En DEV (pretty mode) : passer les arguments séparément pour un affichage propre
-        if (!metadata || Object.keys(metadata).length === 0) {
-          logger[level](message);
-        } else {
-          logger[level](message, metadata);
-        }
-      } else {
-        // En PROD (JSON mode) : toujours passer un objet avec "msg"
-        logger[level]({
-          msg: message,
-          ...metadata,
-        });
-      }
-    };
-  };
-
-  return {
-    silly: createLogMethod("silly"),
-    trace: createLogMethod("trace"),
-    debug: createLogMethod("debug"),
-    info: createLogMethod("info"),
-    warn: createLogMethod("warn"),
-    error: createLogMethod("error"),
-    fatal: createLogMethod("fatal"),
-    getSubLogger: (options: { name: string }) => {
-      const subLogger = logger.getSubLogger(options);
-      return wrapLogger(subLogger);
-    },
-  };
-};
-
-// ===================================
-// Loggers wrappés exportés
-// ===================================
-
-export const logger = wrapLogger(baseLogger);
-export const wsLogger = wrapLogger(baseWsLogger);
-export const duckDbLogger = wrapLogger(baseDuckDbLogger);
-export const pgDbLogger = wrapLogger(basePgDbLogger);
-export const apiLogger = wrapLogger(baseApiLogger);
-export const cacheLogger = wrapLogger(baseCacheLogger);
-
-// ===================================
-// Logs fichier en production
-// ===================================
+let baseLogger: pino.Logger;
 
 if (!isDev && !isTest) {
-  const allLoggers = [
-    baseLogger,
-    baseWsLogger,
-    baseDuckDbLogger,
-    basePgDbLogger,
-    baseApiLogger,
-    baseCacheLogger,
-  ];
-
+  // En production : logs vers console + fichiers
   const logsDir = path.join(process.cwd(), "logs");
 
   // Créer le dossier logs s'il n'existe pas
@@ -163,35 +37,23 @@ if (!isDev && !isTest) {
     { flags: "a" },
   );
 
-  allLoggers.forEach((loggerInstance) => {
-    loggerInstance.attachTransport((logObj) => {
-      try {
-        // Sérialiser avec replacer pour gérer les erreurs
-        const logLine =
-          JSON.stringify(logObj, (key, value) => {
-            if (value instanceof Error) {
-              return {
-                name: value.name,
-                message: value.message,
-                stack: value.stack,
-              };
-            }
-            return value;
-          }) + "\n";
+  // Logger avec plusieurs destinations
+  baseLogger = pino(
+    {
+      level: "info",
+      formatters: {
+        level: (label) => {
+          return { level: label.toUpperCase() };
+        },
+      },
+    },
+    pino.multistream([
+      { stream: process.stdout }, // Console
+      { stream: allLogsStream }, // Tous les logs
+      { level: "error", stream: errorLogsStream }, // Erreurs uniquement
+    ]),
+  );
 
-        allLogsStream.write(logLine);
-
-        // Écrire aussi dans error.log si ERROR ou FATAL
-        if (logObj._meta?.logLevelId >= 5) {
-          errorLogsStream.write(logLine);
-        }
-      } catch (err) {
-        console.error("❌ Failed to write log:", err);
-      }
-    });
-  });
-
-  // Fermer les streams proprement
   const closeStreams = () => {
     allLogsStream.end();
     errorLogsStream.end();
@@ -200,7 +62,37 @@ if (!isDev && !isTest) {
   process.on("beforeExit", closeStreams);
   process.on("SIGINT", closeStreams);
   process.on("SIGTERM", closeStreams);
+} else {
+  baseLogger = pino({
+    level: isDev ? "trace" : "info",
+    transport: {
+      target: "pino-pretty",
+      options: {
+        colorize: true,
+        translateTime: "HH:mm:ss.l",
+        ignore: "pid,hostname",
+        singleLine: false,
+        messageFormat: "{component} {msg}",
+      },
+    },
+  });
 }
+
+// ===================================
+// Sous-loggers avec composants
+// ===================================
+
+export const logger = baseLogger.child({ component: "App" });
+
+export const wsLogger = baseLogger.child({ component: "🔌 WebSocket" });
+
+export const duckDbLogger = baseLogger.child({ component: "🦆 DuckDB" });
+
+export const pgDbLogger = baseLogger.child({ component: "🐘 Postgres" });
+
+export const apiLogger = baseLogger.child({ component: "🌐 API" });
+
+export const cacheLogger = baseLogger.child({ component: "💾 Cache" });
 
 // ===================================
 // Helpers pour logs structurés
@@ -270,20 +162,23 @@ export const logRequest = (
   const level =
     statusCode >= 500 ? "error" : statusCode >= 400 ? "warn" : "info";
 
-  apiLogger[level](`${method} ${path} ${statusCode} ${duration}ms`, {
-    method,
-    path,
-    statusCode,
-    duration,
-    ...metadata,
-  });
+  apiLogger[level](
+    {
+      method,
+      path,
+      statusCode,
+      duration,
+      ...metadata,
+    },
+    `${method} ${path} ${statusCode} ${duration}ms`,
+  );
 };
 
 /**
  * Log une query DB avec durée
  */
 export const logQuery = (
-  logger: WrappedLogger,
+  logger: pino.Logger,
   query: string,
   duration: number,
   rowCount?: number,
@@ -291,11 +186,14 @@ export const logQuery = (
   const truncatedQuery =
     query.length > 100 ? query.substring(0, 100) + "..." : query;
 
-  logger.debug(`Query executed in ${duration}ms`, {
-    query: truncatedQuery,
-    duration,
-    rowCount,
-  });
+  logger.debug(
+    {
+      query: truncatedQuery,
+      duration,
+      rowCount,
+    },
+    `Query executed in ${duration}ms`,
+  );
 };
 
 /**
@@ -303,78 +201,97 @@ export const logQuery = (
  * Gère automatiquement ZodError, DrizzleError, PostgresError, et Error standard
  */
 export const logError = (
-  logger: WrappedLogger,
+  logger: pino.Logger,
   error: Error | ZodError | unknown,
   context?: Record<string, any>,
 ) => {
   if (error instanceof ZodError) {
     const formattedError = formatZodError(error);
 
-    logger.error(`Validation error: ${formattedError.summary}`, {
-      error: formattedError,
-      ...context,
-    });
+    logger.error(
+      {
+        error: formattedError,
+        ...context,
+      },
+      `Validation error: ${formattedError.summary}`,
+    );
     return;
   }
 
   if (error instanceof DrizzleError) {
     const formattedError = formatDrizzleError(error);
 
-    logger.error(`Drizzle error: ${formattedError.message}`, {
-      error: formattedError,
-      ...context,
-    });
+    logger.error(
+      {
+        error: formattedError,
+        ...context,
+      },
+      `Drizzle error: ${formattedError.message}`,
+    );
     return;
   }
 
   if (error instanceof Error) {
     if ("code" in error && "severity" in error) {
-      logger.error(error.message, {
-        error: formatPostgresError(error),
-        ...context,
-      });
+      logger.error(
+        {
+          error: formatPostgresError(error),
+          ...context,
+        },
+        error.message,
+      );
       return;
     }
 
-    logger.error(error.message, {
-      error: {
-        name: error.name,
-        message: error.message,
-        stack: isDev ? error.stack : undefined,
-        // Inclure des propriétés custom si présentes
-        ...("code" in error && { code: (error as any).code }),
-        ...("statusCode" in error && { statusCode: (error as any).statusCode }),
+    logger.error(
+      {
+        error: {
+          name: error.name,
+          message: error.message,
+          stack: isDev ? error.stack : undefined,
+          ...("code" in error && { code: (error as any).code }),
+          ...("statusCode" in error && {
+            statusCode: (error as any).statusCode,
+          }),
+        },
+        ...context,
       },
-      ...context,
-    });
+      error.message,
+    );
     return;
   }
 
-  logger.error(String(error), {
-    error: {
-      type: typeof error,
-      value: error,
+  logger.error(
+    {
+      error: {
+        type: typeof error,
+        value: error,
+      },
+      ...context,
     },
-    ...context,
-  });
+    String(error),
+  );
 };
 
 /**
  * Log performance (pour benchmarks)
  */
 export const logPerformance = (
-  logger: WrappedLogger,
+  logger: pino.Logger,
   operation: string,
   duration: number,
   metadata?: Record<string, any>,
 ) => {
   const level = duration > 1000 ? "warn" : duration > 100 ? "info" : "debug";
 
-  logger[level](`⏱️  ${operation} took ${duration}ms`, {
-    operation,
-    duration,
-    ...metadata,
-  });
+  logger[level](
+    {
+      operation,
+      duration,
+      ...metadata,
+    },
+    `⏱️  ${operation} took ${duration}ms`,
+  );
 };
 
 // ===================================
@@ -396,20 +313,26 @@ export const createTimer = () => {
  */
 export const setupGlobalErrorHandlers = () => {
   process.on("uncaughtException", (error: Error) => {
-    logger.fatal("Uncaught Exception", {
-      error: {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
+    logger.fatal(
+      {
+        error: {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        },
       },
-    });
+      "Uncaught Exception",
+    );
     process.exit(1);
   });
 
   process.on("unhandledRejection", (reason: any) => {
-    logger.fatal("Unhandled Promise Rejection", {
-      reason: String(reason),
-    });
+    logger.fatal(
+      {
+        reason: String(reason),
+      },
+      "Unhandled Promise Rejection",
+    );
     process.exit(1);
   });
 };

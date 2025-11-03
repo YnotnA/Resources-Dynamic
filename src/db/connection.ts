@@ -7,14 +7,14 @@ import * as schema from "./schema";
 
 dotenv.config();
 
-const connectionString = process.env.DATABASE_URL;
+const DATABASE_URL = process.env.DATABASE_URL;
 
-if (!connectionString) {
+if (!DATABASE_URL) {
   throw new Error("DATABASE_URL must be set in environment variables");
 }
 
-const pgClient = postgres(connectionString, {
-  max: 10, // Pool de connexions
+const pgClient = postgres(DATABASE_URL, {
+  max: 10,
   idle_timeout: 20,
   connect_timeout: 10,
 });

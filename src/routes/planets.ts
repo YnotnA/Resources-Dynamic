@@ -83,7 +83,7 @@ planetsRouter.get("/system/:systemId", async (c) => {
 });
 
 /**
- * POST /planets - Creates a new planet
+ * POST /planets - Create a new planet
  */
 planetsRouter.post("/", async (c) => {
   try {
@@ -129,7 +129,7 @@ planetsRouter.patch("/:uuid", async (c) => {
 });
 
 /**
- * DELETE /planets/:uuid - Supprime une planète
+ * DELETE /planets/:uuid - Delete a planet
  */
 planetsRouter.delete("/:uuid", async (c) => {
   try {
