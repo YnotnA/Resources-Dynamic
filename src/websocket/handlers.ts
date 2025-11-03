@@ -1,20 +1,18 @@
-import { getNextTicks } from "@duckdb/queries/positions";
-import { createTimer, logError, wsLogger } from "@lib/logger";
-import { decode, encode } from "@msgpack/msgpack";
 import {
   ClientMessageType,
   clientMessageSchema,
-} from "schema/clientMessage.model";
-import { NextTicksType } from "schema/planetarySystem/requestPlanetarySystem.ws";
+} from "@/websocket/schema/clientMessage.model";
+import { getNextTicks } from "@duckdb/queries/positions";
+import { createTimer, logError, wsLogger } from "@lib/logger";
+import { decode, encode } from "@msgpack/msgpack";
 import type { WebSocket } from "ws";
 import { ZodError } from "zod";
 
-// Store des clients connectés avec metadata
+import { NextTicksType } from "./schema/requestPlanetarySystem.model";
+
+// Store connected clients with metadata
 const clients = new Map<WebSocket, { id: string; connectedAt: Date }>();
 
-/**
- * Gère une nouvelle connexion WebSocket
- */
 export const handleConnection = (ws: WebSocket) => {
   const clientId = generateClientId();
 
@@ -23,54 +21,45 @@ export const handleConnection = (ws: WebSocket) => {
     connectedAt: new Date(),
   });
 
-  wsLogger.info({ msg: `🟢 Horizon connected`, clientId });
+  wsLogger.info(`🟢 Horizon connected`, { clientId });
 
-  // Envoi d'un message de bienvenue (optionnel)
   sendMessage(ws, {
     type: "connected",
     clientId,
     timestamp: Date.now(),
   });
 
-  // Gestion des messages entrants
+  // Incoming message management
   ws.on("message", (data) => handleMessage(ws, data));
 
-  // Gestion de la déconnexion
+  // Disconnection management
   ws.on("close", () => handleDisconnection(ws));
 
-  // Gestion des erreurs
+  // Error handling
   ws.on("error", (error) => handleError(ws, error));
 };
 
-/**
- * Traite les messages reçus du client
- */
 const handleMessage = async (ws: WebSocket, data: any) => {
   const client = clients.get(ws);
 
   try {
-    // Décodage MessagePack
+    // Decode MessagePack
     const decoded = decode(new Uint8Array(data as ArrayBuffer));
 
-    // Validation avec Zod
+    // Validate with Zod
     const msg: ClientMessageType = clientMessageSchema.parse(decoded);
 
-    wsLogger.debug({
-      msg: `Message received`,
+    wsLogger.debug("Message received", {
       clientId: client?.id,
       action: msg.action,
     });
 
-    // Router les messages selon l'action
     await routeMessage(ws, msg);
   } catch (err: unknown) {
     handleMessageError(ws, err);
   }
 };
 
-/**
- * Route les messages vers les handlers appropriés
- */
 const routeMessage = async (ws: WebSocket, msg: ClientMessageType) => {
   switch (msg.action) {
     case "next-ticks":
@@ -83,15 +72,11 @@ const routeMessage = async (ws: WebSocket, msg: ClientMessageType) => {
   }
 };
 
-/**
- * Handler pour l'action "next-ticks"
- */
 const handleNextTicks = async (ws: WebSocket, msg: NextTicksType) => {
   const timer = createTimer();
   const clientId = clients.get(ws)?.id;
 
-  wsLogger.debug({
-    msg: "Processing next-ticks request",
+  wsLogger.debug("Processing next-ticks request", {
     clientId,
     target: msg.target,
     fromTime: msg.fromTime,
@@ -102,8 +87,7 @@ const handleNextTicks = async (ws: WebSocket, msg: NextTicksType) => {
     const coords = await getNextTicks(msg);
     const duration = timer.end();
 
-    wsLogger.info({
-      msg: `✅ Sent ${coords.count} positions`,
+    wsLogger.debug(`✅ Sent ${coords.count} positions`, {
       clientId,
       target: coords.target.name,
       count: coords.count,
@@ -117,9 +101,6 @@ const handleNextTicks = async (ws: WebSocket, msg: NextTicksType) => {
   }
 };
 
-/**
- * Gère les erreurs de parsing/validation des messages
- */
 const handleMessageError = (ws: WebSocket, err: unknown) => {
   logError(wsLogger, err);
 
@@ -133,29 +114,20 @@ const handleMessageError = (ws: WebSocket, err: unknown) => {
   sendError(ws, "Invalid message format", errorMessage);
 };
 
-/**
- * Gère la déconnexion d'un client
- */
 const handleDisconnection = (ws: WebSocket) => {
   const client = clients.get(ws);
 
   if (client) {
-    wsLogger.info({ msg: `🔴 Horizon disconnected`, clientId: client.id });
+    wsLogger.info(`🔴 Horizon disconnected`, { clientId: client.id });
     clients.delete(ws);
   }
 };
 
-/**
- * Gère les erreurs WebSocket
- */
 const handleError = (ws: WebSocket, error: Error) => {
   const client = clients.get(ws);
   logError(wsLogger, error, { context: "handleError", clientId: client?.id });
 };
 
-/**
- * Envoie un message encodé en MessagePack
- */
 const sendMessage = (ws: WebSocket, data: any) => {
   if (ws.readyState === 1) {
     // OPEN
@@ -163,15 +135,12 @@ const sendMessage = (ws: WebSocket, data: any) => {
   }
 };
 
-/**
- * Envoie un message d'erreur
- */
 const sendError = (ws: WebSocket, error: string, message: string) => {
   sendMessage(ws, { error, message });
 };
 
 /**
- * Broadcast à tous les clients connectés
+ * Broadcast to all connected clients
  */
 export const broadcast = (data: any, excludeWs?: WebSocket) => {
   clients.forEach((_client, ws) => {
@@ -182,19 +151,19 @@ export const broadcast = (data: any, excludeWs?: WebSocket) => {
 };
 
 /**
- * Génère un ID unique pour un client
+ * Generates a unique ID for a client
  */
 const generateClientId = (): string => {
   return `client_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 };
 
 /**
- * Récupère le nombre de clients connectés
+ * Retrieves the number of connected clients
  */
 export const getClientsCount = () => clients.size;
 
 /**
- * Récupère les infos de tous les clients
+ * Retrieves information about all clients
  */
 export const getClientsInfo = () => {
   return Array.from(clients.values());

@@ -1,4 +1,4 @@
-import { createTimer, logPerformance, pgDbLogger } from "@app/lib/logger";
+import { createTimer, logPerformance, pgDbLogger } from "@/lib/logger";
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 
 import { db } from "../connection";
@@ -6,18 +6,18 @@ import { celestialBodiesMapping } from "../schema";
 import { planetMoons, planets, stars } from "../schema";
 
 /**
- * Synchronise la table de mapping avec les données actuelles
- * Filtre automatiquement les entrées sans UUID (ne devrait jamais arriver si DB bien configurée)
+ * Synchronizes the mapping table with the current data.
+ * Automatically filters entries without UUIDs (should never happen if the database is configured correctly).
  */
 export const syncMappingTable = async (): Promise<void> => {
   const timer = createTimer();
-  pgDbLogger.info({ msg: "🔄 Starting mapping table sync..." });
+  pgDbLogger.info("🔄 Starting mapping table sync...");
 
-  // Vider la table
+  // clear table
   await db.delete(celestialBodiesMapping);
 
   // =====================================
-  // Insérer les étoiles
+  // Insert stars
   // =====================================
   const starsData = await db
     .select({
@@ -32,7 +32,7 @@ export const syncMappingTable = async (): Promise<void> => {
   if (starsData.length > 0) {
     await db.insert(celestialBodiesMapping).values(
       starsData.map((s) => ({
-        uuid: s.uuid!, // Non-null assertion safe après le WHERE
+        uuid: s.uuid!,
         id: s.id,
         type: "star" as const,
         name: s.name,
@@ -43,7 +43,7 @@ export const syncMappingTable = async (): Promise<void> => {
   }
 
   // =====================================
-  // Insérer les planètes
+  // Insert planets
   // =====================================
   const planetsData = await db
     .select({
@@ -69,7 +69,7 @@ export const syncMappingTable = async (): Promise<void> => {
   }
 
   // =====================================
-  // Insérer les lunes
+  // Insert moons
   // =====================================
   const moonsData = await db
     .select({
@@ -104,8 +104,7 @@ export const syncMappingTable = async (): Promise<void> => {
 
   const duration = timer.end();
   const totalCount = starsData.length + planetsData.length + moonsData.length;
-  pgDbLogger.debug({
-    msg: "✅ Mapping table synced",
+  pgDbLogger.debug("✅ Mapping table synced", {
     duration,
     totalCount,
     stars: starsData.length,
@@ -117,15 +116,12 @@ export const syncMappingTable = async (): Promise<void> => {
   // ⚠️ Warning entries without UUID
   const totalInDb = await countTotalCelestialBodies();
   if (totalCount < totalInDb) {
-    pgDbLogger.warn({
-      msg: `⚠️  Warning: ${totalInDb - totalCount} entries skipped (missing UUID or systemId)`,
-    });
+    pgDbLogger.warn(
+      `⚠️ Warning: ${totalInDb - totalCount} entries skipped (missing UUID or systemId)`,
+    );
   }
 };
 
-/**
- * Compte le total d'objets célestes dans les tables sources
- */
 const countTotalCelestialBodies = async (): Promise<number> => {
   const starsCount = await db
     .select({ count: sql<number>`count(*)` })
@@ -142,108 +138,4 @@ const countTotalCelestialBodies = async (): Promise<number> => {
     Number(planetsCount[0].count) +
     Number(moonsCount[0].count)
   );
-};
-
-/**
- * Compte les entrées dans la table de mapping
- */
-export const countMappings = async (): Promise<number> => {
-  const result = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(celestialBodiesMapping);
-
-  return Number(result[0].count);
-};
-
-/**
- * Compte par type
- */
-export const countMappingsByType = async () => {
-  const result = await db
-    .select({
-      type: celestialBodiesMapping.type,
-      count: sql<number>`count(*)`,
-    })
-    .from(celestialBodiesMapping)
-    .groupBy(celestialBodiesMapping.type);
-
-  return result.reduce(
-    (acc, row) => {
-      acc[row.type] = Number(row.count);
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
-};
-
-/**
- * Vérifie l'intégrité : trouve les entrées sans UUID
- */
-export const findEntriesWithoutUuid = async () => {
-  const starsWithoutUuid = await db
-    .select({ id: stars.id, name: stars.name })
-    .from(stars)
-    .where(sql`${stars.uuid} IS NULL`);
-
-  const planetsWithoutUuid = await db
-    .select({ id: planets.id, name: planets.name })
-    .from(planets)
-    .where(sql`${planets.uuid} IS NULL`);
-
-  const moonsWithoutUuid = await db
-    .select({ id: planetMoons.id, name: planetMoons.name })
-    .from(planetMoons)
-    .where(sql`${planetMoons.uuid} IS NULL`);
-
-  return {
-    stars: starsWithoutUuid,
-    planets: planetsWithoutUuid,
-    moons: moonsWithoutUuid,
-    total:
-      starsWithoutUuid.length +
-      planetsWithoutUuid.length +
-      moonsWithoutUuid.length,
-  };
-};
-
-/**
- * Ajoute un mapping manuellement
- */
-export const addMapping = async (data: {
-  uuid: string;
-  id: number;
-  type: "star" | "planet" | "moon";
-  name: string;
-  systemId: number;
-  parentId?: number | null;
-}) => {
-  return await db.insert(celestialBodiesMapping).values(data).returning();
-};
-
-/**
- * Met à jour un mapping
- */
-export const updateMapping = async (
-  uuid: string,
-  data: Partial<{
-    name: string;
-    systemId: number;
-    parentId: number | null;
-  }>,
-) => {
-  return await db
-    .update(celestialBodiesMapping)
-    .set({ ...data, updatedAt: new Date() })
-    .where(eq(celestialBodiesMapping.uuid, uuid))
-    .returning();
-};
-
-/**
- * Supprime un mapping
- */
-export const removeMapping = async (uuid: string) => {
-  return await db
-    .delete(celestialBodiesMapping)
-    .where(eq(celestialBodiesMapping.uuid, uuid))
-    .returning();
 };

@@ -14,7 +14,7 @@ const createSystemSchema = z.object({
 });
 
 /**
- * GET /systems - Liste tous les systèmes
+ * GET /systems - List all systems
  */
 systemsRouter.get("/", async (c) => {
   try {
@@ -30,7 +30,7 @@ systemsRouter.get("/", async (c) => {
 });
 
 /**
- * GET /systems/:id - Récupère un système avec ses planètes et étoiles
+ * GET /systems/:id - Retrieves a system with its planets and stars
  */
 systemsRouter.get("/:id", async (c) => {
   try {
@@ -48,7 +48,7 @@ systemsRouter.get("/:id", async (c) => {
 });
 
 /**
- * POST /systems - Crée un nouveau système
+ * POST /systems - Creates a new system
  */
 systemsRouter.post("/", async (c) => {
   try {

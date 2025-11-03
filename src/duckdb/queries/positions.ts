@@ -1,4 +1,4 @@
-import { NextTicksType } from "@app/schema/planetarySystem/requestPlanetarySystem.ws";
+import { NextTicksType } from "@/websocket/schema/requestPlanetarySystem.model";
 import { DOUBLE, INTEGER } from "@duckdb/node-api";
 import {
   createTimer,

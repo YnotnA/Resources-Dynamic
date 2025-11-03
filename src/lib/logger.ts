@@ -8,10 +8,8 @@ import { ZodError } from "zod";
 const isDev = process.env.NODE_ENV !== "production";
 const isTest = process.env.NODE_ENV === "test";
 
-console.log({ idDev: isDev });
-
 // Configuration du logger principal
-export const logger = new Logger<ILogObj>({
+const baseLogger = new Logger<ILogObj>({
   name: "App",
 
   // Niveaux de log
@@ -51,28 +49,84 @@ export const logger = new Logger<ILogObj>({
 });
 
 // ===================================
-// Sous-loggers avec icônes et couleurs
+// Créer les sub-loggers de base
 // ===================================
 
-export const wsLogger = logger.getSubLogger({
-  name: "🔌 WebSocket",
-});
+const baseWsLogger = baseLogger.getSubLogger({ name: "🔌 WebSocket" });
+const baseDuckDbLogger = baseLogger.getSubLogger({ name: "🦆 DuckDB" });
+const basePgDbLogger = baseLogger.getSubLogger({ name: "🐘 Postgres" });
+const baseApiLogger = baseLogger.getSubLogger({ name: "🌐 API" });
+const baseCacheLogger = baseLogger.getSubLogger({ name: "💾 Cache" });
 
-export const duckDbLogger = logger.getSubLogger({
-  name: "🦆 DuckDB",
-});
+// ===================================
+// Wrapper pour API cohérente
+// ===================================
 
-export const pgDbLogger = logger.getSubLogger({
-  name: "🐘 Postgres",
-});
+type LogLevel =
+  | "silly"
+  | "trace"
+  | "debug"
+  | "info"
+  | "warn"
+  | "error"
+  | "fatal";
 
-export const apiLogger = logger.getSubLogger({
-  name: "🌐 API",
-});
+interface WrappedLogger {
+  silly: (message: string, metadata?: Record<string, any>) => void;
+  trace: (message: string, metadata?: Record<string, any>) => void;
+  debug: (message: string, metadata?: Record<string, any>) => void;
+  info: (message: string, metadata?: Record<string, any>) => void;
+  warn: (message: string, metadata?: Record<string, any>) => void;
+  error: (message: string, metadata?: Record<string, any>) => void;
+  fatal: (message: string, metadata?: Record<string, any>) => void;
+  getSubLogger: (options: { name: string }) => WrappedLogger;
+}
 
-export const cacheLogger = logger.getSubLogger({
-  name: "💾 Cache",
-});
+const wrapLogger = (logger: Logger<ILogObj>): WrappedLogger => {
+  const createLogMethod = (level: LogLevel) => {
+    return (message: string, metadata?: Record<string, any>) => {
+      if (isDev) {
+        // En DEV (pretty mode) : passer les arguments séparément pour un affichage propre
+        if (!metadata || Object.keys(metadata).length === 0) {
+          logger[level](message);
+        } else {
+          logger[level](message, metadata);
+        }
+      } else {
+        // En PROD (JSON mode) : toujours passer un objet avec "msg"
+        logger[level]({
+          msg: message,
+          ...metadata,
+        });
+      }
+    };
+  };
+
+  return {
+    silly: createLogMethod("silly"),
+    trace: createLogMethod("trace"),
+    debug: createLogMethod("debug"),
+    info: createLogMethod("info"),
+    warn: createLogMethod("warn"),
+    error: createLogMethod("error"),
+    fatal: createLogMethod("fatal"),
+    getSubLogger: (options: { name: string }) => {
+      const subLogger = logger.getSubLogger(options);
+      return wrapLogger(subLogger);
+    },
+  };
+};
+
+// ===================================
+// Loggers wrappés exportés
+// ===================================
+
+export const logger = wrapLogger(baseLogger);
+export const wsLogger = wrapLogger(baseWsLogger);
+export const duckDbLogger = wrapLogger(baseDuckDbLogger);
+export const pgDbLogger = wrapLogger(basePgDbLogger);
+export const apiLogger = wrapLogger(baseApiLogger);
+export const cacheLogger = wrapLogger(baseCacheLogger);
 
 // ===================================
 // Logs fichier en production
@@ -80,12 +134,12 @@ export const cacheLogger = logger.getSubLogger({
 
 if (!isDev && !isTest) {
   const allLoggers = [
-    logger,
-    wsLogger,
-    duckDbLogger,
-    pgDbLogger,
-    apiLogger,
-    cacheLogger,
+    baseLogger,
+    baseWsLogger,
+    baseDuckDbLogger,
+    basePgDbLogger,
+    baseApiLogger,
+    baseCacheLogger,
   ];
 
   const logsDir = path.join(process.cwd(), "logs");
@@ -216,8 +270,7 @@ export const logRequest = (
   const level =
     statusCode >= 500 ? "error" : statusCode >= 400 ? "warn" : "info";
 
-  apiLogger[level]({
-    msg: `${method} ${path} ${statusCode} ${duration}ms`,
+  apiLogger[level](`${method} ${path} ${statusCode} ${duration}ms`, {
     method,
     path,
     statusCode,
@@ -230,7 +283,7 @@ export const logRequest = (
  * Log une query DB avec durée
  */
 export const logQuery = (
-  logger: Logger<ILogObj>,
+  logger: WrappedLogger,
   query: string,
   duration: number,
   rowCount?: number,
@@ -238,8 +291,7 @@ export const logQuery = (
   const truncatedQuery =
     query.length > 100 ? query.substring(0, 100) + "..." : query;
 
-  logger.debug({
-    msg: `Query executed in ${duration}ms`,
+  logger.debug(`Query executed in ${duration}ms`, {
     query: truncatedQuery,
     duration,
     rowCount,
@@ -251,15 +303,14 @@ export const logQuery = (
  * Gère automatiquement ZodError, DrizzleError, PostgresError, et Error standard
  */
 export const logError = (
-  logger: Logger<ILogObj>,
+  logger: WrappedLogger,
   error: Error | ZodError | unknown,
   context?: Record<string, any>,
 ) => {
   if (error instanceof ZodError) {
     const formattedError = formatZodError(error);
 
-    logger.error({
-      msg: `Validation error: ${formattedError.summary}`,
+    logger.error(`Validation error: ${formattedError.summary}`, {
       error: formattedError,
       ...context,
     });
@@ -269,8 +320,7 @@ export const logError = (
   if (error instanceof DrizzleError) {
     const formattedError = formatDrizzleError(error);
 
-    logger.error({
-      msg: `Drizzle error: ${formattedError.message}`,
+    logger.error(`Drizzle error: ${formattedError.message}`, {
       error: formattedError,
       ...context,
     });
@@ -279,16 +329,14 @@ export const logError = (
 
   if (error instanceof Error) {
     if ("code" in error && "severity" in error) {
-      logger.error({
-        msg: error.message,
+      logger.error(error.message, {
         error: formatPostgresError(error),
         ...context,
       });
       return;
     }
 
-    logger.error({
-      msg: error.message,
+    logger.error(error.message, {
       error: {
         name: error.name,
         message: error.message,
@@ -302,8 +350,7 @@ export const logError = (
     return;
   }
 
-  logger.error({
-    msg: String(error),
+  logger.error(String(error), {
     error: {
       type: typeof error,
       value: error,
@@ -316,15 +363,14 @@ export const logError = (
  * Log performance (pour benchmarks)
  */
 export const logPerformance = (
-  logger: Logger<ILogObj>,
+  logger: WrappedLogger,
   operation: string,
   duration: number,
   metadata?: Record<string, any>,
 ) => {
   const level = duration > 1000 ? "warn" : duration > 100 ? "info" : "debug";
 
-  logger[level]({
-    msg: `⏱️  ${operation} took ${duration}ms`,
+  logger[level](`⏱️  ${operation} took ${duration}ms`, {
     operation,
     duration,
     ...metadata,
@@ -350,8 +396,7 @@ export const createTimer = () => {
  */
 export const setupGlobalErrorHandlers = () => {
   process.on("uncaughtException", (error: Error) => {
-    logger.fatal({
-      msg: "Uncaught Exception",
+    logger.fatal("Uncaught Exception", {
       error: {
         name: error.name,
         message: error.message,
@@ -362,8 +407,7 @@ export const setupGlobalErrorHandlers = () => {
   });
 
   process.on("unhandledRejection", (reason: any) => {
-    logger.fatal({
-      msg: "Unhandled Promise Rejection",
+    logger.fatal("Unhandled Promise Rejection", {
       reason: String(reason),
     });
     process.exit(1);

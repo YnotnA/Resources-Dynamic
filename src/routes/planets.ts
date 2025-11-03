@@ -29,7 +29,7 @@ const createPlanetSchema = z.object({
 });
 
 /**
- * GET /planets - Liste toutes les planètes
+ * GET /planets - Lists all planets
  */
 planetsRouter.get("/", async (c) => {
   try {
@@ -46,7 +46,7 @@ planetsRouter.get("/", async (c) => {
 });
 
 /**
- * GET /planets/:uuid - Récupère une planète par UUID avec ses lunes
+ * GET /planets/:uuid - Retrieves a planet by UUID with its moons
  */
 planetsRouter.get("/:uuid", async (c) => {
   try {
@@ -65,7 +65,7 @@ planetsRouter.get("/:uuid", async (c) => {
 });
 
 /**
- * GET /planets/system/:systemId - Planètes d'un système
+ * GET /planets/system/:systemId - Planets in a system
  */
 planetsRouter.get("/system/:systemId", async (c) => {
   try {
@@ -83,7 +83,7 @@ planetsRouter.get("/system/:systemId", async (c) => {
 });
 
 /**
- * POST /planets - Crée une nouvelle planète
+ * POST /planets - Creates a new planet
  */
 planetsRouter.post("/", async (c) => {
   try {
@@ -109,7 +109,7 @@ planetsRouter.post("/", async (c) => {
 });
 
 /**
- * PATCH /planets/:uuid - Met à jour une planète
+ * PATCH /planets/:uuid - Updates a planet
  */
 planetsRouter.patch("/:uuid", async (c) => {
   try {

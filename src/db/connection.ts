@@ -1,4 +1,4 @@
-import { logError, pgDbLogger } from "@app/lib/logger";
+import { logError, pgDbLogger } from "@/lib/logger";
 import * as dotenv from "dotenv";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
@@ -24,7 +24,7 @@ export const db = drizzle(pgClient, { schema });
 export const testConnection = async () => {
   try {
     await pgClient`SELECT 1`;
-    pgDbLogger.info({ msg: "✅ Database connected successfully" });
+    pgDbLogger.info("✅ Database connected successfully");
     return true;
   } catch (error) {
     logError(pgDbLogger, error, { context: "testConnection" });

@@ -1,4 +1,4 @@
-import duckdb, {
+import {
   DuckDBConnection,
   DuckDBInstance,
   DuckDBInstanceCache,
@@ -30,8 +30,7 @@ export const getDuckDBInstance = async (): Promise<DuckDBInstance> => {
   }
 
   try {
-    duckDbLogger.info({
-      msg: "🦆 Initializing DuckDB instance",
+    duckDbLogger.info("🦆 Initializing DuckDB instance", {
       path: DUCKDB_PATH,
     });
 
@@ -43,7 +42,7 @@ export const getDuckDBInstance = async (): Promise<DuckDBInstance> => {
     // Récupérer ou créer l'instance
     duckDbInstance = await instanceCache.getOrCreateInstance(DUCKDB_PATH);
 
-    duckDbLogger.info({ msg: "✅ DuckDB instance ready", path: DUCKDB_PATH });
+    duckDbLogger.info("✅ DuckDB instance ready", { path: DUCKDB_PATH });
 
     return duckDbInstance;
   } catch (error) {
@@ -66,10 +65,10 @@ export const getDuckDBConnection = async (): Promise<DuckDBConnection> => {
   try {
     const instance = await getDuckDBInstance();
 
-    duckDbLogger.info({ msg: "🔌 Connecting to DuckDB" });
+    duckDbLogger.info("🔌 Connecting to DuckDB");
     duckDbConnection = await instance.connect();
 
-    duckDbLogger.info({ msg: "✅ DuckDB connection established" });
+    duckDbLogger.info("✅ DuckDB connection established");
 
     return duckDbConnection;
   } catch (error) {
@@ -83,7 +82,7 @@ export const getDuckDBConnection = async (): Promise<DuckDBConnection> => {
  */
 export const testDuckDBConnection = async (): Promise<boolean> => {
   try {
-    duckDbLogger.info({ msg: "🧪 Testing DuckDB connection" });
+    duckDbLogger.info("🧪 Testing DuckDB connection");
 
     const conn = await getDuckDBConnection();
 
@@ -92,11 +91,11 @@ export const testDuckDBConnection = async (): Promise<boolean> => {
     const rows = await result.getRows();
 
     if (rows.length > 0) {
-      duckDbLogger.info({ msg: "✅ DuckDB connection test successful" });
+      duckDbLogger.info("✅ DuckDB connection test successful");
       return true;
     }
 
-    duckDbLogger.warn({ msg: "⚠️ DuckDB connection test returned no rows" });
+    duckDbLogger.warn("⚠️ DuckDB connection test returned no rows");
     return false;
   } catch (error) {
     logError(duckDbLogger, error, { context: "testDuckDBConnection" });
@@ -150,7 +149,7 @@ export const createDuckDBConnection = async (): Promise<DuckDBConnection> => {
     const instance = await getDuckDBInstance();
     const newConn = await instance.connect();
 
-    duckDbLogger.debug({ msg: "🔌 Created new DuckDB connection" });
+    duckDbLogger.debug("🔌 Created new DuckDB connection");
 
     return newConn;
   } catch (error) {

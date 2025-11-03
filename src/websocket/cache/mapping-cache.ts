@@ -1,12 +1,14 @@
 import { db } from "@db/connection";
 import { type CelestialBodyMapping, celestialBodiesMapping } from "@db/schema";
-import { cacheLogger, createTimer, logPerformance } from "@lib/logger";
+import {
+  cacheLogger,
+  createTimer,
+  logError,
+  logPerformance,
+} from "@lib/logger";
 
 export type CelestialBodyType = "star" | "planet" | "moon";
 
-/**
- * Interface pour le cache (simplifié)
- */
 export interface CachedMapping {
   uuid: string;
   id: number;
@@ -17,8 +19,8 @@ export interface CachedMapping {
 }
 
 /**
- * Cache en mémoire pour le mapping UUID → ID
- * Chargé une seule fois au démarrage du WebSocket
+ * In-memory cache for UUID → ID mapping
+ * Loaded once when the WebSocket starts up
  */
 class MappingCache {
   private uuidToMappingMap: Map<string, CachedMapping> = new Map();
@@ -27,14 +29,13 @@ class MappingCache {
   private lastSync: Date | null = null;
 
   /**
-   * Charge tous les mappings en mémoire depuis la table via Drizzle
+   * Loads all mappings into memory from the table via Drizzle
    */
   async load(): Promise<void> {
     try {
       const timer = createTimer();
-      cacheLogger.info({ msg: "📥 Loading celestial bodies mapping cache..." });
+      cacheLogger.info("📥 Loading celestial bodies mapping cache...");
 
-      // ✅ Utilisation du schéma Drizzle
       const mappings: CelestialBodyMapping[] = await db
         .select()
         .from(celestialBodiesMapping);
@@ -52,10 +53,10 @@ class MappingCache {
           parentId: mapping.parentId ?? undefined,
         };
 
-        // UUID → Mapping complet
+        // UUID → Complete mapping
         this.uuidToMappingMap.set(mapping.uuid, cached);
 
-        // ID → UUID (pour recherche inverse)
+        // ID → UUID (for reverse lookup)
         const key = `${mapping.type}:${mapping.id}`;
         this.idToUuidMap.set(key, mapping.uuid);
       }
@@ -66,8 +67,7 @@ class MappingCache {
       const duration = timer.end();
       const stats = this.getStats();
 
-      cacheLogger.debug({
-        msg: "✅ Cache loaded successfully",
+      cacheLogger.debug("✅ Cache loaded successfully", {
         duration,
         totalEntries: stats.totalEntries,
         byType: stats.byType,
@@ -76,7 +76,7 @@ class MappingCache {
 
       logPerformance(cacheLogger, "Load cache", duration);
     } catch (error) {
-      cacheLogger.error("❌ Failed to load mapping cache:", error);
+      logError(cacheLogger, error, { context: "load" });
       throw error;
     }
   }
@@ -100,16 +100,10 @@ class MappingCache {
     return this.uuidToMappingMap.get(uuid);
   }
 
-  /**
-   * Récupère uniquement l'ID par UUID (< 1µs)
-   */
   getIdByUuid(uuid: string): number | undefined {
     return this.getByUuid(uuid)?.id;
   }
 
-  /**
-   * Récupère l'UUID par ID et type
-   */
   getUuidById(type: CelestialBodyType, id: number): string | undefined {
     if (!this.isLoaded) {
       cacheLogger.warn("⚠️ Cache not loaded, call load() first");
@@ -118,52 +112,34 @@ class MappingCache {
     return this.idToUuidMap.get(`${type}:${id}`);
   }
 
-  /**
-   * Batch: Récupère plusieurs mappings par UUIDs
-   */
   getBatchByUuids(uuids: string[]): CachedMapping[] {
     return uuids
       .map((uuid) => this.getByUuid(uuid))
       .filter((m): m is CachedMapping => m !== undefined);
   }
 
-  /**
-   * Récupère tous les objets d'un système
-   */
   getBySystemId(systemId: number): CachedMapping[] {
     return Array.from(this.uuidToMappingMap.values()).filter(
       (m) => m.systemId === systemId,
     );
   }
 
-  /**
-   * Filtre par type
-   */
   getByType(type: CelestialBodyType): CachedMapping[] {
     return Array.from(this.uuidToMappingMap.values()).filter(
       (m) => m.type === type,
     );
   }
 
-  /**
-   * Récupère toutes les lunes d'une planète
-   */
   getMoonsByPlanetId(planetId: number): CachedMapping[] {
     return Array.from(this.uuidToMappingMap.values()).filter(
       (m) => m.type === "moon" && m.parentId === planetId,
     );
   }
 
-  /**
-   * Vérifie si le cache est chargé
-   */
   isReady(): boolean {
     return this.isLoaded;
   }
 
-  /**
-   * Statistiques du cache
-   */
   getStats() {
     const byType = {
       stars: this.getByType("star").length,
@@ -183,9 +159,6 @@ class MappingCache {
     };
   }
 
-  /**
-   * Vide le cache
-   */
   clear(): void {
     this.uuidToMappingMap.clear();
     this.idToUuidMap.clear();
@@ -194,9 +167,6 @@ class MappingCache {
     cacheLogger.info("🗑️ Cache cleared");
   }
 
-  /**
-   * Recherche par nom (fuzzy search)
-   */
   searchByName(query: string): CachedMapping[] {
     const lowerQuery = query.toLowerCase();
     return Array.from(this.uuidToMappingMap.values()).filter((m) =>
@@ -205,5 +175,4 @@ class MappingCache {
   }
 }
 
-// Export une instance singleton
 export const mappingCache = new MappingCache();
