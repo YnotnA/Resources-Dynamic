@@ -15,23 +15,24 @@ const API_PORT = parseInt(process.env.API_PORT || "3001");
 
 // Démarrage du serveur
 const start = async () => {
-  logger.info("🎬 Starting Resources Dynamic Server...");
+  logger.info({ msg: "🎬 Starting Resources Dynamic Server..." });
 
   // Test connexion DB
   const dbConnected = await testConnection();
   if (!dbConnected) {
-    logger.error("❌ Failed to connect to database. Exiting...");
+    logger.error({ msg: "❌ Failed to connect to database. Exiting..." });
     process.exit(1);
   }
 
-  logger.info("🔄 Syncing mapping table...");
+  logger.info({ msg: "🔄 Syncing mapping table..." });
   await syncMappingTable();
 
-  logger.info("📥 Loading mapping cache...");
+  logger.info({ msg: "📥 Loading mapping cache..." });
   await mappingCache.load();
-  console.log(
-    `✅ Cache ready: ${mappingCache.getStats().totalEntries} entries`,
-  );
+  logger.info({
+    msg: `✅ Cache ready`,
+    entries: mappingCache.getStats().totalEntries,
+  });
 
   // WebSocket standalone
   createStandaloneWebSocket(WS_PORT);
@@ -42,13 +43,15 @@ const start = async () => {
     port: API_PORT,
   });
 
-  logger.info(`🔌 WebSocket: ws://localhost:${WS_PORT}`);
-  logger.info(`📡 API: http://localhost:${API_PORT}`);
-  logger.info(`📚 Planets API: http://localhost:${API_PORT}/api/planets`);
+  logger.info({ msg: `🔌 WebSocket: ws://localhost:${WS_PORT}` });
+  logger.info({ msg: `📡 API: http://localhost:${API_PORT}` });
+  logger.info({
+    msg: `📚 Planets API: http://localhost:${API_PORT}/api/planets`,
+  });
 };
 
 process.on("SIGINT", async () => {
-  logger.info("\n🛑 Shutting down gracefully...");
+  logger.info({ msg: "🛑 Shutting down gracefully..." });
   mappingCache.clear();
   process.exit(0);
 });

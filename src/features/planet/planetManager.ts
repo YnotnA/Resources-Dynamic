@@ -1,15 +1,12 @@
 import { DOUBLE, DuckDBConnection, INTEGER } from "@duckdb/node-api";
 import { duckDbInstance } from "@lib/duckDb";
-import { wsLogger } from "@lib/logger";
+import { createTimer, logError, logPerformance, wsLogger } from "@lib/logger";
 import { mappingCache } from "@websocket/cache/mapping-cache";
 
 import type { NextTicksType } from "../../schema/planetarySystem/requestPlanetarySystem.ws";
 
 let duckConnectPromise: Promise<DuckDBConnection> | null = null;
 
-/**
- * Obtient la connexion DuckDB (singleton)
- */
 const getDuckConnect = async (): Promise<DuckDBConnection> => {
   if (!duckConnectPromise) {
     duckConnectPromise = duckDbInstance(`${process.cwd()}/data/my-db.duckdb`);
@@ -17,43 +14,42 @@ const getDuckConnect = async (): Promise<DuckDBConnection> => {
   return duckConnectPromise;
 };
 
-/**
- * Convertit un UUID en ID en utilisant le cache
- * ✅ Ultra-rapide : < 1µs
- */
 const uuidToId = (uuid: string): number | null => {
   const id = mappingCache.getIdByUuid(uuid);
 
   if (id === undefined) {
-    wsLogger.warn(`⚠️ UUID not found in cache: ${uuid}`);
+    wsLogger.warn({ msg: `⚠️ UUID not found in cache`, uuid });
     return null;
   }
 
   return id;
 };
 
-/**
- * Récupère les prochaines positions d'un objet céleste
- */
 export const getNextTicks = async (clientMessage: NextTicksType) => {
   try {
-    // ✅ Conversion UUID → ID via le cache
+    const timer = createTimer();
     const typeId = uuidToId(clientMessage.target);
 
     if (typeId === null) {
-      wsLogger.error(`❌ Invalid target UUID: ${clientMessage.target}`);
+      wsLogger.error({
+        msg: `❌ Invalid target UUID`,
+        uuid: clientMessage.target,
+      });
       throw new Error(`Target not found: ${clientMessage.target}`);
     }
 
     const mapping = mappingCache.getByUuid(clientMessage.target);
-    wsLogger.debug(
-      `🎯 Query for ${mapping?.type} "${mapping?.name}" (ID: ${typeId})`,
-    );
+    wsLogger.debug({
+      msg: `Querying positions`,
+      target: mapping?.name,
+      type: mapping?.type,
+      id: typeId,
+      fromTime: clientMessage.fromTime,
+      count: clientMessage.count,
+    });
 
-    // Connexion DuckDB
     const duckConnect = await getDuckConnect();
 
-    // Préparer la requête
     const prepared = await duckConnect.prepare(`
       SELECT *
       FROM planet_positions
@@ -63,7 +59,6 @@ export const getNextTicks = async (clientMessage: NextTicksType) => {
       LIMIT $limit
     `);
 
-    // Bind des paramètres
     prepared.bind(
       {
         time: clientMessage.fromTime,
@@ -73,11 +68,11 @@ export const getNextTicks = async (clientMessage: NextTicksType) => {
       { time: DOUBLE, typeId: INTEGER, limit: INTEGER },
     );
 
-    // Exécution
     const result = await prepared.run();
     const rows = await result.getRowObjectsJson();
+    const duration = timer.end();
 
-    wsLogger.debug(`✅ Found ${rows.length} positions for ${mapping?.name}`);
+    logPerformance(wsLogger, "Sync mapping table", duration);
 
     return {
       target: {
@@ -91,7 +86,7 @@ export const getNextTicks = async (clientMessage: NextTicksType) => {
       rows,
     };
   } catch (error) {
-    wsLogger.error("❌ Error in getNextTicks:", error);
+    logError(wsLogger, error, { context: "getNextTicks" });
     throw error;
   }
 };

@@ -1,5 +1,5 @@
 import { getNextTicks } from "@feat/planet/planetManager";
-import { wsLogger } from "@lib/logger";
+import { createTimer, logError, wsLogger } from "@lib/logger";
 import { decode, encode } from "@msgpack/msgpack";
 import {
   ClientMessageType,
@@ -23,7 +23,7 @@ export const handleConnection = (ws: WebSocket) => {
     connectedAt: new Date(),
   });
 
-  wsLogger.info(`🟢 Horizon connected [${clientId}]`);
+  wsLogger.info({ msg: `🟢 Horizon connected`, clientId });
 
   // Envoi d'un message de bienvenue (optionnel)
   sendMessage(ws, {
@@ -55,7 +55,11 @@ const handleMessage = async (ws: WebSocket, data: any) => {
     // Validation avec Zod
     const msg: ClientMessageType = clientMessageSchema.parse(decoded);
 
-    wsLogger.debug(`⬅ Message from client [${client?.id}]:`, msg.action);
+    wsLogger.debug({
+      msg: `Message received`,
+      clientId: client?.id,
+      action: msg.action,
+    });
 
     // Router les messages selon l'action
     await routeMessage(ws, msg);
@@ -83,14 +87,32 @@ const routeMessage = async (ws: WebSocket, msg: ClientMessageType) => {
  * Handler pour l'action "next-ticks"
  */
 const handleNextTicks = async (ws: WebSocket, msg: NextTicksType) => {
+  const timer = createTimer();
+  const clientId = clients.get(ws)?.id;
+
+  wsLogger.debug({
+    msg: "Processing next-ticks request",
+    clientId,
+    target: msg.target,
+    fromTime: msg.fromTime,
+    count: msg.count,
+  });
+
   try {
     const coords = await getNextTicks(msg);
+    const duration = timer.end();
 
-    wsLogger.debug("➡ Sending next ticks coords:", coords);
+    wsLogger.info({
+      msg: `✅ Sent ${coords.count} positions`,
+      clientId,
+      target: coords.target.name,
+      count: coords.count,
+      duration,
+    });
 
     sendMessage(ws, coords);
   } catch (error) {
-    wsLogger.error("❌ Error in getNextTicks:", error);
+    logError(wsLogger, error, { context: "handleNextTicks" });
     sendError(ws, "Processing error", "Failed to get next ticks");
   }
 };
@@ -99,7 +121,7 @@ const handleNextTicks = async (ws: WebSocket, msg: NextTicksType) => {
  * Gère les erreurs de parsing/validation des messages
  */
 const handleMessageError = (ws: WebSocket, err: unknown) => {
-  wsLogger.error("❌ Invalid message:", err);
+  logError(wsLogger, err);
 
   const errorMessage =
     err instanceof ZodError
@@ -118,7 +140,7 @@ const handleDisconnection = (ws: WebSocket) => {
   const client = clients.get(ws);
 
   if (client) {
-    wsLogger.info(`🔴 Horizon disconnected [${client.id}]`);
+    wsLogger.info({ msg: `🔴 Horizon disconnected`, clientId: client.id });
     clients.delete(ws);
   }
 };
@@ -128,7 +150,7 @@ const handleDisconnection = (ws: WebSocket) => {
  */
 const handleError = (ws: WebSocket, error: Error) => {
   const client = clients.get(ws);
-  wsLogger.error(`❌ WebSocket error [${client?.id}]:`, error);
+  logError(wsLogger, error, { context: "handleError", clientId: client?.id });
 };
 
 /**

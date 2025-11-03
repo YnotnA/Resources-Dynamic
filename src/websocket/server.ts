@@ -8,7 +8,9 @@ export const createStandaloneWebSocket = (port: number = 3000) => {
 
   wss.on("connection", handleConnection);
 
-  wsLogger.info(`🚀 WebSocket server running on ws://localhost:${port}`);
+  wsLogger.info({
+    msg: `🚀 WebSocket server running on ws://localhost:${port}`,
+  });
 
   return wss;
 };

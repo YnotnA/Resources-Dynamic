@@ -1,3 +1,4 @@
+import { createTimer, logPerformance, pgDbLogger } from "@app/lib/logger";
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 
 import { db } from "../connection";
@@ -9,7 +10,8 @@ import { planetMoons, planets, stars } from "../schema";
  * Filtre automatiquement les entrées sans UUID (ne devrait jamais arriver si DB bien configurée)
  */
 export const syncMappingTable = async (): Promise<void> => {
-  console.log("🔄 Syncing celestial bodies mapping...");
+  const timer = createTimer();
+  pgDbLogger.info({ msg: "🔄 Starting mapping table sync..." });
 
   // Vider la table
   await db.delete(celestialBodiesMapping);
@@ -100,18 +102,24 @@ export const syncMappingTable = async (): Promise<void> => {
     );
   }
 
+  const duration = timer.end();
   const totalCount = starsData.length + planetsData.length + moonsData.length;
-  console.log(`✅ Mapping synced: ${totalCount} entries`);
-  console.log(`   - Stars: ${starsData.length}`);
-  console.log(`   - Planets: ${planetsData.length}`);
-  console.log(`   - Moons: ${moonsData.length}`);
+  pgDbLogger.debug({
+    msg: "✅ Mapping table synced",
+    duration,
+    totalCount,
+    stars: starsData.length,
+    planets: planetsData.length,
+    moons: moonsData.length,
+  });
 
-  // ⚠️ Warning si des entrées n'ont pas d'UUID
+  logPerformance(pgDbLogger, "Sync mapping table", duration);
+  // ⚠️ Warning entries without UUID
   const totalInDb = await countTotalCelestialBodies();
   if (totalCount < totalInDb) {
-    console.warn(
-      `⚠️  Warning: ${totalInDb - totalCount} entries skipped (missing UUID or systemId)`,
-    );
+    pgDbLogger.warn({
+      msg: `⚠️  Warning: ${totalInDb - totalCount} entries skipped (missing UUID or systemId)`,
+    });
   }
 };
 

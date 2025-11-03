@@ -1,6 +1,6 @@
 import { db } from "@db/connection";
 import { type CelestialBodyMapping, celestialBodiesMapping } from "@db/schema";
-import { wsLogger } from "@lib/logger";
+import { cacheLogger, createTimer, logPerformance } from "@lib/logger";
 
 export type CelestialBodyType = "star" | "planet" | "moon";
 
@@ -31,7 +31,8 @@ class MappingCache {
    */
   async load(): Promise<void> {
     try {
-      wsLogger.info("📥 Loading celestial bodies mapping cache...");
+      const timer = createTimer();
+      cacheLogger.info({ msg: "📥 Loading celestial bodies mapping cache..." });
 
       // ✅ Utilisation du schéma Drizzle
       const mappings: CelestialBodyMapping[] = await db
@@ -62,11 +63,20 @@ class MappingCache {
       this.isLoaded = true;
       this.lastSync = new Date();
 
-      wsLogger.info(
-        `✅ Cache loaded: ${this.uuidToMappingMap.size} celestial bodies`,
-      );
+      const duration = timer.end();
+      const stats = this.getStats();
+
+      cacheLogger.debug({
+        msg: "✅ Cache loaded successfully",
+        duration,
+        totalEntries: stats.totalEntries,
+        byType: stats.byType,
+        memoryKB: stats.memoryUsageKB,
+      });
+
+      logPerformance(cacheLogger, "Load cache", duration);
     } catch (error) {
-      wsLogger.error("❌ Failed to load mapping cache:", error);
+      cacheLogger.error("❌ Failed to load mapping cache:", error);
       throw error;
     }
   }
@@ -75,7 +85,7 @@ class MappingCache {
    * Recharge le cache (à appeler périodiquement ou sur événement)
    */
   async reload(): Promise<void> {
-    wsLogger.info("🔄 Reloading mapping cache...");
+    cacheLogger.info("🔄 Reloading mapping cache...");
     await this.load();
   }
 
@@ -84,7 +94,7 @@ class MappingCache {
    */
   getByUuid(uuid: string): CachedMapping | undefined {
     if (!this.isLoaded) {
-      wsLogger.warn("⚠️ Cache not loaded, call load() first");
+      cacheLogger.warn("⚠️ Cache not loaded, call load() first");
       return undefined;
     }
     return this.uuidToMappingMap.get(uuid);
@@ -102,7 +112,7 @@ class MappingCache {
    */
   getUuidById(type: CelestialBodyType, id: number): string | undefined {
     if (!this.isLoaded) {
-      wsLogger.warn("⚠️ Cache not loaded, call load() first");
+      cacheLogger.warn("⚠️ Cache not loaded, call load() first");
       return undefined;
     }
     return this.idToUuidMap.get(`${type}:${id}`);
@@ -181,7 +191,7 @@ class MappingCache {
     this.idToUuidMap.clear();
     this.isLoaded = false;
     this.lastSync = null;
-    wsLogger.info("🗑️ Cache cleared");
+    cacheLogger.info("🗑️ Cache cleared");
   }
 
   /**

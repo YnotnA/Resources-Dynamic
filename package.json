@@ -1,8 +1,8 @@
 {
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsup",
-    "start": "node dist/index.js",
+    "build": "NODE_ENV=production tsup",
+    "start": "NODE_ENV=production node dist/index.mjs",
     "type-check": "tsc --noEmit",
     "client": "tsx watch src/client.ts",
     "db:generate": "drizzle-kit generate",

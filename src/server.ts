@@ -1,5 +1,5 @@
 import { getNextTicks } from "@feat/planet/planetManager";
-import { wsLogger } from "@lib/logger";
+import { logError, wsLogger } from "@lib/logger";
 import { decode, encode } from "@msgpack/msgpack";
 import { WebSocketServer } from "ws";
 import { ZodError } from "zod";
@@ -7,10 +7,10 @@ import { ZodError } from "zod";
 import { clientMessageSchema } from "./schema/clientMessage.model";
 
 const wss = new WebSocketServer({ port: 3000 });
-wsLogger.info("🚀 WebSocket server running on ws://localhost:3000");
+wsLogger.info({ msg: "🚀 WebSocket server running on ws://localhost:3000" });
 
 wss.on("connection", async (ws) => {
-  wsLogger.info("🟢 Horizon connected");
+  wsLogger.info({ msg: "🟢 Horizon connected" });
 
   ws.on("message", async (data) => {
     let msg;
@@ -19,7 +19,7 @@ wss.on("connection", async (ws) => {
 
       msg = clientMessageSchema.parse(decoded);
     } catch (err: unknown) {
-      wsLogger.error("❌ Invalid message", err);
+      logError(wsLogger, err, { context: "handleMessage" });
 
       const errorMessage =
         err instanceof ZodError
@@ -34,7 +34,7 @@ wss.on("connection", async (ws) => {
       return;
     }
 
-    wsLogger.debug("⬅ Message from client:", msg.action);
+    wsLogger.debug({ msg: "⬅ Message from client", clientMessage: msg });
 
     if (msg.action === "next-ticks") {
       const coords = await getNextTicks(msg);
@@ -44,6 +44,6 @@ wss.on("connection", async (ws) => {
   });
 
   ws.on("close", () => {
-    wsLogger.info("🔴 Horizon disconnected");
+    wsLogger.info({ msg: "🔴 Horizon disconnected" });
   });
 });
