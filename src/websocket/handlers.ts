@@ -1,11 +1,11 @@
 import { getNextTicks } from "@feat/planet/planetManager";
-import { NextTicksType } from "@feat/planet/schema/requestPlanet.model";
 import { wsLogger } from "@lib/logger";
 import { decode, encode } from "@msgpack/msgpack";
 import {
   ClientMessageType,
   clientMessageSchema,
 } from "schema/clientMessage.model";
+import { NextTicksType } from "schema/planetarySystem/requestPlanetarySystem.ws";
 import type { WebSocket } from "ws";
 import { ZodError } from "zod";
 

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { nextTicksSchema } from "../features/planet/schema/requestPlanet.model";
 import { pingSchema } from "./health.model";
+import { nextTicksSchema } from "./planetarySystem/requestPlanetarySystem.ws";
 
 export const clientMessageSchema = z.discriminatedUnion("action", [
   nextTicksSchema,

@@ -1,39 +1,24 @@
 import { Hono } from "hono";
 
-import {
-  broadcast,
-  getClientsCount,
-  getClientsInfo,
-} from "../websocket/handlers";
+import { getClientsCount } from "../websocket/handlers";
+import planetsRouter from "./planets";
+import systemsRouter from "./systems";
 
 const api = new Hono();
 
-// Route pour obtenir des stats sur les connexions WebSocket
-api.get("/ws/stats", (c) => {
-  return c.json({
-    connectedClients: getClientsCount(),
-    clients: getClientsInfo(),
-  });
-});
+// Routes
+api.route("/planets", planetsRouter);
+api.route("/systems", systemsRouter);
 
-// Route pour broadcaster un message à tous les clients WS
-api.post("/ws/broadcast", async (c) => {
-  const body = await c.req.json();
-
-  broadcast({
-    type: "server-broadcast",
-    data: body,
-    timestamp: Date.now(),
-  });
-
-  return c.json({
-    success: true,
-    message: "Broadcasted to all clients",
-    recipients: getClientsCount(),
-  });
-});
-
-// Autres routes API...
-api.get("/health", (c) => c.json({ status: "ok" }));
+// Health check
+api.get("/health", (c) =>
+  c.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    websocket: {
+      connected: getClientsCount(),
+    },
+  }),
+);
 
 export default api;

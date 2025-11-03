@@ -1,18 +1,29 @@
 {
   "compilerOptions": {
-    "baseUrl": "src/",
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": "./src",
     "esModuleInterop": true,
-    "inlineSourceMap": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "lib": ["ES2022"],
     "module": "ESNext",
-    "moduleResolution": "Node",
-    "outDir": "dist",
+    "moduleResolution": "bundler",
+    "outDir": "./dist",
     "paths": {
-      "@app/*": ["/*"],
-      "@feat/*": ["features/*"],
-      "@lib/*": ["lib/*"]
+      "@app/*": ["./*"],
+      "@db/*": ["./db/*"],
+      "@feat/*": ["./features/*"],
+      "@lib/*": ["./lib/*"],
+      "@routes/*": ["./routes/*"],
+      "@websocket/*": ["./websocket/*"]
     },
-    "rootDir": "src",
+    "resolveJsonModule": true,
+    "rootDir": "./src",
+    "skipLibCheck": true,
     "strict": true,
-    "target": "ES2020"
-  }
+    "target": "ES2022",
+    "types": ["node"]
+  },
+  "exclude": ["node_modules", "dist", "drizzle.config.ts", "drizzle/**/*"],
+  "include": ["src/**/*"]
 }

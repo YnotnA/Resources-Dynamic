@@ -9,3 +9,4 @@ export const logger = new Logger({
 
 export const wsLogger = logger.getSubLogger({ name: "WebSocket" });
 export const duckDbLogger = logger.getSubLogger({ name: "DuckDb" });
+export const pgDbLogger = logger.getSubLogger({ name: "Postgres" });

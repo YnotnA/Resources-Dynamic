@@ -13,11 +13,20 @@ services:
         pnpm dev
       "
     ports:
-      - "3000:3000"
+      - "${WS_PORT:-3000}:3000"
+      - "${API_PORT:-3001}:3001"
     volumes:
       - ..:/app
       - app_cache:/app/.cache
     working_dir: /app
+    env_file:
+      - ../.env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${POSTGRES_DB}
+      - NODE_ENV=${NODE_ENV:-development}
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - backend
 
@@ -26,18 +35,58 @@ services:
     image: *node-image
     command: tail -f /dev/null # Keep container running for exec commands
     ports:
-      - "3000:3000"
+      - "${WS_PORT:-3000}:3000"
+      - "${API_PORT:-3001}:3001"
     volumes:
       - ..:/app
       - app_cache:/app/.cache
     working_dir: /app
     tty: true
     stdin_open: true
+    env_file:
+      - ../.env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${POSTGRES_DB}
+      - NODE_ENV=${NODE_ENV:-development}
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - backend
 
+  postgres:
+    image: postgres:17
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-resources_dynamic}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro # Optionnel
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-resources_dynamic}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - backend
+    restart: unless-stopped
+
 volumes:
+  postgres_data:
+    driver: local
   app_cache:
+    driver: local
 
 networks:
   backend:

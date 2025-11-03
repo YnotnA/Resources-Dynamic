@@ -39,8 +39,6 @@ wss.on("connection", async (ws) => {
     if (msg.action === "next-ticks") {
       const coords = await getNextTicks(msg);
 
-      wsLogger.debug(coords);
-
       ws.send(encode(coords));
     }
   });

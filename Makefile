@@ -17,17 +17,30 @@ $(info ❗❗ Using podman for compose commands❗❗)
 EXECUTOR := podman compose
 endif
 
-COMPOSE := $(EXECUTOR) -f docker/docker-compose.yml
+COMPOSE := $(EXECUTOR) -f docker/docker-compose.yml --env-file .env
 
 DEV_SERVICE := dev
 APP_SERVICE := app
+
+
+# =============================================================================
+# Check .env file exists
+# =============================================================================
+.PHONY: check-env
+check-env:
+	@if [ ! -f .env ]; then \
+		echo "$(RED)❌ .env file not found!$(RESET)"; \
+		echo "$(YELLOW)💡 Copy .env.example to .env and configure it:$(RESET)"; \
+		echo "   cp .env.example .env"; \
+		exit 1; \
+	fi
 
 # =============================================================================
 # CP/PO/Others Profile - Simple site testing
 # =============================================================================
 
 .PHONY: start
-start: ## Start the complete application (install, build, start) for testing
+start: check-env ## Start the complete application (install, build, start) for testing
 	@echo "$(CYAN)🚀 Starting DyingStar Website for testing...$(RESET)"
 	@echo "$(YELLOW)This will install dependencies, build, and start the application$(RESET)"
 	@$(COMPOSE) up $(APP_SERVICE) --build
@@ -42,7 +55,7 @@ stop: ## Stop all running services
 # =============================================================================
 
 .PHONY: up
-up: ## Start only MeiliSearch for development (no app)
+up: check-env ## Start only MeiliSearch for development (no app)
 	@echo "$(CYAN)🔧 Starting development environment...$(RESET)"
 	@$(COMPOSE) up $(DEV_SERVICE) -d
 	@echo "$(GREEN)✅ Development environment ready!$(RESET)"
@@ -55,7 +68,7 @@ down: ## Stop development environment
 
 # Generic pnpm command runner
 .PHONY: pnpm
-pnpm: ## Run any pnpm command (usage: make pnpm install, make pnpm dev, etc.)
+pnpm: check-env ## Run any pnpm command (usage: make pnpm install, make pnpm dev, etc.)
 	@if [ -z "$(filter-out $@,$(MAKECMDGOALS))" ]; then \
 		echo "$(RED)❌ Please provide a pnpm command. Usage: make pnpm <command>$(RESET)"; \
 		echo "$(YELLOW)Examples: make pnpm install, make pnpm dev, make pnpm build$(RESET)"; \
@@ -63,6 +76,37 @@ pnpm: ## Run any pnpm command (usage: make pnpm install, make pnpm dev, etc.)
 	fi
 	@echo "$(CYAN)📦 Running: pnpm $(filter-out $@,$(MAKECMDGOALS))$(RESET)"
 	@$(COMPOSE) exec $(DEV_SERVICE) sh -c "corepack enable && corepack install && pnpm $(filter-out $@,$(MAKECMDGOALS))"
+
+
+# =============================================================================
+# Database commands
+# =============================================================================
+
+.PHONY: db-shell
+db-shell: check-env ## Open psql shell in PostgreSQL
+	@echo "$(CYAN)🐘 Opening PostgreSQL shell...$(RESET)"
+	@$(COMPOSE) exec postgres psql -U $(shell grep POSTGRES_USER .env | cut -d '=' -f2) -d $(shell grep POSTGRES_DB .env | cut -d '=' -f2)
+
+.PHONY: db-logs
+db-logs: ## Show PostgreSQL logs
+	@$(COMPOSE) logs -f postgres
+
+.PHONY: db-migrate
+db-migrate: check-env ## Apply Drizzle migrations
+	@echo "$(CYAN)🔄 Applying database migrations...$(RESET)"
+	@$(COMPOSE) exec $(DEV_SERVICE) sh -c "corepack enable && corepack install && pnpm db:push"
+	@echo "$(GREEN)✅ Migrations applied$(RESET)"
+
+.PHONY: db-studio
+db-studio: check-env ## Open Drizzle Studio
+	@echo "$(CYAN)🎨 Starting Drizzle Studio...$(RESET)"
+	@$(COMPOSE) exec $(DEV_SERVICE) sh -c "corepack enable && corepack install && pnpm db:studio"
+
+.PHONY: db-status
+db-status: check-env ## Check database connection status
+	@echo "$(CYAN)🔍 Checking database status...$(RESET)"
+	@$(COMPOSE) exec postgres pg_isready -U $(shell grep POSTGRES_USER .env | cut -d '=' -f2)
+
 
 # =============================================================================
 # Utility commands
@@ -100,6 +144,17 @@ clean-volumes: ## Remove all volumes (WARNING: This will delete all data!)
 	else \
 		echo "$(YELLOW)Cancelled$(RESET)"; \
 	fi
+
+.PHONY: env-check
+env-check: check-env ## Verify .env configuration
+	@echo "$(CYAN)🔍 Environment Configuration:$(RESET)"
+	@echo "$(YELLOW)POSTGRES_USER:$(RESET)     $(shell grep POSTGRES_USER .env | cut -d '=' -f2)"
+	@echo "$(YELLOW)POSTGRES_DB:$(RESET)       $(shell grep POSTGRES_DB .env | cut -d '=' -f2)"
+	@echo "$(YELLOW)POSTGRES_PORT:$(RESET)     $(shell grep POSTGRES_PORT .env | cut -d '=' -f2)"
+	@echo "$(YELLOW)WS_PORT:$(RESET)           $(shell grep WS_PORT .env | cut -d '=' -f2)"
+	@echo "$(YELLOW)API_PORT:$(RESET)          $(shell grep API_PORT .env | cut -d '=' -f2)"
+	@echo "$(YELLOW)NODE_ENV:$(RESET)          $(shell grep NODE_ENV .env | cut -d '=' -f2)"
+
 
 # =============================================================================
 # Help

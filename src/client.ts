@@ -9,9 +9,9 @@ ws.on("open", () => {
   ws.send(
     encode({
       action: "next-ticks",
-      count: 5,
-      fromTime: 800,
-      target: "5cf68ed9-9eb1-4b34-9324-d4517a70a333",
+      count: 60,
+      fromTime: 60,
+      target: "55ad9203-68c6-4d52-a4dd-601fe1c97852",
     }),
   );
 });
