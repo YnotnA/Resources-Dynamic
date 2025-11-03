@@ -1,13 +1,13 @@
-import {
-  ClientMessageType,
-  clientMessageSchema,
-} from "@/websocket/schema/clientMessage.model";
 import { getNextTicks } from "@duckdb/queries/positions";
 import { createTimer, logError, wsLogger } from "@lib/logger";
 import { decode, encode } from "@msgpack/msgpack";
 import type { WebSocket } from "ws";
 import { ZodError } from "zod";
 
+import {
+  ClientMessageType,
+  clientMessageSchema,
+} from "./schema/clientMessage.model";
 import { NextTicksType } from "./schema/requestPlanetarySystem.model";
 
 // Store connected clients with metadata

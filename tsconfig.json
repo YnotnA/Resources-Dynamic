@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
-    "baseUrl": "./src",
+    "baseUrl": ".",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
@@ -10,20 +10,20 @@
     "moduleResolution": "bundler",
     "outDir": "./dist",
     "paths": {
-      "@/*": ["./*"],
-      "@db/*": ["./db/*"],
-      "@duckdb/*": ["./duckdb/*"],
-      "@lib/*": ["./lib/*"],
-      "@routes/*": ["./routes/*"],
-      "@websocket/*": ["./websocket/*"]
+      "@db/*": ["./src/db/*"],
+      "@duckdb/*": ["./src/duckdb/*"],
+      "@lib/*": ["./src/lib/*"],
+      "@routes/*": ["./src/routes/*"],
+      "@schema/*": ["./src/schema/*"],
+      "@websocket/*": ["./src/websocket/*"]
     },
     "resolveJsonModule": true,
-    "rootDir": "./src",
+    "rootDir": ".",
     "skipLibCheck": true,
     "strict": true,
     "target": "ES2022",
-    "types": ["node"]
+    "types": ["node", "vitest/globals"]
   },
   "exclude": ["node_modules", "dist", "drizzle.config.ts", "drizzle/**/*"],
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "tests/**/*"]
 }

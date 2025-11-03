@@ -1,4 +1,3 @@
-import { NextTicksType } from "@/websocket/schema/requestPlanetarySystem.model";
 import { DOUBLE, INTEGER } from "@duckdb/node-api";
 import {
   createTimer,
@@ -7,19 +6,16 @@ import {
   logPerformance,
 } from "@lib/logger";
 import { mappingCache } from "@websocket/cache/mapping-cache";
+import { NextTicksType } from "@websocket/schema/requestPlanetarySystem.model";
 
 import { getDuckDBConnection } from "../connection";
 
 const duckQueryLogger = duckDbLogger.child({ name: "Query" });
 
-/**
- * Récupère les prochaines positions d'un objet céleste
- */
 export const getNextTicks = async (clientMessage: NextTicksType) => {
   const timer = createTimer();
 
   try {
-    // Conversion UUID → ID via le cache
     const mapping = mappingCache.getByUuid(clientMessage.target);
 
     if (!mapping) {
@@ -38,10 +34,8 @@ export const getNextTicks = async (clientMessage: NextTicksType) => {
       "Querying positions",
     );
 
-    // Connexion DuckDB
     const conn = await getDuckDBConnection();
 
-    // Préparer la requête
     const prepared = await conn.prepare(`
       SELECT *
       FROM planet_positions
@@ -51,7 +45,6 @@ export const getNextTicks = async (clientMessage: NextTicksType) => {
       LIMIT $limit
     `);
 
-    // Bind des paramètres
     prepared.bind(
       {
         time: clientMessage.fromTime,
@@ -61,7 +54,6 @@ export const getNextTicks = async (clientMessage: NextTicksType) => {
       { time: DOUBLE, typeId: INTEGER, limit: INTEGER },
     );
 
-    // Exécution
     const result = await prepared.run();
     const rows = await result.getRowObjectsJson();
 

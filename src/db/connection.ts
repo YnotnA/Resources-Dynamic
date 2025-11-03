@@ -1,4 +1,4 @@
-import { logError, pgDbLogger } from "@/lib/logger";
+import { logError, pgDbLogger } from "@lib/logger";
 import * as dotenv from "dotenv";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";

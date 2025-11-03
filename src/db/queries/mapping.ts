@@ -1,4 +1,4 @@
-import { createTimer, logPerformance, pgDbLogger } from "@/lib/logger";
+import { createTimer, logPerformance, pgDbLogger } from "@lib/logger";
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 
 import { db } from "../connection";
