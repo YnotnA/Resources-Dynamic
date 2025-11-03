@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "baseUrl": "src/",
+    "esModuleInterop": true,
+    "inlineSourceMap": true,
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "outDir": "dist",
+    "paths": {
+      "@app/*": ["/*"],
+      "@feat/*": ["features/*"],
+      "@lib/*": ["lib/*"]
+    },
+    "rootDir": "src",
+    "strict": true,
+    "target": "ES2020"
+  }
+}
