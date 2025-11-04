@@ -1,3 +1,4 @@
+import { createSystemSchema, updateSystemSchema } from "@db/schema";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -5,13 +6,10 @@ import {
   createSystem,
   getAllSystems,
   getSystemWithDetails,
+  updateSystem,
 } from "../db/queries";
 
 const systemsRouter = new Hono();
-
-const createSystemSchema = z.object({
-  name: z.string().min(1),
-});
 
 /**
  * GET /systems - List all systems
@@ -70,6 +68,27 @@ systemsRouter.post("/", async (c) => {
       );
     }
     return c.json({ success: false, error: "Failed to create system" }, 500);
+  }
+});
+
+/**
+ * PATCH /systems/:id - Updates a planet
+ */
+systemsRouter.patch("/:id", async (c) => {
+  try {
+    const id = parseInt(c.req.param("id"));
+    const body = await c.req.json();
+    const validated = updateSystemSchema.parse(body);
+
+    const updated = await updateSystem(id, validated);
+
+    if (!updated) {
+      return c.json({ success: false, error: "System not found" }, 404);
+    }
+
+    return c.json({ success: true, data: updated });
+  } catch (error) {
+    return c.json({ success: false, error: "Failed to update system" }, 500);
   }
 });
 

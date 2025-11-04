@@ -1,3 +1,4 @@
+import { createMoonSchema, updateMoonSchema } from "@db/schema";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -11,22 +12,6 @@ import {
 } from "../db/queries";
 
 const planetsRouter = new Hono();
-
-// Validation schema
-const createPlanetSchema = z.object({
-  systemId: z.number().int().positive(),
-  name: z.string().min(1),
-  internalName: z.string().min(1),
-  massKg: z.number().positive(),
-  periapsisAu: z.number(),
-  apoapsisAu: z.number(),
-  incDeg: z.number(),
-  nodeDeg: z.number(),
-  argPeriDeg: z.number(),
-  meanAnomalyDeg: z.number(),
-  radiusKm: z.number().positive(),
-  radiusGravityInfluenceKm: z.number().positive(),
-});
 
 /**
  * GET /planets - Lists all planets
@@ -88,7 +73,7 @@ planetsRouter.get("/system/:systemId", async (c) => {
 planetsRouter.post("/", async (c) => {
   try {
     const body = await c.req.json();
-    const validated = createPlanetSchema.parse(body);
+    const validated = createMoonSchema.parse(body);
 
     const newPlanet = await createPlanet(validated);
 
@@ -115,8 +100,9 @@ planetsRouter.patch("/:uuid", async (c) => {
   try {
     const uuid = c.req.param("uuid");
     const body = await c.req.json();
+    const validated = updateMoonSchema.parse(body);
 
-    const updated = await updatePlanet(uuid, body);
+    const updated = await updatePlanet(uuid, validated);
 
     if (!updated) {
       return c.json({ success: false, error: "Planet not found" }, 404);

@@ -7,8 +7,14 @@ import {
   text,
   uuid,
 } from "drizzle-orm/pg-core";
+import {
+  createInsertSchema,
+  createSelectSchema,
+  createUpdateSchema,
+} from "drizzle-zod";
+import { z } from "zod";
 
-import { planetMoons } from "./moons";
+import { moons } from "./moons";
 import { systems } from "./systems";
 
 export const planets = pgTable("planets", {
@@ -36,8 +42,13 @@ export const planetsRelations = relations(planets, ({ one, many }) => ({
     fields: [planets.systemId],
     references: [systems.id],
   }),
-  moons: many(planetMoons),
+  moons: many(moons),
 }));
 
-export type Planet = typeof planets.$inferSelect;
-export type NewPlanet = typeof planets.$inferInsert;
+export const planetSchema = createSelectSchema(planets);
+export const createPlanetSchema = createInsertSchema(planets);
+export const updatePlanetSchema = createUpdateSchema(planets);
+
+export type Planet = z.infer<typeof planetSchema>;
+export type NewPlanet = z.infer<typeof createPlanetSchema>;
+export type UpdatePlanet = z.infer<typeof updatePlanetSchema>;

@@ -1,7 +1,12 @@
 import { eq } from "drizzle-orm";
 
 import { db } from "../connection";
-import { type NewPlanet, type Planet, planets } from "../schema";
+import {
+  type NewPlanet,
+  type Planet,
+  type UpdatePlanet,
+  planets,
+} from "../schema";
 
 export const getAllPlanets = async (): Promise<Planet[]> => {
   return await db.select().from(planets);
@@ -33,7 +38,7 @@ export const createPlanet = async (planet: NewPlanet): Promise<Planet> => {
 
 export const updatePlanet = async (
   uuid: string,
-  data: Partial<NewPlanet>,
+  data: UpdatePlanet,
 ): Promise<Planet | undefined> => {
   const result = await db
     .update(planets)

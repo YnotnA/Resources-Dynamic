@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { db } from "../connection";
-import { type NewSystem, type System, systems } from "../schema";
+import { type NewSystem, type System, UpdateSystem, systems } from "../schema";
 
 export const getAllSystems = async (): Promise<System[]> => {
   return await db.select().from(systems);
@@ -26,5 +26,17 @@ export const getSystemWithDetails = async (systemId: number) => {
 
 export const createSystem = async (system: NewSystem): Promise<System> => {
   const result = await db.insert(systems).values(system).returning();
+  return result[0];
+};
+
+export const updateSystem = async (
+  systemId: number,
+  data: UpdateSystem,
+): Promise<System | undefined> => {
+  const result = await db
+    .update(systems)
+    .set(data)
+    .where(eq(systems.id, systemId))
+    .returning();
   return result[0];
 };

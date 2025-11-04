@@ -7,10 +7,16 @@ import {
   text,
   uuid,
 } from "drizzle-orm/pg-core";
+import {
+  createInsertSchema,
+  createSelectSchema,
+  createUpdateSchema,
+} from "drizzle-zod";
+import { z } from "zod";
 
 import { planets } from "./planets";
 
-export const planetMoons = pgTable("planet_moons", {
+export const moons = pgTable("planet_moons", {
   id: serial("id").primaryKey(),
   planetId: integer("planet_id").references(() => planets.id),
   uuid: uuid("uuid").defaultRandom().unique(),
@@ -30,12 +36,17 @@ export const planetMoons = pgTable("planet_moons", {
 });
 
 // Relations
-export const planetMoonsRelations = relations(planetMoons, ({ one }) => ({
+export const moonsRelations = relations(moons, ({ one }) => ({
   planet: one(planets, {
-    fields: [planetMoons.planetId],
+    fields: [moons.planetId],
     references: [planets.id],
   }),
 }));
 
-export type PlanetMoon = typeof planetMoons.$inferSelect;
-export type NewPlanetMoon = typeof planetMoons.$inferInsert;
+export const moonSchema = createSelectSchema(moons);
+export const createMoonSchema = createInsertSchema(moons);
+export const updateMoonSchema = createUpdateSchema(moons);
+
+export type Moon = z.infer<typeof moonSchema>;
+export type NewMoon = z.infer<typeof createMoonSchema>;
+export type UpdateMoon = z.infer<typeof updateMoonSchema>;

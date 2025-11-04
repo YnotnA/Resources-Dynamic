@@ -3,7 +3,7 @@ import { and, eq, isNotNull, sql } from "drizzle-orm";
 
 import { db } from "../connection";
 import { celestialBodiesMapping } from "../schema";
-import { planetMoons, planets, stars } from "../schema";
+import { moons, planets, stars } from "../schema";
 
 /**
  * Synchronizes the mapping table with the current data.
@@ -73,19 +73,19 @@ export const syncMappingTable = async (): Promise<void> => {
   // =====================================
   const moonsData = await db
     .select({
-      uuid: planetMoons.uuid,
-      id: planetMoons.id,
-      name: planetMoons.name,
+      uuid: moons.uuid,
+      id: moons.id,
+      name: moons.name,
       systemId: planets.systemId,
-      planetId: planetMoons.planetId,
+      planetId: moons.planetId,
     })
-    .from(planetMoons)
-    .innerJoin(planets, eq(planetMoons.planetId, planets.id))
+    .from(moons)
+    .innerJoin(planets, eq(moons.planetId, planets.id))
     .where(
       and(
-        isNotNull(planetMoons.uuid),
+        isNotNull(moons.uuid),
         isNotNull(planets.systemId),
-        isNotNull(planetMoons.planetId),
+        isNotNull(moons.planetId),
       ),
     );
 
@@ -134,7 +134,7 @@ const countTotalCelestialBodies = async (): Promise<number> => {
     .from(planets);
   const moonsCount = await db
     .select({ count: sql<number>`count(*)` })
-    .from(planetMoons);
+    .from(moons);
 
   return (
     Number(starsCount[0].count) +

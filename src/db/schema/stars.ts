@@ -7,6 +7,12 @@ import {
   text,
   uuid,
 } from "drizzle-orm/pg-core";
+import {
+  createInsertSchema,
+  createSelectSchema,
+  createUpdateSchema,
+} from "drizzle-zod";
+import { z } from "zod";
 
 import { systems } from "./systems";
 
@@ -26,5 +32,10 @@ export const starsRelations = relations(stars, ({ one }) => ({
   }),
 }));
 
-export type Star = typeof stars.$inferSelect;
-export type NewStar = typeof stars.$inferInsert;
+export const starSchema = createSelectSchema(stars);
+export const createStarSchema = createInsertSchema(stars);
+export const updateStarSchema = createUpdateSchema(stars);
+
+export type Star = z.infer<typeof starSchema>;
+export type NewStar = z.infer<typeof createStarSchema>;
+export type UpdateStar = z.infer<typeof updateStarSchema>;
