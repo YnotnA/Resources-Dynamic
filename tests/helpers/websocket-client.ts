@@ -1,9 +1,13 @@
 import { decode, encode } from "@msgpack/msgpack";
+import { ConnectedMessageType } from "@websocket/schema/Response/connected.model";
+import { ErrorMessageType } from "@websocket/schema/Response/error.model";
+import { PongMessageType } from "@websocket/schema/Response/pong.model";
+import { ResponseWsType } from "@websocket/schema/Response/response.model";
 import WebSocket from "ws";
 
 export class TestWebSocketClient {
   private ws: WebSocket | null = null;
-  private messages: any[] = [];
+  private messages: ResponseWsType[] = [];
   private connected: boolean = false;
 
   constructor(private port: number = 3099) {}
@@ -18,7 +22,7 @@ export class TestWebSocketClient {
       });
 
       this.ws.on("message", (data: Buffer) => {
-        const decoded = decode(data);
+        const decoded = decode(data) as ResponseWsType;
         this.messages.push(decoded);
       });
 
@@ -44,7 +48,7 @@ export class TestWebSocketClient {
     this.ws.send(encoded);
   }
 
-  async waitForMessage(timeout: number = 5000): Promise<any> {
+  async waitForMessage(timeout: number = 5000): Promise<ResponseWsType> {
     const startTime = Date.now();
 
     while (this.messages.length === 0) {
@@ -54,10 +58,42 @@ export class TestWebSocketClient {
       await new Promise((resolve) => setTimeout(resolve, 10));
     }
 
-    return this.messages.shift();
+    return this.messages.shift()!;
   }
 
-  getMessages(): any[] {
+  async waitForConnected(
+    timeout: number = 5000,
+  ): Promise<ConnectedMessageType> {
+    const msg = await this.waitForMessage(timeout);
+
+    if ("type" in msg && msg.type === "connected") {
+      return msg;
+    }
+
+    throw new Error(`Expected connected message, got: ${JSON.stringify(msg)}`);
+  }
+
+  async waitForPong(timeout: number = 5000): Promise<PongMessageType> {
+    const msg = await this.waitForMessage(timeout);
+
+    if ("type" in msg && msg.type === "pong") {
+      return msg;
+    }
+
+    throw new Error(`Expected pong message, got: ${JSON.stringify(msg)}`);
+  }
+
+  async waitForError(timeout: number = 5000): Promise<ErrorMessageType> {
+    const msg = await this.waitForMessage(timeout);
+
+    if ("error" in msg) {
+      return msg;
+    }
+
+    throw new Error(`Expected error message, got: ${JSON.stringify(msg)}`);
+  }
+
+  getMessages(): unknown[] {
     return [...this.messages];
   }
 

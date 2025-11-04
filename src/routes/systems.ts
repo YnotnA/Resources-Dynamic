@@ -1,4 +1,5 @@
 import { createSystemSchema, updateSystemSchema } from "@db/schema";
+import { apiLogger, logRequestError } from "@lib/logger";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -23,6 +24,7 @@ systemsRouter.get("/", async (c) => {
       data: systemsList,
     });
   } catch (error) {
+    logRequestError(apiLogger, c, error);
     return c.json({ success: false, error: "Failed to fetch systems" }, 500);
   }
 });
@@ -41,6 +43,7 @@ systemsRouter.get("/:id", async (c) => {
 
     return c.json({ success: true, data: system });
   } catch (error) {
+    logRequestError(apiLogger, c, error);
     return c.json({ success: false, error: "Failed to fetch system" }, 500);
   }
 });
@@ -50,13 +53,14 @@ systemsRouter.get("/:id", async (c) => {
  */
 systemsRouter.post("/", async (c) => {
   try {
-    const body = await c.req.json();
+    const body: unknown = await c.req.json();
     const validated = createSystemSchema.parse(body);
 
     const newSystem = await createSystem(validated);
 
     return c.json({ success: true, data: newSystem }, 201);
   } catch (error) {
+    logRequestError(apiLogger, c, error);
     if (error instanceof z.ZodError) {
       return c.json(
         {
@@ -77,7 +81,7 @@ systemsRouter.post("/", async (c) => {
 systemsRouter.patch("/:id", async (c) => {
   try {
     const id = parseInt(c.req.param("id"));
-    const body = await c.req.json();
+    const body: unknown = await c.req.json();
     const validated = updateSystemSchema.parse(body);
 
     const updated = await updateSystem(id, validated);
@@ -88,6 +92,7 @@ systemsRouter.patch("/:id", async (c) => {
 
     return c.json({ success: true, data: updated });
   } catch (error) {
+    logRequestError(apiLogger, c, error);
     return c.json({ success: false, error: "Failed to update system" }, 500);
   }
 });

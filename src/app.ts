@@ -1,13 +1,13 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { logger } from "hono/logger";
 
+import { loggerMiddleware } from "./middleware/logger";
 import apiRoutes from "./routes/api";
 
 const app = new Hono();
 
 // Middlewares
-app.use("*", logger());
+app.use("*", loggerMiddleware);
 app.use("*", cors());
 
 // Routes API

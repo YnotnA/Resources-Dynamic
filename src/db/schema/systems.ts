@@ -5,7 +5,7 @@ import {
   createSelectSchema,
   createUpdateSchema,
 } from "drizzle-zod";
-import { z } from "zod";
+import type { z } from "zod";
 
 import { planets } from "./planets";
 import { stars } from "./stars";

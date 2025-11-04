@@ -32,11 +32,11 @@ export const syncMappingTable = async (): Promise<void> => {
   if (starsData.length > 0) {
     await db.insert(celestialBodiesMapping).values(
       starsData.map((s) => ({
-        uuid: s.uuid!,
+        uuid: s.uuid as string,
         id: s.id,
         type: "star" as const,
         name: s.name,
-        systemId: s.systemId!,
+        systemId: s.systemId as number,
         parentId: null,
       })),
     );
@@ -58,11 +58,11 @@ export const syncMappingTable = async (): Promise<void> => {
   if (planetsData.length > 0) {
     await db.insert(celestialBodiesMapping).values(
       planetsData.map((p) => ({
-        uuid: p.uuid!,
+        uuid: p.uuid as string,
         id: p.id,
         type: "planet" as const,
         name: p.name,
-        systemId: p.systemId!,
+        systemId: p.systemId as number,
         parentId: null,
       })),
     );
@@ -92,12 +92,12 @@ export const syncMappingTable = async (): Promise<void> => {
   if (moonsData.length > 0) {
     await db.insert(celestialBodiesMapping).values(
       moonsData.map((m) => ({
-        uuid: m.uuid!,
+        uuid: m.uuid as string,
         id: m.id,
         type: "moon" as const,
         name: m.name,
-        systemId: m.systemId!,
-        parentId: m.planetId!,
+        systemId: m.systemId as number,
+        parentId: m.planetId as number,
       })),
     );
   }

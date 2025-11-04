@@ -8,7 +8,7 @@ describe("WebSocket Connection", () => {
   let wss: Server;
   let client: TestWebSocketClient;
 
-  beforeAll(async () => {
+  beforeAll(() => {
     wss = createStandaloneWebSocket(3099);
   });
 
@@ -23,7 +23,7 @@ describe("WebSocket Connection", () => {
     expect(client.isConnected()).toBe(true);
 
     // Must be receive welcome message
-    const welcomeMsg = await client.waitForMessage();
+    const welcomeMsg = await client.waitForConnected();
     expect(welcomeMsg.type).toBe("connected");
     expect(welcomeMsg.clientId).toBeDefined();
 

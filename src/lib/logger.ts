@@ -1,7 +1,9 @@
 import { DrizzleError } from "drizzle-orm";
 import * as fs from "fs";
+import type { Context } from "hono";
 import * as path from "path";
 import pino from "pino";
+import { PostgresError } from "postgres";
 import { ZodError } from "zod";
 
 // Détection de l'environnement
@@ -133,7 +135,7 @@ const formatDrizzleError = (error: DrizzleError) => {
 /**
  * Formatte une erreur PostgreSQL
  */
-const formatPostgresError = (error: any) => {
+const formatPostgresError = (error: PostgresError) => {
   return {
     type: "PostgresError",
     message: error.message,
@@ -142,36 +144,11 @@ const formatPostgresError = (error: any) => {
     detail: error.detail,
     hint: error.hint,
     position: error.position,
-    schema: error.schema,
-    table: error.table,
-    column: error.column,
-    constraint: error.constraint,
+    schema: error.schema_name,
+    table: error.table_name,
+    column: error.column_name,
+    constraint: error.constraint_name,
   };
-};
-
-/**
- * Log une requête HTTP
- */
-export const logRequest = (
-  method: string,
-  path: string,
-  statusCode: number,
-  duration: number,
-  metadata?: Record<string, any>,
-) => {
-  const level =
-    statusCode >= 500 ? "error" : statusCode >= 400 ? "warn" : "info";
-
-  apiLogger[level](
-    {
-      method,
-      path,
-      statusCode,
-      duration,
-      ...metadata,
-    },
-    `${method} ${path} ${statusCode} ${duration}ms`,
-  );
 };
 
 /**
@@ -184,7 +161,7 @@ export const logQuery = (
   rowCount?: number,
 ) => {
   const truncatedQuery =
-    query.length > 100 ? query.substring(0, 100) + "..." : query;
+    query.length > 100 ? `${query.substring(0, 100)}...` : query;
 
   logger.debug(
     {
@@ -196,14 +173,37 @@ export const logQuery = (
   );
 };
 
+const getRequestContext = (c: Context): Record<string, unknown> => {
+  return {
+    method: c.req.method,
+    path: c.req.path,
+    url: c.req.url,
+    userAgent: c.req.header("user-agent"),
+    ip: c.req.header("x-forwarded-for") || c.req.header("x-real-ip"),
+  };
+};
+
+export const logRequestError = (
+  logger: pino.Logger,
+  c: Context,
+  error: unknown,
+  additionalContext?: Record<string, unknown>,
+) => {
+  const requestContext = getRequestContext(c);
+  logError(logger, error, {
+    ...requestContext,
+    ...additionalContext,
+  });
+};
+
 /**
  * Log une erreur avec contexte enrichi
  * Gère automatiquement ZodError, DrizzleError, PostgresError, et Error standard
  */
 export const logError = (
   logger: pino.Logger,
-  error: Error | ZodError | unknown,
-  context?: Record<string, any>,
+  error: unknown,
+  context?: Record<string, unknown>,
 ) => {
   if (error instanceof ZodError) {
     const formattedError = formatZodError(error);
@@ -231,28 +231,26 @@ export const logError = (
     return;
   }
 
-  if (error instanceof Error) {
-    if ("code" in error && "severity" in error) {
-      logger.error(
-        {
-          error: formatPostgresError(error),
-          ...context,
-        },
-        error.message,
-      );
-      return;
-    }
+  if (error instanceof PostgresError) {
+    const formattedError = formatPostgresError(error);
 
+    logger.error(
+      {
+        error: formattedError,
+        ...context,
+      },
+      `Postgres error: ${formattedError.message}`,
+    );
+    return;
+  }
+
+  if (error instanceof Error) {
     logger.error(
       {
         error: {
           name: error.name,
           message: error.message,
           stack: isDev ? error.stack : undefined,
-          ...("code" in error && { code: (error as any).code }),
-          ...("statusCode" in error && {
-            statusCode: (error as any).statusCode,
-          }),
         },
         ...context,
       },
@@ -280,7 +278,7 @@ export const logPerformance = (
   logger: pino.Logger,
   operation: string,
   duration: number,
-  metadata?: Record<string, any>,
+  metadata?: Record<string, unknown>,
 ) => {
   const level = duration > 1000 ? "warn" : duration > 100 ? "info" : "debug";
 
@@ -326,7 +324,7 @@ export const setupGlobalErrorHandlers = () => {
     process.exit(1);
   });
 
-  process.on("unhandledRejection", (reason: any) => {
+  process.on("unhandledRejection", (reason: unknown) => {
     logger.fatal(
       {
         reason: String(reason),

@@ -6,11 +6,19 @@ import {
   logPerformance,
 } from "@lib/logger";
 import { mappingCache } from "@websocket/cache/mapping-cache";
-import { NextTicksType } from "@websocket/schema/requestPlanetarySystem.model";
+import type { NextTicksType } from "@websocket/schema/Request/nextTicks.model";
 
 import { getDuckDBConnection } from "../connection";
 
 const duckQueryLogger = duckDbLogger.child({ name: "Query" });
+
+type ObjectPosition = {
+  time_s: number;
+  type_id: number;
+  x: number;
+  y: number;
+  z: number;
+};
 
 export const getNextTicks = async (clientMessage: NextTicksType) => {
   const timer = createTimer();
@@ -55,7 +63,7 @@ export const getNextTicks = async (clientMessage: NextTicksType) => {
     );
 
     const result = await prepared.run();
-    const rows = await result.getRowObjectsJson();
+    const rows = (await result.getRowObjectsJson()) as ObjectPosition[];
 
     const duration = timer.end();
 

@@ -33,10 +33,10 @@ vi.mock("@lib/logger", () => {
   };
 });
 
-beforeAll(async () => {
+beforeAll(() => {
   console.log("🧪 Setting up tests...");
 });
 
-afterAll(async () => {
+afterAll(() => {
   console.log("✅ Tests completed");
 });

@@ -50,7 +50,7 @@ const start = async () => {
   logger.info(`📚 Planets API: http://localhost:${API_PORT}/api/planets`);
 };
 
-process.on("SIGINT", async () => {
+process.on("SIGINT", () => {
   logger.info("🛑 Shutting down gracefully...");
   mappingCache.clear();
   process.exit(0);

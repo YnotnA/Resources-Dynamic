@@ -1,4 +1,5 @@
 import { createMoonSchema, updateMoonSchema } from "@db/schema";
+import { apiLogger, logRequestError } from "@lib/logger";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -25,7 +26,7 @@ planetsRouter.get("/", async (c) => {
       data: planetsList,
     });
   } catch (error) {
-    console.error("Error fetching planets:", error);
+    logRequestError(apiLogger, c, error);
     return c.json({ success: false, error: "Failed to fetch planets" }, 500);
   }
 });
@@ -44,7 +45,7 @@ planetsRouter.get("/:uuid", async (c) => {
 
     return c.json({ success: true, data: planet });
   } catch (error) {
-    console.error("Error fetching planet:", error);
+    logRequestError(apiLogger, c, error);
     return c.json({ success: false, error: "Failed to fetch planet" }, 500);
   }
 });
@@ -63,6 +64,7 @@ planetsRouter.get("/system/:systemId", async (c) => {
       data: planetsList,
     });
   } catch (error) {
+    logRequestError(apiLogger, c, error);
     return c.json({ success: false, error: "Failed to fetch planets" }, 500);
   }
 });
@@ -72,7 +74,7 @@ planetsRouter.get("/system/:systemId", async (c) => {
  */
 planetsRouter.post("/", async (c) => {
   try {
-    const body = await c.req.json();
+    const body: unknown = await c.req.json();
     const validated = createMoonSchema.parse(body);
 
     const newPlanet = await createPlanet(validated);
@@ -80,6 +82,7 @@ planetsRouter.post("/", async (c) => {
     return c.json({ success: true, data: newPlanet }, 201);
   } catch (error) {
     if (error instanceof z.ZodError) {
+      logRequestError(apiLogger, c, error);
       return c.json(
         {
           success: false,
@@ -99,7 +102,7 @@ planetsRouter.post("/", async (c) => {
 planetsRouter.patch("/:uuid", async (c) => {
   try {
     const uuid = c.req.param("uuid");
-    const body = await c.req.json();
+    const body: unknown = await c.req.json();
     const validated = updateMoonSchema.parse(body);
 
     const updated = await updatePlanet(uuid, validated);
@@ -110,6 +113,7 @@ planetsRouter.patch("/:uuid", async (c) => {
 
     return c.json({ success: true, data: updated });
   } catch (error) {
+    logRequestError(apiLogger, c, error);
     return c.json({ success: false, error: "Failed to update planet" }, 500);
   }
 });
@@ -128,6 +132,7 @@ planetsRouter.delete("/:uuid", async (c) => {
 
     return c.json({ success: true, message: "Planet deleted" });
   } catch (error) {
+    logRequestError(apiLogger, c, error);
     return c.json({ success: false, error: "Failed to delete planet" }, 500);
   }
 });

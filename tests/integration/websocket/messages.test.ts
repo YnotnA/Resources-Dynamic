@@ -8,7 +8,7 @@ describe("WebSocket Message Format", () => {
   let wss: Server;
   let client: TestWebSocketClient;
 
-  beforeAll(async () => {
+  beforeAll(() => {
     wss = createStandaloneWebSocket(3100);
   });
 
@@ -30,7 +30,7 @@ describe("WebSocket Message Format", () => {
   it("should reject invalid MessagePack", async () => {
     client["ws"]?.send(Buffer.from("invalid data"));
 
-    const response = await client.waitForMessage();
+    const response = await client.waitForError();
 
     expect(response.error).toBeDefined();
   });
@@ -38,7 +38,7 @@ describe("WebSocket Message Format", () => {
   it("should reject invalid JSON structure", async () => {
     client.send({ invalid: "structure" });
 
-    const response = await client.waitForMessage();
+    const response = await client.waitForError();
 
     expect(response.error).toBeDefined();
   });
@@ -48,7 +48,7 @@ describe("WebSocket Message Format", () => {
       action: "ping",
     });
 
-    const response = await client.waitForMessage();
+    const response = await client.waitForPong();
 
     expect(response.type).toBe("pong");
   });

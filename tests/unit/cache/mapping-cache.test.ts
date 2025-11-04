@@ -35,7 +35,7 @@ describe("MappingCache", () => {
   });
 
   describe("load", () => {
-    it("should load mappings from database", async () => {
+    it("should load mappings from database", () => {
       expect(mappingCache.isReady()).toBe(true);
 
       const stats = mappingCache.getStats();

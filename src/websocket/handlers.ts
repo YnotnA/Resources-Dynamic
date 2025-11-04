@@ -4,11 +4,11 @@ import { decode, encode } from "@msgpack/msgpack";
 import type { WebSocket } from "ws";
 import { ZodError } from "zod";
 
-import {
-  ClientMessageType,
-  clientMessageSchema,
-} from "./schema/clientMessage.model";
-import { NextTicksType } from "./schema/requestPlanetarySystem.model";
+import type { NextTicksType } from "./schema/Request/nextTicks.model";
+import type { RequestWsType } from "./schema/Request/request.model";
+import { RequestWsSchema } from "./schema/Request/request.model";
+import type { NextTicksMessageType } from "./schema/Response/nextTick.model";
+import type { ResponseWsType } from "./schema/Response/response.model";
 
 // Store connected clients with metadata
 const clients = new Map<WebSocket, { id: string; connectedAt: Date }>();
@@ -39,7 +39,7 @@ export const handleConnection = (ws: WebSocket) => {
   ws.on("error", (error) => handleError(ws, error));
 };
 
-const handleMessage = async (ws: WebSocket, data: any) => {
+const handleMessage = async (ws: WebSocket, data: unknown) => {
   const client = clients.get(ws);
 
   try {
@@ -47,7 +47,7 @@ const handleMessage = async (ws: WebSocket, data: any) => {
     const decoded = decode(new Uint8Array(data as ArrayBuffer));
 
     // Validate with Zod
-    const msg: ClientMessageType = clientMessageSchema.parse(decoded);
+    const msg: RequestWsType = RequestWsSchema.parse(decoded);
 
     wsLogger.debug(
       {
@@ -63,7 +63,7 @@ const handleMessage = async (ws: WebSocket, data: any) => {
   }
 };
 
-const routeMessage = async (ws: WebSocket, msg: ClientMessageType) => {
+const routeMessage = async (ws: WebSocket, msg: RequestWsType) => {
   switch (msg.action) {
     case "next-ticks":
       await handleNextTicks(ws, msg);
@@ -103,7 +103,26 @@ const handleNextTicks = async (ws: WebSocket, msg: NextTicksType) => {
       `✅ Sent ${coords.count} positions`,
     );
 
-    sendMessage(ws, coords);
+    const nextTicks: NextTicksMessageType = coords.rows.map(
+      (objectPosition) => {
+        return {
+          uuid: msg.target,
+          time: objectPosition.time_s,
+          rotation: {
+            x: 0,
+            y: 0,
+            z: 0,
+          },
+          position: {
+            x: objectPosition.x,
+            y: objectPosition.y,
+            z: objectPosition.z,
+          },
+        };
+      },
+    );
+
+    sendMessage(ws, nextTicks);
   } catch (error) {
     logError(wsLogger, error, { context: "handleNextTicks" });
     sendError(ws, "Processing error", "Failed to get next ticks");
@@ -137,7 +156,7 @@ const handleError = (ws: WebSocket, error: Error) => {
   logError(wsLogger, error, { context: "handleError", clientId: client?.id });
 };
 
-const sendMessage = (ws: WebSocket, data: any) => {
+const sendMessage = (ws: WebSocket, data: ResponseWsType) => {
   if (ws.readyState === 1) {
     // OPEN
     ws.send(encode(data));
@@ -151,7 +170,7 @@ const sendError = (ws: WebSocket, error: string, message: string) => {
 /**
  * Broadcast to all connected clients
  */
-export const broadcast = (data: any, excludeWs?: WebSocket) => {
+export const broadcast = (data: ResponseWsType, excludeWs?: WebSocket) => {
   clients.forEach((_client, ws) => {
     if (ws !== excludeWs && ws.readyState === 1) {
       sendMessage(ws, data);

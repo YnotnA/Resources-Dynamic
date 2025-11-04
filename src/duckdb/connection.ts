@@ -1,6 +1,7 @@
-import {
+import type {
   DuckDBConnection,
-  DuckDBInstance,
+  DuckDBInstance} from "@duckdb/node-api";
+import {
   DuckDBInstanceCache,
 } from "@duckdb/node-api";
 import { duckDbLogger, logError } from "@lib/logger";
