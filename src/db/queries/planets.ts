@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { db } from "../connection";
 import {
@@ -13,8 +14,9 @@ export const getAllPlanets = async (): Promise<Planet[]> => {
 };
 
 export const getPlanetByUuid = async (uuid: string) => {
+  const validated = z.uuid().parse(uuid);
   return await db.query.planets.findFirst({
-    where: eq(planets.uuid, uuid),
+    where: eq(planets.uuid, validated),
     with: {
       system: true,
       moons: true,
@@ -49,9 +51,10 @@ export const updatePlanet = async (
 };
 
 export const deletePlanet = async (uuid: string): Promise<boolean> => {
+  const validated = z.uuid().parse(uuid);
   const result = await db
     .delete(planets)
-    .where(eq(planets.uuid, uuid))
+    .where(eq(planets.uuid, validated))
     .returning();
   return result.length > 0;
 };

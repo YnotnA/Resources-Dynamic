@@ -1,0 +1,22 @@
+meta {
+  name: Create system
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/systems
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+      "name": "NewSystem"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

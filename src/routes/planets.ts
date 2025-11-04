@@ -81,13 +81,13 @@ planetsRouter.post("/", async (c) => {
 
     return c.json({ success: true, data: newPlanet }, 201);
   } catch (error) {
+    logRequestError(apiLogger, c, error);
     if (error instanceof z.ZodError) {
-      logRequestError(apiLogger, c, error);
       return c.json(
         {
           success: false,
           error: "Validation failed",
-          details: error,
+          details: error.issues,
         },
         400,
       );
@@ -114,6 +114,16 @@ planetsRouter.patch("/:uuid", async (c) => {
     return c.json({ success: true, data: updated });
   } catch (error) {
     logRequestError(apiLogger, c, error);
+    if (error instanceof z.ZodError) {
+      return c.json(
+        {
+          success: false,
+          error: "Validation failed",
+          details: error.issues,
+        },
+        400,
+      );
+    }
     return c.json({ success: false, error: "Failed to update planet" }, 500);
   }
 });

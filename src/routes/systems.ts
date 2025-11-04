@@ -66,7 +66,7 @@ systemsRouter.post("/", async (c) => {
         {
           success: false,
           error: "Validation failed",
-          details: error,
+          details: error.issues,
         },
         400,
       );
@@ -76,7 +76,7 @@ systemsRouter.post("/", async (c) => {
 });
 
 /**
- * PATCH /systems/:id - Updates a planet
+ * PATCH /systems/:id - Updates a system
  */
 systemsRouter.patch("/:id", async (c) => {
   try {
@@ -92,7 +92,18 @@ systemsRouter.patch("/:id", async (c) => {
 
     return c.json({ success: true, data: updated });
   } catch (error) {
-    logRequestError(apiLogger, c, error);
+    if (error instanceof z.ZodError) {
+      logRequestError(apiLogger, c, error);
+      return c.json(
+        {
+          success: false,
+          error: "Validation failed",
+          details: error.issues,
+        },
+        400,
+      );
+    }
+
     return c.json({ success: false, error: "Failed to update system" }, 500);
   }
 });
