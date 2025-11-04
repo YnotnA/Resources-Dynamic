@@ -21,6 +21,7 @@ export default defineConfig({
       "@routes": path.resolve(__dirname, "./src/routes"),
       "@schema": path.resolve(__dirname, "./src/schema"),
       "@websocket": path.resolve(__dirname, "./src/websocket"),
+      "@builder": path.resolve(__dirname, "./tests/builder"),
     },
   },
 });

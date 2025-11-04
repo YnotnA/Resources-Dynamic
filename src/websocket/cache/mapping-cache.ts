@@ -1,4 +1,5 @@
 import { db } from "@db/connection";
+import type { CelestialBodyType } from "@db/schema";
 import { type CelestialBodyMapping, celestialBodiesMapping } from "@db/schema";
 import {
   cacheLogger,
@@ -7,23 +8,12 @@ import {
   logPerformance,
 } from "@lib/logger";
 
-export type CelestialBodyType = "star" | "planet" | "moon";
-
-export interface CachedMapping {
-  uuid: string;
-  id: number;
-  type: CelestialBodyType;
-  name: string;
-  systemId: number;
-  parentId?: number;
-}
-
 /**
  * In-memory cache for UUID → ID mapping
  * Loaded once when the WebSocket starts up
  */
 class MappingCache {
-  private uuidToMappingMap: Map<string, CachedMapping> = new Map();
+  private uuidToMappingMap: Map<string, CelestialBodyMapping> = new Map();
   private idToUuidMap: Map<string, string> = new Map(); // key: "type:id"
   private isLoaded: boolean = false;
   private lastSync: Date | null = null;
@@ -44,17 +34,8 @@ class MappingCache {
       this.idToUuidMap.clear();
 
       for (const mapping of mappings) {
-        const cached: CachedMapping = {
-          uuid: mapping.uuid,
-          id: mapping.id,
-          type: mapping.type as CelestialBodyType,
-          name: mapping.name,
-          systemId: mapping.systemId,
-          parentId: mapping.parentId ?? undefined,
-        };
-
         // UUID → Complete mapping
-        this.uuidToMappingMap.set(mapping.uuid, cached);
+        this.uuidToMappingMap.set(mapping.uuid, mapping);
 
         // ID → UUID (for reverse lookup)
         const key = `${mapping.type}:${mapping.id}`;
@@ -89,7 +70,7 @@ class MappingCache {
     await this.load();
   }
 
-  getByUuid(uuid: string): CachedMapping | undefined {
+  getByUuid(uuid: string): CelestialBodyMapping | undefined {
     if (!this.isLoaded) {
       cacheLogger.warn("⚠️ Cache not loaded, call load() first");
       return undefined;
@@ -109,25 +90,25 @@ class MappingCache {
     return this.idToUuidMap.get(`${type}:${id}`);
   }
 
-  getBatchByUuids(uuids: string[]): CachedMapping[] {
+  getBatchByUuids(uuids: string[]): CelestialBodyMapping[] {
     return uuids
       .map((uuid) => this.getByUuid(uuid))
-      .filter((m): m is CachedMapping => m !== undefined);
+      .filter((m): m is CelestialBodyMapping => m !== undefined);
   }
 
-  getBySystemId(systemId: number): CachedMapping[] {
+  getBySystemId(systemId: number): CelestialBodyMapping[] {
     return Array.from(this.uuidToMappingMap.values()).filter(
       (m) => m.systemId === systemId,
     );
   }
 
-  getByType(type: CelestialBodyType): CachedMapping[] {
+  getByType(type: CelestialBodyType): CelestialBodyMapping[] {
     return Array.from(this.uuidToMappingMap.values()).filter(
       (m) => m.type === type,
     );
   }
 
-  getMoonsByPlanetId(planetId: number): CachedMapping[] {
+  getMoonsByPlanetId(planetId: number): CelestialBodyMapping[] {
     return Array.from(this.uuidToMappingMap.values()).filter(
       (m) => m.type === "moon" && m.parentId === planetId,
     );
@@ -164,7 +145,7 @@ class MappingCache {
     cacheLogger.info("🗑️ Cache cleared");
   }
 
-  searchByName(query: string): CachedMapping[] {
+  searchByName(query: string): CelestialBodyMapping[] {
     const lowerQuery = query.toLowerCase();
     return Array.from(this.uuidToMappingMap.values()).filter((m) =>
       m.name.toLowerCase().includes(lowerQuery),

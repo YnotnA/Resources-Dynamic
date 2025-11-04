@@ -109,9 +109,9 @@ const handleNextTicks = async (ws: WebSocket, msg: NextTicksType) => {
           uuid: msg.target,
           time: objectPosition.time_s,
           rotation: {
-            x: 0,
-            y: 0,
-            z: 0,
+            x: 0, // TODO: define
+            y: 0, // TODO: define
+            z: 0, // TODO: define
           },
           position: {
             x: objectPosition.x,

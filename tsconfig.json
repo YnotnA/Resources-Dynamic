@@ -10,6 +10,7 @@
     "moduleResolution": "bundler",
     "outDir": "./dist",
     "paths": {
+      "@builder/*": ["./tests/builder/*"],
       "@db/*": ["./src/db/*"],
       "@duckdb/*": ["./src/duckdb/*"],
       "@lib/*": ["./src/lib/*"],
