@@ -168,6 +168,7 @@ Used to retrieve the position of a stellar object by UUID, specifying the start 
 
 - The development server supports hot-reloading, so any changes you make to the code will automatically be reflected in the terminal.
 - If you need to install new dependencies, you can do so by running `make pnpm add <package-name>` or `make pnpm "add -D <package-name>"` for dev dependencies.
+- If you need test, you can modify `src/client.ts` and run `make pnpm client` for create WebSocket client.
 
 ## API Rest
 
