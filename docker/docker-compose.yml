@@ -10,6 +10,7 @@ services:
         corepack enable &&
         corepack install &&
         pnpm install &&
+        pnpm db:migrate &&
         pnpm dev
       "
     ports:

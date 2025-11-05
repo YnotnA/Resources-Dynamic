@@ -4,6 +4,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 import {
@@ -31,6 +32,8 @@ export const celestialBodiesMapping = pgTable(
   (table) => [
     index("idx_celestial_mapping_id_type").on(table.id, table.type),
     index("idx_celestial_mapping_system").on(table.systemId),
+    unique("unique_celestial_name").on(table.name),
+    unique("unique_celestial_internal_name").on(table.internalName),
   ],
 );
 

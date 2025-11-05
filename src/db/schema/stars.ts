@@ -5,6 +5,7 @@ import {
   pgTable,
   serial,
   text,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 import {
@@ -16,14 +17,21 @@ import type { z } from "zod";
 
 import { systems } from "./systems";
 
-export const stars = pgTable("stars", {
-  id: serial("id").primaryKey(),
-  uuid: uuid("uuid").defaultRandom().unique(),
-  systemId: integer("system_id").references(() => systems.id),
-  name: text("name").notNull(),
-  internalName: text("internal_name").notNull(),
-  massKg: doublePrecision("mass_kg").notNull(),
-});
+export const stars = pgTable(
+  "stars",
+  {
+    id: serial("id").primaryKey(),
+    uuid: uuid("uuid").defaultRandom().unique(),
+    systemId: integer("system_id").references(() => systems.id),
+    name: text("name").notNull(),
+    internalName: text("internal_name").notNull(),
+    massKg: doublePrecision("mass_kg").notNull(),
+  },
+  (table) => [
+    unique("unique_star_name").on(table.name),
+    unique("unique_star_internal_name").on(table.internalName),
+  ],
+);
 
 // Relations
 export const starsRelations = relations(stars, ({ one }) => ({

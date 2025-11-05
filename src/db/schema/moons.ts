@@ -5,6 +5,7 @@ import {
   pgTable,
   serial,
   text,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 import {
@@ -16,24 +17,31 @@ import type { z } from "zod";
 
 import { planets } from "./planets";
 
-export const moons = pgTable("planet_moons", {
-  id: serial("id").primaryKey(),
-  planetId: integer("planet_id").references(() => planets.id),
-  uuid: uuid("uuid").defaultRandom().unique(),
-  name: text("name").notNull(),
-  internalName: text("internal_name").notNull(),
-  massKg: doublePrecision("mass_kg").notNull(),
-  periapsisAu: doublePrecision("periapsis_au").notNull(),
-  apoapsisAu: doublePrecision("apoapsis_au").notNull(),
-  incDeg: doublePrecision("inc_deg").notNull(),
-  nodeDeg: doublePrecision("node_deg").notNull(),
-  argPeriDeg: doublePrecision("arg_peri_deg").notNull(),
-  meanAnomalyDeg: doublePrecision("mean_anomaly_deg").notNull(),
-  radiusKm: doublePrecision("radius_km").notNull(),
-  radiusGravityInfluenceKm: doublePrecision(
-    "radius_gravity_influence_km",
-  ).notNull(),
-});
+export const moons = pgTable(
+  "planet_moons",
+  {
+    id: serial("id").primaryKey(),
+    planetId: integer("planet_id").references(() => planets.id),
+    uuid: uuid("uuid").defaultRandom().unique(),
+    name: text("name").notNull(),
+    internalName: text("internal_name").notNull(),
+    massKg: doublePrecision("mass_kg").notNull(),
+    periapsisAu: doublePrecision("periapsis_au").notNull(),
+    apoapsisAu: doublePrecision("apoapsis_au").notNull(),
+    incDeg: doublePrecision("inc_deg").notNull(),
+    nodeDeg: doublePrecision("node_deg").notNull(),
+    argPeriDeg: doublePrecision("arg_peri_deg").notNull(),
+    meanAnomalyDeg: doublePrecision("mean_anomaly_deg").notNull(),
+    radiusKm: doublePrecision("radius_km").notNull(),
+    radiusGravityInfluenceKm: doublePrecision(
+      "radius_gravity_influence_km",
+    ).notNull(),
+  },
+  (table) => [
+    unique("unique_moon_name").on(table.name),
+    unique("unique_moon_internal_name").on(table.internalName),
+  ],
+);
 
 // Relations
 export const moonsRelations = relations(moons, ({ one }) => ({
