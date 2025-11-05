@@ -49,11 +49,13 @@ Message received after connection
 
 ```json
 {
-  "clientId": "string" /* Generated dynamically upon connection*/,
-  "timestamp": "number",
+  "clientId": "<string>",
+  "timestamp": "<number>",
   "type": "connected"
 }
 ```
+
+- **clientId** : Generated dynamically upon connection
 
 ---
 
@@ -73,7 +75,7 @@ Used to ping the server
 
 ```json
 {
-  "timestamp": "number",
+  "timestamp": "<number>",
   "type": "pong"
 }
 ```
@@ -98,19 +100,19 @@ Used to retrieve all information concerning stellar objects, including their pos
 {
   "data": [
     {
-      "internalName": "string",
-      "name": "string",
+      "internalName": "<string>",
+      "name": "<string>",
       "position": {
-        "x": "number",
-        "y": "number",
-        "z": "number"
+        "x": "<number>",
+        "y": "<number>",
+        "z": "<number>"
       },
       "rotation": {
-        "x": "number",
-        "y": "number",
-        "z": "number"
+        "x": "<number>",
+        "y": "<number>",
+        "z": "<number>"
       },
-      "uuid": "string"
+      "uuid": "<string>"
     }
   ],
   "type": "init"
@@ -121,18 +123,22 @@ Used to retrieve all information concerning stellar objects, including their pos
 
 ### Message "Next-ticks"
 
-Used to retrieve the position of a stellar object by UUID, specifying the start time and the number of ticks.
+Used to retrieve the position of a stellar object by UUID, specifying the start time and the <number> of ticks.
 
 #### Request :
 
 ```json
 {
   "action": "next-ticks",
-  "count": "number" /* number of ticks */,
-  "fromTime": "number" /* time */,
-  "target": "string" /* uuid */
+  "count": "<number>",
+  "fromTime": "<number>",
+  "target": "<string>"
 }
 ```
+
+- **count** : number of ticks
+- **fromTime**: time
+- **target**: uuid
 
 #### Response :
 
@@ -141,17 +147,17 @@ Used to retrieve the position of a stellar object by UUID, specifying the start 
   "data": [
     {
       "position": {
-        "x": "number",
-        "y": "number",
-        "z": "number"
+        "x": "<number>",
+        "y": "<number>",
+        "z": "<number>"
       },
       "rotation": {
-        "x": "number",
-        "y": "number",
-        "z": "number"
+        "x": "<number>",
+        "y": "<number>",
+        "z": "<number>"
       },
-      "time": "number",
-      "uuid": "string"
+      "time": "<number>",
+      "uuid": "<string>"
     }
   ],
   "type": "next-ticks"
