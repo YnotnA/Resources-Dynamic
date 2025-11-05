@@ -123,7 +123,7 @@ Used to retrieve all information concerning stellar objects, including their pos
 
 ### Message "Next-ticks"
 
-Used to retrieve the position of a stellar object by UUID, specifying the start time and the <number> of ticks.
+Used to retrieve the position of a stellar object by UUID, specifying the start time and the number of ticks.
 
 #### Request :
 
