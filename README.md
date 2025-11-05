@@ -49,7 +49,7 @@ Message received after connection
 
 ```json
 {
-  "clientId": "string", // Generated dynamically upon connection
+  "clientId": "string" /* Generated dynamically upon connection*/,
   "timestamp": "number",
   "type": "connected"
 }
@@ -128,9 +128,9 @@ Used to retrieve the position of a stellar object by UUID, specifying the start 
 ```json
 {
   "action": "next-ticks",
-  "count": "number", // number of ticks
-  "fromTime": "number", // time
-  "target": "string" // uuid
+  "count": "number" /* number of ticks */,
+  "fromTime": "number" /* time */,
+  "target": "string" /* uuid */
 }
 ```
 
