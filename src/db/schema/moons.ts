@@ -3,7 +3,6 @@ import {
   doublePrecision,
   integer,
   pgTable,
-  serial,
   text,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -17,7 +16,7 @@ import type { z } from "zod";
 import { planets } from "./planets";
 
 export const moons = pgTable("planet_moons", {
-  id: serial("id").primaryKey(),
+  id: integer("id").primaryKey(),
   planetId: integer("planet_id").references(() => planets.id),
   uuid: uuid("uuid").defaultRandom().unique(),
   name: text("name").notNull().unique(),

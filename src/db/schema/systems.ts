@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, serial, text } from "drizzle-orm/pg-core";
+import { integer, pgTable, text } from "drizzle-orm/pg-core";
 import {
   createInsertSchema,
   createSelectSchema,
@@ -11,7 +11,7 @@ import { planets } from "./planets";
 import { stars } from "./stars";
 
 export const systems = pgTable("systems", {
-  id: serial("id").primaryKey(),
+  id: integer("id").primaryKey(),
   name: text("name").notNull().unique(),
   internalName: text("internal_name").notNull().unique(),
 });
@@ -23,12 +23,8 @@ export const systemsRelations = relations(systems, ({ many }) => ({
 }));
 
 export const systemSchema = createSelectSchema(systems);
-export const createSystemSchema = createInsertSchema(systems).omit({
-  id: true,
-});
-export const updateSystemSchema = createUpdateSchema(systems).omit({
-  id: true,
-});
+export const createSystemSchema = createInsertSchema(systems);
+export const updateSystemSchema = createUpdateSchema(systems);
 
 export type System = z.infer<typeof systemSchema>;
 export type NewSystem = z.infer<typeof createSystemSchema>;

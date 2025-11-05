@@ -4,7 +4,7 @@ import * as dotenv from "dotenv";
 import app from "./app";
 import { testConnection } from "./db/connection";
 import { syncMappingTable } from "./db/queries/mapping";
-import { logger } from "./lib/logger";
+import { logError, logger } from "./lib/logger";
 import { mappingCache } from "./websocket/cache/mapping-cache";
 import { createStandaloneWebSocket } from "./websocket/server";
 
@@ -25,7 +25,11 @@ const start = async () => {
   }
 
   logger.info("🔄 Syncing mapping table...");
-  await syncMappingTable();
+  try {
+    await syncMappingTable();
+  } catch (error) {
+    logError(logger, error, { context: "start" });
+  }
 
   logger.info("📥 Loading mapping cache...");
   await mappingCache.load();

@@ -3,7 +3,6 @@ import {
   doublePrecision,
   integer,
   pgTable,
-  serial,
   text,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -17,7 +16,7 @@ import type { z } from "zod";
 import { systems } from "./systems";
 
 export const stars = pgTable("stars", {
-  id: serial("id").primaryKey(),
+  id: integer("id").primaryKey(),
   uuid: uuid("uuid").defaultRandom().unique(),
   systemId: integer("system_id").references(() => systems.id),
   name: text("name").notNull().unique(),

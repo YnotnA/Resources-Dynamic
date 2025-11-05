@@ -1,5 +1,6 @@
+CREATE SEQUENCE "public"."celestial_bodies_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1 CACHE 1;--> statement-breakpoint
 CREATE TABLE "systems" (
-	"id" serial PRIMARY KEY NOT NULL,
+        "id" integer PRIMARY KEY DEFAULT nextval('celestial_bodies_id_seq'),
 	"name" text NOT NULL,
 	"internal_name" text NOT NULL,
 	CONSTRAINT "systems_name_unique" UNIQUE("name"),
@@ -7,7 +8,7 @@ CREATE TABLE "systems" (
 );
 --> statement-breakpoint
 CREATE TABLE "stars" (
-	"id" serial PRIMARY KEY NOT NULL,
+        "id" integer PRIMARY KEY DEFAULT nextval('celestial_bodies_id_seq'),
 	"uuid" uuid DEFAULT gen_random_uuid(),
 	"system_id" integer,
 	"name" text NOT NULL,
@@ -19,7 +20,7 @@ CREATE TABLE "stars" (
 );
 --> statement-breakpoint
 CREATE TABLE "planets" (
-	"id" serial PRIMARY KEY NOT NULL,
+        "id" integer PRIMARY KEY DEFAULT nextval('celestial_bodies_id_seq'),
 	"uuid" uuid DEFAULT gen_random_uuid(),
 	"system_id" integer,
 	"name" text NOT NULL,
@@ -39,7 +40,7 @@ CREATE TABLE "planets" (
 );
 --> statement-breakpoint
 CREATE TABLE "planet_moons" (
-	"id" serial PRIMARY KEY NOT NULL,
+        "id" integer PRIMARY KEY DEFAULT nextval('celestial_bodies_id_seq'),
 	"planet_id" integer,
 	"uuid" uuid DEFAULT gen_random_uuid(),
 	"name" text NOT NULL,

@@ -1,5 +1,5 @@
 {
-  "id": "551cf38c-4b89-4e10-92a1-f2975d7ec23e",
+  "id": "87b5fc14-4e97-41ff-b76a-62291d16be8d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -10,7 +10,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "integer",
           "primaryKey": true,
           "notNull": true
         },
@@ -56,7 +56,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "integer",
           "primaryKey": true,
           "notNull": true
         },
@@ -142,7 +142,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "integer",
           "primaryKey": true,
           "notNull": true
         },
@@ -276,7 +276,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "integer",
           "primaryKey": true,
           "notNull": true
         },
@@ -542,7 +542,18 @@
   },
   "enums": {},
   "schemas": {},
-  "sequences": {},
+  "sequences": {
+    "public.celestial_bodies_id_seq": {
+      "name": "celestial_bodies_id_seq",
+      "schema": "public",
+      "increment": "1",
+      "startWith": "1",
+      "minValue": "1",
+      "maxValue": "9223372036854775807",
+      "cache": "1",
+      "cycle": false
+    }
+  },
   "roles": {},
   "policies": {},
   "views": {},
