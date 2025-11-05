@@ -44,8 +44,14 @@ export const moonsRelations = relations(moons, ({ one }) => ({
 }));
 
 export const moonSchema = createSelectSchema(moons);
-export const createMoonSchema = createInsertSchema(moons);
-export const updateMoonSchema = createUpdateSchema(moons);
+export const createMoonSchema = createInsertSchema(moons).omit({
+  id: true,
+  uuid: true,
+});
+export const updateMoonSchema = createUpdateSchema(moons).omit({
+  id: true,
+  uuid: true,
+});
 
 export type Moon = z.infer<typeof moonSchema>;
 export type NewMoon = z.infer<typeof createMoonSchema>;

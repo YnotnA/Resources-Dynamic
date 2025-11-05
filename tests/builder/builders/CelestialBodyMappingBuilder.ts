@@ -14,6 +14,7 @@ export class CelestialBodyMappingBuilder extends BuilderBase<
     super(celestialBodiesMappingSchema, {
       id: faker.number.int({ min: 1, max: 50000 }),
       name: faker.word.sample(),
+      internalName: faker.word.sample(),
       systemId: faker.number.int({ min: 1, max: 50000 }),
       parentId: faker.number.int({ min: 1, max: 50000 }),
       type: faker.helpers.arrayElement(CELESTIAL_BODY_TYPES),

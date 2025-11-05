@@ -44,10 +44,6 @@ const start = async () => {
     fetch: app.fetch,
     port: API_PORT,
   });
-
-  logger.info(`🔌 WebSocket: ws://localhost:${WS_PORT}`);
-  logger.info(`📡 API: http://localhost:${API_PORT}`);
-  logger.info(`📚 Planets API: http://localhost:${API_PORT}/api/planets`);
 };
 
 process.on("SIGINT", () => {

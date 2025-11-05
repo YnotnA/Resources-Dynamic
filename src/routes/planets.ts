@@ -1,4 +1,4 @@
-import { createMoonSchema, updateMoonSchema } from "@db/schema";
+import { createPlanetSchema, updateMoonSchema } from "@db/schema";
 import { apiLogger, logRequestError } from "@lib/logger";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -75,7 +75,7 @@ planetsRouter.get("/system/:systemId", async (c) => {
 planetsRouter.post("/", async (c) => {
   try {
     const body: unknown = await c.req.json();
-    const validated = createMoonSchema.parse(body);
+    const validated = createPlanetSchema.parse(body);
 
     const newPlanet = await createPlanet(validated);
 

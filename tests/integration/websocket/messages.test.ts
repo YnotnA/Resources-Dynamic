@@ -52,4 +52,14 @@ describe("WebSocket Message Format", () => {
 
     expect(response.type).toBe("pong");
   });
+
+  it("should accept init message", async () => {
+    client.send({
+      action: "init",
+    });
+
+    const response = await client.waitForInit();
+
+    expect(response.type).toBe("init");
+  });
 });

@@ -22,6 +22,7 @@ export const celestialBodiesMapping = pgTable(
     id: integer("id").notNull(),
     type: text("type", { enum: CELESTIAL_BODY_TYPES }).notNull(),
     name: text("name").notNull(),
+    internalName: text("internal_name").notNull(),
     systemId: integer("system_id").notNull(),
     parentId: integer("parent_id"), // planet_id pour les lunes
     createdAt: timestamp("created_at").defaultNow().notNull(),

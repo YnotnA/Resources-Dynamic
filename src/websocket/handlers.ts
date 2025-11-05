@@ -1,4 +1,4 @@
-import { getNextTicks } from "@duckdb/queries/positions";
+import { getInit, getNextTicks } from "@dbduck/queries/positions";
 import { createTimer, logError, wsLogger } from "@lib/logger";
 import { decode, encode } from "@msgpack/msgpack";
 import type { WebSocket } from "ws";
@@ -7,6 +7,7 @@ import { ZodError } from "zod";
 import type { NextTicksType } from "./schema/Request/nextTicks.model";
 import type { RequestWsType } from "./schema/Request/request.model";
 import { RequestWsSchema } from "./schema/Request/request.model";
+import type { InitMessageType } from "./schema/Response/init.model";
 import type { NextTicksMessageType } from "./schema/Response/nextTick.model";
 import type { ResponseWsType } from "./schema/Response/response.model";
 
@@ -65,6 +66,10 @@ const handleMessage = async (ws: WebSocket, data: unknown) => {
 
 const routeMessage = async (ws: WebSocket, msg: RequestWsType) => {
   switch (msg.action) {
+    case "init":
+      await handleInit(ws);
+      break;
+
     case "next-ticks":
       await handleNextTicks(ws, msg);
       break;
@@ -73,6 +78,58 @@ const routeMessage = async (ws: WebSocket, msg: RequestWsType) => {
       sendMessage(ws, { type: "pong", timestamp: Date.now() });
       break;
   }
+};
+
+const handleInit = async (ws: WebSocket) => {
+  const timer = createTimer();
+  const clientId = clients.get(ws)?.id;
+
+  try {
+    const objects = await getInit();
+    const duration = timer.end();
+
+    wsLogger.debug(
+      {
+        clientId,
+        duration,
+      },
+      `✅ Sent init ${objects.length} positions`,
+    );
+
+    const init: InitMessageType["data"] = objects.map((object) => {
+      return {
+        uuid: object.target.uuid,
+        name: object.target.name,
+        internalName: object.target.internalName,
+        rotation: {
+          x: 0, // TODO: define
+          y: 0, // TODO: define
+          z: 0, // TODO: define
+        },
+        position: {
+          x: object.item.x,
+          y: object.item.y,
+          z: object.item.z,
+        },
+      };
+    });
+
+    sendMessage(ws, { type: "init", data: init });
+  } catch (error) {
+    logError(wsLogger, error, { context: "handleInit" });
+    sendError(
+      ws,
+      "Processing error",
+      `${error instanceof Error ? error.message : "Failed to get init"}`,
+    );
+  }
+
+  wsLogger.debug(
+    {
+      clientId,
+    },
+    "Processing init request",
+  );
 };
 
 const handleNextTicks = async (ws: WebSocket, msg: NextTicksType) => {
@@ -90,7 +147,7 @@ const handleNextTicks = async (ws: WebSocket, msg: NextTicksType) => {
   );
 
   try {
-    const coords = await getNextTicks(msg);
+    const coords = await getNextTicks(msg.target, msg.fromTime, msg.count);
     const duration = timer.end();
 
     wsLogger.debug(
@@ -103,7 +160,7 @@ const handleNextTicks = async (ws: WebSocket, msg: NextTicksType) => {
       `✅ Sent ${coords.count} positions`,
     );
 
-    const nextTicks: NextTicksMessageType = coords.rows.map(
+    const nextTicks: NextTicksMessageType["data"] = coords.rows.map(
       (objectPosition) => {
         return {
           uuid: msg.target,
@@ -122,10 +179,14 @@ const handleNextTicks = async (ws: WebSocket, msg: NextTicksType) => {
       },
     );
 
-    sendMessage(ws, nextTicks);
+    sendMessage(ws, { type: "next-ticks", data: nextTicks });
   } catch (error) {
     logError(wsLogger, error, { context: "handleNextTicks" });
-    sendError(ws, "Processing error", "Failed to get next ticks");
+    sendError(
+      ws,
+      "Processing error",
+      `${error instanceof Error ? error.message : "Failed to get next ticks"}`,
+    );
   }
 };
 

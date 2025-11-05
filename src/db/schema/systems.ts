@@ -13,6 +13,7 @@ import { stars } from "./stars";
 export const systems = pgTable("systems", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  internalName: text("internal_name").notNull(),
 });
 
 // Relations
@@ -22,8 +23,12 @@ export const systemsRelations = relations(systems, ({ many }) => ({
 }));
 
 export const systemSchema = createSelectSchema(systems);
-export const createSystemSchema = createInsertSchema(systems);
-export const updateSystemSchema = createUpdateSchema(systems);
+export const createSystemSchema = createInsertSchema(systems).omit({
+  id: true,
+});
+export const updateSystemSchema = createUpdateSchema(systems).omit({
+  id: true,
+});
 
 export type System = z.infer<typeof systemSchema>;
 export type NewSystem = z.infer<typeof createSystemSchema>;

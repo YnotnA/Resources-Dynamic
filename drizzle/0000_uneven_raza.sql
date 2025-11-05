@@ -1,6 +1,7 @@
 CREATE TABLE "systems" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"name" text NOT NULL
+	"name" text NOT NULL,
+	"internal_name" text NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "stars" (
@@ -8,6 +9,7 @@ CREATE TABLE "stars" (
 	"uuid" uuid DEFAULT gen_random_uuid(),
 	"system_id" integer,
 	"name" text NOT NULL,
+	"internal_name" text NOT NULL,
 	"mass_kg" double precision NOT NULL,
 	CONSTRAINT "stars_uuid_unique" UNIQUE("uuid")
 );
@@ -53,6 +55,7 @@ CREATE TABLE "celestial_bodies_mapping" (
 	"id" integer NOT NULL,
 	"type" text NOT NULL,
 	"name" text NOT NULL,
+	"internal_name" text NOT NULL,
 	"system_id" integer NOT NULL,
 	"parent_id" integer,
 	"created_at" timestamp DEFAULT now() NOT NULL,

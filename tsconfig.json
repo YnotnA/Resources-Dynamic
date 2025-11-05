@@ -12,7 +12,7 @@
     "paths": {
       "@builder/*": ["./tests/builder/*"],
       "@db/*": ["./src/db/*"],
-      "@duckdb/*": ["./src/duckdb/*"],
+      "@dbduck/*": ["./src/duckdb/*"],
       "@lib/*": ["./src/lib/*"],
       "@routes/*": ["./src/routes/*"],
       "@schema/*": ["./src/schema/*"],

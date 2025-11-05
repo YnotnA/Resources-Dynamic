@@ -16,7 +16,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@db": path.resolve(__dirname, "./src/db"),
-      "@duckdb": path.resolve(__dirname, "./src/duckdb"),
+      "@dbduck": path.resolve(__dirname, "./src/duckdb"),
       "@lib": path.resolve(__dirname, "./src/lib"),
       "@routes": path.resolve(__dirname, "./src/routes"),
       "@schema": path.resolve(__dirname, "./src/schema"),

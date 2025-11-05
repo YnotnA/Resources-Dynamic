@@ -1,3 +1,5 @@
+import { getDuckDBConnection } from "@dbduck/connection";
+import type { ObjectPositionType } from "@dbduck/schema/objectPosition.model";
 import { DOUBLE, INTEGER } from "@duckdb/node-api";
 import {
   createTimer,
@@ -6,29 +8,63 @@ import {
   logPerformance,
 } from "@lib/logger";
 import { mappingCache } from "@websocket/cache/mapping-cache";
-import type { NextTicksType } from "@websocket/schema/Request/nextTicks.model";
-
-import { getDuckDBConnection } from "../connection";
 
 const duckQueryLogger = duckDbLogger.child({ name: "Query" });
 
-type ObjectPosition = {
-  time_s: number;
-  type_id: number;
-  x: number;
-  y: number;
-  z: number;
-};
-
-export const getNextTicks = async (clientMessage: NextTicksType) => {
+export const getInit = async () => {
   const timer = createTimer();
 
   try {
-    const mapping = mappingCache.getByUuid(clientMessage.target);
+    const mappings = mappingCache.getAll();
+    if (!mappings) {
+      duckQueryLogger.error(`No data found`);
+      throw new Error(`No data found`);
+    }
+
+    const dataPromises = mappings.map(async (mapping) => {
+      const firstTick = await getNextTicks(mapping.uuid, 0, 1);
+      const firstTickItem = firstTick.rows.at(0);
+
+      if (!firstTickItem) {
+        return null;
+      }
+
+      return {
+        target: mapping,
+        item: firstTickItem,
+      };
+    });
+
+    const duration = timer.end();
+
+    const data = (await Promise.all(dataPromises)).filter(
+      (item) => item !== null,
+    );
+
+    logPerformance(duckQueryLogger, `Query for init`, duration);
+
+    return data;
+  } catch (error) {
+    logError(duckQueryLogger, error, {
+      context: "getInit",
+    });
+    throw error;
+  }
+};
+
+export const getNextTicks = async (
+  target: string,
+  fromTime: number,
+  count: number,
+) => {
+  const timer = createTimer();
+
+  try {
+    const mapping = mappingCache.getByUuid(target);
 
     if (!mapping) {
-      duckQueryLogger.error(`Target not found: ${clientMessage.target}`);
-      throw new Error(`Target not found: ${clientMessage.target}`);
+      duckQueryLogger.error(`Target not found: ${target}`);
+      throw new Error(`Target not found: ${target}`);
     }
 
     duckQueryLogger.debug(
@@ -36,8 +72,8 @@ export const getNextTicks = async (clientMessage: NextTicksType) => {
         target: mapping.name,
         type: mapping.type,
         id: mapping.id,
-        fromTime: clientMessage.fromTime,
-        count: clientMessage.count,
+        fromTime,
+        count,
       },
       "Querying positions",
     );
@@ -55,15 +91,15 @@ export const getNextTicks = async (clientMessage: NextTicksType) => {
 
     prepared.bind(
       {
-        time: clientMessage.fromTime,
+        time: fromTime,
         typeId: mapping.id,
-        limit: clientMessage.count,
+        limit: count,
       },
       { time: DOUBLE, typeId: INTEGER, limit: INTEGER },
     );
 
     const result = await prepared.run();
-    const rows = (await result.getRowObjectsJson()) as ObjectPosition[];
+    const rows = (await result.getRowObjectsJson()) as ObjectPositionType[];
 
     const duration = timer.end();
 
@@ -73,20 +109,16 @@ export const getNextTicks = async (clientMessage: NextTicksType) => {
     });
 
     return {
-      target: {
-        uuid: clientMessage.target,
-        id: mapping.id,
-        name: mapping.name,
-        type: mapping.type,
-      },
-      timeStart: clientMessage.fromTime,
+      target: mapping,
+      timeStart: fromTime,
       count: rows.length,
       rows,
     };
   } catch (error) {
     logError(duckQueryLogger, error, {
-      target: clientMessage.target,
-      fromTime: clientMessage.fromTime,
+      context: "getNextTicks",
+      target,
+      fromTime,
     });
     throw error;
   }

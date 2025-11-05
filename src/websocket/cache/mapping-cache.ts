@@ -70,6 +70,10 @@ class MappingCache {
     await this.load();
   }
 
+  getAll(): CelestialBodyMapping[] {
+    return Array.from(this.uuidToMappingMap.values());
+  }
+
   getByUuid(uuid: string): CelestialBodyMapping | undefined {
     if (!this.isLoaded) {
       cacheLogger.warn("⚠️ Cache not loaded, call load() first");
@@ -97,19 +101,15 @@ class MappingCache {
   }
 
   getBySystemId(systemId: number): CelestialBodyMapping[] {
-    return Array.from(this.uuidToMappingMap.values()).filter(
-      (m) => m.systemId === systemId,
-    );
+    return this.getAll().filter((m) => m.systemId === systemId);
   }
 
   getByType(type: CelestialBodyType): CelestialBodyMapping[] {
-    return Array.from(this.uuidToMappingMap.values()).filter(
-      (m) => m.type === type,
-    );
+    return this.getAll().filter((m) => m.type === type);
   }
 
   getMoonsByPlanetId(planetId: number): CelestialBodyMapping[] {
-    return Array.from(this.uuidToMappingMap.values()).filter(
+    return this.getAll().filter(
       (m) => m.type === "moon" && m.parentId === planetId,
     );
   }
@@ -130,10 +130,7 @@ class MappingCache {
       totalEntries: this.uuidToMappingMap.size,
       byType,
       lastSync: this.lastSync,
-      memoryUsageKB: Math.round(
-        JSON.stringify(Array.from(this.uuidToMappingMap.values())).length /
-          1024,
-      ),
+      memoryUsageKB: Math.round(JSON.stringify(this.getAll()).length / 1024),
     };
   }
 
@@ -147,7 +144,7 @@ class MappingCache {
 
   searchByName(query: string): CelestialBodyMapping[] {
     const lowerQuery = query.toLowerCase();
-    return Array.from(this.uuidToMappingMap.values()).filter((m) =>
+    return this.getAll().filter((m) =>
       m.name.toLowerCase().includes(lowerQuery),
     );
   }

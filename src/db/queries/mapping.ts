@@ -24,6 +24,7 @@ export const syncMappingTable = async (): Promise<void> => {
       uuid: stars.uuid,
       id: stars.id,
       name: stars.name,
+      internalName: stars.internalName,
       systemId: stars.systemId,
     })
     .from(stars)
@@ -36,6 +37,7 @@ export const syncMappingTable = async (): Promise<void> => {
         id: s.id,
         type: "star" as const,
         name: s.name,
+        internalName: s.internalName,
         systemId: s.systemId as number,
         parentId: null,
       })),
@@ -50,6 +52,7 @@ export const syncMappingTable = async (): Promise<void> => {
       uuid: planets.uuid,
       id: planets.id,
       name: planets.name,
+      internalName: planets.internalName,
       systemId: planets.systemId,
     })
     .from(planets)
@@ -62,6 +65,7 @@ export const syncMappingTable = async (): Promise<void> => {
         id: p.id,
         type: "planet" as const,
         name: p.name,
+        internalName: p.internalName,
         systemId: p.systemId as number,
         parentId: null,
       })),
@@ -76,6 +80,7 @@ export const syncMappingTable = async (): Promise<void> => {
       uuid: moons.uuid,
       id: moons.id,
       name: moons.name,
+      internalName: moons.internalName,
       systemId: planets.systemId,
       planetId: moons.planetId,
     })
@@ -96,6 +101,7 @@ export const syncMappingTable = async (): Promise<void> => {
         id: m.id,
         type: "moon" as const,
         name: m.name,
+        internalName: m.internalName,
         systemId: m.systemId as number,
         parentId: m.planetId as number,
       })),

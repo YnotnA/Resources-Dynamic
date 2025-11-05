@@ -8,10 +8,16 @@ ws.on("open", () => {
 
   ws.send(
     encode({
+      action: "init",
+    }),
+  );
+
+  ws.send(
+    encode({
       action: "next-ticks",
-      count: 60,
+      count: 2,
       fromTime: Math.floor(Math.random() * 100) + 1,
-      target: "55ad9203-68c6-4d52-a4dd-601fe1c97852",
+      target: "3ed66943-71e6-4a17-9631-884eaaba8852",
     }),
   );
 });

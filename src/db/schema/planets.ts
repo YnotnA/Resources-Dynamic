@@ -46,8 +46,14 @@ export const planetsRelations = relations(planets, ({ one, many }) => ({
 }));
 
 export const planetSchema = createSelectSchema(planets);
-export const createPlanetSchema = createInsertSchema(planets);
-export const updatePlanetSchema = createUpdateSchema(planets);
+export const createPlanetSchema = createInsertSchema(planets).omit({
+  id: true,
+  uuid: true,
+});
+export const updatePlanetSchema = createUpdateSchema(planets).omit({
+  id: true,
+  uuid: true,
+});
 
 export type Planet = z.infer<typeof planetSchema>;
 export type NewPlanet = z.infer<typeof createPlanetSchema>;
