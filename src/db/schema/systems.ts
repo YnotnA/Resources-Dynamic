@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, serial, text, unique } from "drizzle-orm/pg-core";
+import { pgTable, serial, text } from "drizzle-orm/pg-core";
 import {
   createInsertSchema,
   createSelectSchema,
@@ -10,18 +10,11 @@ import type { z } from "zod";
 import { planets } from "./planets";
 import { stars } from "./stars";
 
-export const systems = pgTable(
-  "systems",
-  {
-    id: serial("id").primaryKey(),
-    name: text("name").notNull(),
-    internalName: text("internal_name").notNull(),
-  },
-  (table) => [
-    unique("unique_system_name").on(table.name),
-    unique("unique_system_internal_name").on(table.internalName),
-  ],
-);
+export const systems = pgTable("systems", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  internalName: text("internal_name").notNull().unique(),
+});
 
 // Relations
 export const systemsRelations = relations(systems, ({ many }) => ({

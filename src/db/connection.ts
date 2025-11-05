@@ -1,7 +1,6 @@
 import { logError, pgDbLogger } from "@lib/logger";
 import * as dotenv from "dotenv";
 import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
 
 import * as schema from "./schema";
 
@@ -13,17 +12,11 @@ if (!DATABASE_URL) {
   throw new Error("DATABASE_URL must be set in environment variables");
 }
 
-const pgClient = postgres(DATABASE_URL, {
-  max: 10,
-  idle_timeout: 20,
-  connect_timeout: 10,
-});
-
-export const db = drizzle(pgClient, { schema });
+export const db = drizzle({ connection: DATABASE_URL, schema });
 
 export const testConnection = async () => {
   try {
-    await pgClient`SELECT 1`;
+    await db.execute("select 1");
     pgDbLogger.info("✅ Database connected successfully");
     return true;
   } catch (error) {

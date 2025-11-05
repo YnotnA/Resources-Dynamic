@@ -5,7 +5,6 @@ import {
   pgTable,
   serial,
   text,
-  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 import {
@@ -18,31 +17,24 @@ import type { z } from "zod";
 import { moons } from "./moons";
 import { systems } from "./systems";
 
-export const planets = pgTable(
-  "planets",
-  {
-    id: serial("id").primaryKey(),
-    uuid: uuid("uuid").defaultRandom().unique(),
-    systemId: integer("system_id").references(() => systems.id),
-    name: text("name").notNull(),
-    internalName: text("internal_name").notNull(),
-    massKg: doublePrecision("mass_kg").notNull(),
-    periapsisAu: doublePrecision("periapsis_au").notNull(),
-    apoapsisAu: doublePrecision("apoapsis_au").notNull(),
-    incDeg: doublePrecision("inc_deg").notNull(),
-    nodeDeg: doublePrecision("node_deg").notNull(),
-    argPeriDeg: doublePrecision("arg_peri_deg").notNull(),
-    meanAnomalyDeg: doublePrecision("mean_anomaly_deg").notNull(),
-    radiusKm: doublePrecision("radius_km").notNull(),
-    radiusGravityInfluenceKm: doublePrecision(
-      "radius_gravity_influence_km",
-    ).notNull(),
-  },
-  (table) => [
-    unique("unique_planet_name").on(table.name),
-    unique("unique_planet_internal_name").on(table.internalName),
-  ],
-);
+export const planets = pgTable("planets", {
+  id: serial("id").primaryKey(),
+  uuid: uuid("uuid").defaultRandom().unique(),
+  systemId: integer("system_id").references(() => systems.id),
+  name: text("name").notNull().unique(),
+  internalName: text("internal_name").notNull().unique(),
+  massKg: doublePrecision("mass_kg").notNull(),
+  periapsisAu: doublePrecision("periapsis_au").notNull(),
+  apoapsisAu: doublePrecision("apoapsis_au").notNull(),
+  incDeg: doublePrecision("inc_deg").notNull(),
+  nodeDeg: doublePrecision("node_deg").notNull(),
+  argPeriDeg: doublePrecision("arg_peri_deg").notNull(),
+  meanAnomalyDeg: doublePrecision("mean_anomaly_deg").notNull(),
+  radiusKm: doublePrecision("radius_km").notNull(),
+  radiusGravityInfluenceKm: doublePrecision(
+    "radius_gravity_influence_km",
+  ).notNull(),
+});
 
 // Relations
 export const planetsRelations = relations(planets, ({ one, many }) => ({

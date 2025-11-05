@@ -1,5 +1,5 @@
 {
-  "id": "4b72b53c-8b5f-4b80-b457-c92f41a5330f",
+  "id": "551cf38c-4b89-4e10-92a1-f2975d7ec23e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -30,7 +30,22 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "systems_name_unique": {
+          "name": "systems_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        },
+        "systems_internal_name_unique": {
+          "name": "systems_internal_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "internal_name"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -100,6 +115,20 @@
           "nullsNotDistinct": false,
           "columns": [
             "uuid"
+          ]
+        },
+        "stars_name_unique": {
+          "name": "stars_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        },
+        "stars_internal_name_unique": {
+          "name": "stars_internal_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "internal_name"
           ]
         }
       },
@@ -221,6 +250,20 @@
           "columns": [
             "uuid"
           ]
+        },
+        "planets_name_unique": {
+          "name": "planets_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        },
+        "planets_internal_name_unique": {
+          "name": "planets_internal_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "internal_name"
+          ]
         }
       },
       "policies": {},
@@ -341,6 +384,20 @@
           "columns": [
             "uuid"
           ]
+        },
+        "planet_moons_name_unique": {
+          "name": "planet_moons_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        },
+        "planet_moons_internal_name_unique": {
+          "name": "planet_moons_internal_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "internal_name"
+          ]
         }
       },
       "policies": {},
@@ -448,7 +505,36 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "celestial_bodies_mapping_uuid_unique": {
+          "name": "celestial_bodies_mapping_uuid_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uuid"
+          ]
+        },
+        "celestial_bodies_mapping_id_unique": {
+          "name": "celestial_bodies_mapping_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id"
+          ]
+        },
+        "celestial_bodies_mapping_name_unique": {
+          "name": "celestial_bodies_mapping_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        },
+        "celestial_bodies_mapping_internal_name_unique": {
+          "name": "celestial_bodies_mapping_internal_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "internal_name"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

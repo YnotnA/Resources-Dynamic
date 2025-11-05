@@ -1,7 +1,9 @@
 CREATE TABLE "systems" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
-	"internal_name" text NOT NULL
+	"internal_name" text NOT NULL,
+	CONSTRAINT "systems_name_unique" UNIQUE("name"),
+	CONSTRAINT "systems_internal_name_unique" UNIQUE("internal_name")
 );
 --> statement-breakpoint
 CREATE TABLE "stars" (
@@ -11,7 +13,9 @@ CREATE TABLE "stars" (
 	"name" text NOT NULL,
 	"internal_name" text NOT NULL,
 	"mass_kg" double precision NOT NULL,
-	CONSTRAINT "stars_uuid_unique" UNIQUE("uuid")
+	CONSTRAINT "stars_uuid_unique" UNIQUE("uuid"),
+	CONSTRAINT "stars_name_unique" UNIQUE("name"),
+	CONSTRAINT "stars_internal_name_unique" UNIQUE("internal_name")
 );
 --> statement-breakpoint
 CREATE TABLE "planets" (
@@ -29,7 +33,9 @@ CREATE TABLE "planets" (
 	"mean_anomaly_deg" double precision NOT NULL,
 	"radius_km" double precision NOT NULL,
 	"radius_gravity_influence_km" double precision NOT NULL,
-	CONSTRAINT "planets_uuid_unique" UNIQUE("uuid")
+	CONSTRAINT "planets_uuid_unique" UNIQUE("uuid"),
+	CONSTRAINT "planets_name_unique" UNIQUE("name"),
+	CONSTRAINT "planets_internal_name_unique" UNIQUE("internal_name")
 );
 --> statement-breakpoint
 CREATE TABLE "planet_moons" (
@@ -47,7 +53,9 @@ CREATE TABLE "planet_moons" (
 	"mean_anomaly_deg" double precision NOT NULL,
 	"radius_km" double precision NOT NULL,
 	"radius_gravity_influence_km" double precision NOT NULL,
-	CONSTRAINT "planet_moons_uuid_unique" UNIQUE("uuid")
+	CONSTRAINT "planet_moons_uuid_unique" UNIQUE("uuid"),
+	CONSTRAINT "planet_moons_name_unique" UNIQUE("name"),
+	CONSTRAINT "planet_moons_internal_name_unique" UNIQUE("internal_name")
 );
 --> statement-breakpoint
 CREATE TABLE "celestial_bodies_mapping" (
@@ -59,7 +67,11 @@ CREATE TABLE "celestial_bodies_mapping" (
 	"system_id" integer NOT NULL,
 	"parent_id" integer,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "celestial_bodies_mapping_uuid_unique" UNIQUE("uuid"),
+	CONSTRAINT "celestial_bodies_mapping_id_unique" UNIQUE("id"),
+	CONSTRAINT "celestial_bodies_mapping_name_unique" UNIQUE("name"),
+	CONSTRAINT "celestial_bodies_mapping_internal_name_unique" UNIQUE("internal_name")
 );
 --> statement-breakpoint
 ALTER TABLE "stars" ADD CONSTRAINT "stars_system_id_systems_id_fk" FOREIGN KEY ("system_id") REFERENCES "public"."systems"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

@@ -1,9 +1,8 @@
-import { DrizzleError } from "drizzle-orm";
+import { DrizzleQueryError } from "drizzle-orm";
 import * as fs from "fs";
 import type { Context } from "hono";
 import * as path from "path";
 import pino from "pino";
-import { PostgresError } from "postgres";
 import { ZodError } from "zod";
 
 // Détection de l'environnement
@@ -122,32 +121,11 @@ const formatZodError = (error: ZodError) => {
 /**
  * Formatte une erreur Drizzle ORM
  */
-const formatDrizzleError = (error: DrizzleError) => {
+const formatDrizzleQueryError = (error: DrizzleQueryError) => {
   return {
-    type: "DrizzleError",
-    message: error.message,
+    type: "DrizzleQueryError",
     name: error.name,
     cause: error.cause,
-    stack: error.stack,
-  };
-};
-
-/**
- * Formatte une erreur PostgreSQL
- */
-const formatPostgresError = (error: PostgresError) => {
-  return {
-    type: "PostgresError",
-    message: error.message,
-    code: error.code,
-    severity: error.severity,
-    detail: error.detail,
-    hint: error.hint,
-    position: error.position,
-    schema: error.schema_name,
-    table: error.table_name,
-    column: error.column_name,
-    constraint: error.constraint_name,
   };
 };
 
@@ -198,13 +176,15 @@ export const logRequestError = (
 
 /**
  * Log une erreur avec contexte enrichi
- * Gère automatiquement ZodError, DrizzleError, PostgresError, et Error standard
+ * Gère automatiquement ZodError, DrizzleError, DatabaseError, et Error standard
  */
 export const logError = (
   logger: pino.Logger,
   error: unknown,
   context?: Record<string, unknown>,
 ) => {
+  console.log(error);
+
   if (error instanceof ZodError) {
     const formattedError = formatZodError(error);
 
@@ -218,28 +198,15 @@ export const logError = (
     return;
   }
 
-  if (error instanceof DrizzleError) {
-    const formattedError = formatDrizzleError(error);
+  if (error instanceof DrizzleQueryError) {
+    const formattedError = formatDrizzleQueryError(error);
 
     logger.error(
       {
         error: formattedError,
         ...context,
       },
-      `Drizzle error: ${formattedError.message}`,
-    );
-    return;
-  }
-
-  if (error instanceof PostgresError) {
-    const formattedError = formatPostgresError(error);
-
-    logger.error(
-      {
-        error: formattedError,
-        ...context,
-      },
-      `Postgres error: ${formattedError.message}`,
+      `Drizzle error: ${formattedError.cause}`,
     );
     return;
   }

@@ -1,5 +1,5 @@
 # =============================================================================
-# DyingStar Website - Makefile
+# DyingStar Resources Dynamic Service - Makefile
 # =============================================================================
 
 # Colors for output
@@ -41,7 +41,7 @@ check-env:
 
 .PHONY: start
 start: check-env ## Start the complete application (install, build, start) for testing
-	@echo "$(CYAN)🚀 Starting DyingStar Website for testing...$(RESET)"
+	@echo "$(CYAN)🚀 Starting DyingStar Resources Dynamic Service for testing...$(RESET)"
 	@echo "$(YELLOW)This will install dependencies, build, and start the application$(RESET)"
 	@$(COMPOSE) up $(APP_SERVICE) --build
 

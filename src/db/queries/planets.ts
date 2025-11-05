@@ -42,10 +42,11 @@ export const updatePlanet = async (
   uuid: string,
   data: UpdatePlanet,
 ): Promise<Planet | undefined> => {
+  const validatedUuid = z.uuid().parse(uuid);
   const result = await db
     .update(planets)
     .set(data)
-    .where(eq(planets.uuid, uuid))
+    .where(eq(planets.uuid, validatedUuid))
     .returning();
   return result[0];
 };

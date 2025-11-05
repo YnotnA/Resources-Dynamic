@@ -4,7 +4,6 @@ import {
   pgTable,
   text,
   timestamp,
-  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 import {
@@ -19,11 +18,11 @@ export const CELESTIAL_BODY_TYPES = ["star", "planet", "moon"] as const;
 export const celestialBodiesMapping = pgTable(
   "celestial_bodies_mapping",
   {
-    uuid: uuid("uuid").primaryKey(),
-    id: integer("id").notNull(),
+    uuid: uuid("uuid").primaryKey().unique(),
+    id: integer("id").notNull().unique(),
     type: text("type", { enum: CELESTIAL_BODY_TYPES }).notNull(),
-    name: text("name").notNull(),
-    internalName: text("internal_name").notNull(),
+    name: text("name").notNull().unique(),
+    internalName: text("internal_name").notNull().unique(),
     systemId: integer("system_id").notNull(),
     parentId: integer("parent_id"), // planet_id pour les lunes
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -32,8 +31,6 @@ export const celestialBodiesMapping = pgTable(
   (table) => [
     index("idx_celestial_mapping_id_type").on(table.id, table.type),
     index("idx_celestial_mapping_system").on(table.systemId),
-    unique("unique_celestial_name").on(table.name),
-    unique("unique_celestial_internal_name").on(table.internalName),
   ],
 );
 
