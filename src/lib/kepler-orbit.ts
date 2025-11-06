@@ -43,6 +43,7 @@ export interface PrefetchConfig {
   multiplier: number;
   maxDurationS: number;
   minDurationS: number;
+  autoThreshold: number;
 }
 
 export interface CacheStrategy {
@@ -355,6 +356,7 @@ class KeplerOrbit {
 export class KeplerOrbitService {
   private cache: Map<string, CachedOrbitData> = new Map();
   private prefetchQueue: Set<string> = new Set();
+  private activePrefetches: Map<string, Promise<void>> = new Map();
 
   private cacheStrategy: CacheStrategy = {
     maxCacheSize: 100, // 100 objets célestes max
@@ -367,6 +369,7 @@ export class KeplerOrbitService {
     multiplier: 300, // Buffer de 300× (ex: 1s demandé → 300s cachés)
     maxDurationS: 600, // Max 10 minutes par cache (~1.2 MB à 60 Hz)
     minDurationS: 1,
+    autoThreshold: 0.8,
   };
 
   constructor(
@@ -394,10 +397,6 @@ export class KeplerOrbitService {
    */
   private getCalculationKey(params: OrbitCalculationParams): string {
     return `${params.objectType}:${params.objectId}:${params.timestepS.toFixed(6)}`;
-  }
-
-  private getFullCacheKey(params: OrbitCalculationParams): string {
-    return `${params.objectType}:${params.objectId}:${params.startTimeS}:${params.durationS}:${params.timestepS}`;
   }
 
   private calculatePrefetchDuration(requestedDuration: number): number {
@@ -612,11 +611,93 @@ export class KeplerOrbitService {
     return subset;
   }
 
+  private completedPrefetches: Set<string> = new Set();
+
+  /**
+   * Vérifier et prefetch immédiatement si nécessaire
+   */
+  private checkAndPrefetch(
+    cached: CachedOrbitData,
+    currentTimeS: number,
+    params: OrbitCalculationParams,
+  ): void {
+    const cacheStart = cached.params.startTimeS;
+    const cacheEnd = cached.params.startTimeS + cached.params.durationS;
+    const cacheProgress = (currentTimeS - cacheStart) / cached.params.durationS;
+
+    if (cacheProgress < this.prefetchConfig.autoThreshold) {
+      return;
+    }
+
+    const prefetchKey = `prefetch:${params.objectId}:${params.objectType}:${cacheEnd.toFixed(0)}`;
+
+    // ✅ Vérifier si déjà fait OU en cours
+    if (
+      this.activePrefetches.has(prefetchKey) ||
+      this.completedPrefetches.has(prefetchKey)
+    ) {
+      return;
+    }
+
+    const cacheKey = this.getCacheKey(
+      params.objectId,
+      params.objectType,
+      params.timestepS,
+    );
+
+    const tempKey = `${cacheKey}:next`;
+
+    // Vérifier si le prefetch existe déjà en temp
+    if (this.cache.has(tempKey)) {
+      return;
+    }
+
+    console.log(
+      `[KeplerOrbitService] 🔮 Prefetch at ${(cacheProgress * 100).toFixed(0)}% (T=${currentTimeS.toFixed(0)}s)`,
+    );
+
+    // ✅ Marquer comme en cours
+    this.activePrefetches.set(prefetchKey, Promise.resolve());
+
+    try {
+      const cacheDuration = this.calculatePrefetchDuration(params.durationS);
+
+      const nextParams: OrbitCalculationParams = {
+        ...params,
+        startTimeS: cacheEnd,
+        durationS: cacheDuration,
+      };
+
+      const samples = this.calculateInternal(nextParams);
+
+      if (samples.length > 0) {
+        this.cache.set(tempKey, {
+          params: nextParams,
+          samples,
+          calculatedAt: new Date(),
+          sampleCount: samples.length,
+          accessCount: 0,
+          lastAccessedAt: new Date(),
+        });
+
+        console.log(
+          `[KeplerOrbitService] ✅ Prefetch ready (temp): ${samples.length.toLocaleString()} samples`,
+        );
+
+        // ✅ Marquer comme complété de manière permanente
+        this.completedPrefetches.add(prefetchKey);
+      }
+    } catch (error) {
+      console.error(`[KeplerOrbitService] ❌ Prefetch failed:`, error);
+    } finally {
+      this.activePrefetches.delete(prefetchKey);
+    }
+  }
+
   /**
    * Get orbital positions with intelligent caching
    */
   getPositions(params: OrbitCalculationParams): OrbitSample[] {
-    // Normaliser le temps
     const normalizedParams = { ...params };
 
     if (params.orbitalElements) {
@@ -630,7 +711,42 @@ export class KeplerOrbitService {
           normalizedParams.startTimeS = normalizedStartTime;
         }
       } catch (_error) {
-        // Ignorer l'erreur de normalisation
+        // Ignorer
+      }
+    }
+
+    const cacheKey = this.getCacheKey(
+      params.objectId,
+      params.objectType,
+      params.timestepS,
+    );
+
+    // ✅ VÉRIFIER ET PROMOUVOIR LE PREFETCH
+    const tempKey = `${cacheKey}:next`;
+    const prefetched = this.cache.get(tempKey);
+
+    if (prefetched) {
+      const prefetchStart = prefetched.params.startTimeS;
+      const prefetchEnd =
+        prefetched.params.startTimeS + prefetched.params.durationS;
+
+      // Si on a atteint ou dépassé le début du nouveau cache
+      if (normalizedParams.startTimeS >= prefetchStart) {
+        console.log(
+          `[KeplerOrbitService] 🔄 Promoting prefetch: ${prefetchStart.toFixed(0)}-${prefetchEnd.toFixed(0)}s`,
+        );
+
+        // Supprimer l'ancien cache
+        this.cache.delete(cacheKey);
+
+        // Promouvoir le prefetch
+        this.cache.set(cacheKey, prefetched);
+        this.cache.delete(tempKey);
+
+        // ✅ NETTOYER les flags de prefetch de l'ancien cache
+        const oldCacheEnd = prefetchStart; // Le début du nouveau = fin de l'ancien
+        const oldPrefetchKey = `prefetch:${params.objectId}:${params.objectType}:${oldCacheEnd.toFixed(0)}`;
+        this.completedPrefetches.delete(oldPrefetchKey);
       }
     }
 
@@ -645,37 +761,32 @@ export class KeplerOrbitService {
       );
 
       if (subset.length > 0) {
+        // PREFETCH
+        if (this.prefetchConfig.enabled) {
+          this.checkAndPrefetch(
+            cached,
+            normalizedParams.startTimeS,
+            normalizedParams,
+          );
+        }
+
         return subset;
       }
-
-      // Cache invalide → supprimer
-      this.cache.delete(
-        this.getCacheKey(params.objectId, params.objectType, params.timestepS),
-      );
     }
 
-    // Calculer la durée du cache (fenêtre glissante)
+    // Cache MISS
+    console.log(`[KeplerOrbitService] ❌ Cache MISS, calculating...`);
+
     const cacheDuration = this.calculatePrefetchDuration(
       normalizedParams.durationS,
     );
 
-    // Créer le cache depuis startTimeS
     const cacheParams: OrbitCalculationParams = {
       ...normalizedParams,
       startTimeS: normalizedParams.startTimeS,
       durationS: cacheDuration,
     };
 
-    const expectedSamples = Math.ceil(
-      cacheDuration / normalizedParams.timestepS,
-    );
-    const estimatedMemoryMB = (expectedSamples * 32) / 1024 / 1024;
-
-    console.log(
-      `[KeplerOrbitService] 📊 Window: T=${normalizedParams.startTimeS.toFixed(1)}s → T=${(normalizedParams.startTimeS + cacheDuration).toFixed(1)}s (${estimatedMemoryMB.toFixed(1)} MB)`,
-    );
-
-    // Calculer
     const startCalc = performance.now();
     const samples = this.calculateInternal(cacheParams);
     const calcTime = performance.now() - startCalc;
@@ -684,18 +795,16 @@ export class KeplerOrbitService {
       throw new Error("Failed to calculate orbital positions");
     }
 
+    const memoryMB = (samples.length * 32) / 1024 / 1024;
     console.log(
-      `[KeplerOrbitService] 🚀 ${samples.length.toLocaleString()} samples in ${calcTime.toFixed(1)}ms`,
+      `[KeplerOrbitService] 🚀 ${samples.length.toLocaleString()} samples in ${calcTime.toFixed(1)}ms (~${memoryMB.toFixed(1)} MB)`,
     );
 
-    // Cacher
     this.evictCache();
 
-    const cacheKey = this.getCacheKey(
-      params.objectId,
-      params.objectType,
-      params.timestepS,
-    );
+    // Supprimer le temp cache si existe
+    this.cache.delete(tempKey);
+
     this.cache.set(cacheKey, {
       params: cacheParams,
       samples,
@@ -705,7 +814,6 @@ export class KeplerOrbitService {
       lastAccessedAt: new Date(),
     });
 
-    // Extraire
     const result = this.extractSubset(
       this.cache.get(cacheKey) as CachedOrbitData,
       normalizedParams.startTimeS,
@@ -718,6 +826,7 @@ export class KeplerOrbitService {
 
     return result;
   }
+
   /**
    * Prefetch in background (non-blocking)
    */
@@ -737,6 +846,10 @@ export class KeplerOrbitService {
         this.prefetchQueue.delete(cacheKey);
       }
     }, 0);
+  }
+
+  async waitForPrefetches(): Promise<void> {
+    await Promise.all(Array.from(this.activePrefetches.values()));
   }
 
   /**
@@ -779,6 +892,8 @@ export class KeplerOrbitService {
 
   clearCache(): void {
     this.cache.clear();
+    this.completedPrefetches.clear();
+    this.activePrefetches.clear();
     console.log("[KeplerOrbitService] 🧹 Cache cleared");
   }
 
@@ -793,6 +908,20 @@ export class KeplerOrbitService {
     }
 
     keysToDelete.forEach((key) => this.cache.delete(key));
+
+    // ✅ Nettoyer aussi les flags de prefetch
+    const prefetchPrefix = `prefetch:${objectId}:${objectType}:`;
+    for (const key of this.completedPrefetches) {
+      if (key.startsWith(prefetchPrefix)) {
+        this.completedPrefetches.delete(key);
+      }
+    }
+    for (const key of this.activePrefetches.keys()) {
+      if (key.startsWith(prefetchPrefix)) {
+        this.activePrefetches.delete(key);
+      }
+    }
+
     console.log(
       `[KeplerOrbitService] 🧹 Cleared ${keysToDelete.length} cache entries for ${objectType}:${objectId}`,
     );
@@ -801,27 +930,31 @@ export class KeplerOrbitService {
   getCacheStats(): {
     size: number;
     maxSize: number;
-    prefetchConfig: PrefetchConfig;
+    prefetchMultiplier: number;
+    activePrefetches: number;
     entries: Array<{
       key: string;
       sampleCount: number;
+      memoryMB: number;
+      timeRange: string;
       ageMs: number;
       accessCount: number;
-      timeRange: string;
     }>;
   } {
     const entries = Array.from(this.cache.entries()).map(([key, data]) => ({
       key,
       sampleCount: data.sampleCount,
+      memoryMB: (data.sampleCount * 32) / 1024 / 1024,
+      timeRange: `${data.params.startTimeS.toFixed(0)}-${(data.params.startTimeS + data.params.durationS).toFixed(0)}s`,
       ageMs: Date.now() - data.calculatedAt.getTime(),
       accessCount: data.accessCount,
-      timeRange: `${data.params.startTimeS}-${data.params.startTimeS + data.params.durationS}s`,
     }));
 
     return {
       size: this.cache.size,
       maxSize: this.cacheStrategy.maxCacheSize,
-      prefetchConfig: this.prefetchConfig,
+      prefetchMultiplier: this.prefetchConfig.multiplier,
+      activePrefetches: this.activePrefetches.size,
       entries,
     };
   }

@@ -284,6 +284,8 @@ const orbitalElements = KeplerOrbitService.planetDBToOrbitalElements(
 // console.log("🎉 FINAL VALIDATION");
 // console.log("=".repeat(60));
 
+// const info = OrbitDataHelper.getOrbitalInfo(orbitalElements);
+
 // // Test sur une période complète
 // const fullPeriod = info.periodSeconds;
 // console.log(
@@ -381,79 +383,215 @@ const orbitalElements = KeplerOrbitService.planetDBToOrbitalElements(
 // console.log("✅ ALL TESTS PASSED - ORBIT CALCULATION IS CORRECT!");
 // console.log("=".repeat(60));
 
-console.log("=".repeat(60));
-console.log("🔍 CACHE DEBUG TEST");
-console.log("=".repeat(60));
+// console.log("=".repeat(60));
+// console.log("🔍 CACHE DEBUG TEST");
+// console.log("=".repeat(60));
 
-const info = OrbitDataHelper.getOrbitalInfo(orbitalElements);
+// const info = OrbitDataHelper.getOrbitalInfo(orbitalElements);
 
-// Vérifier la période orbitale
-console.log(`\n⏱️  Orbital info:`);
-console.log(
-  `  Period: ${info.periodSeconds.toFixed(0)}s (${info.periodDays.toFixed(2)} days)`,
+// // Vérifier la période orbitale
+// console.log(`\n⏱️  Orbital info:`);
+// console.log(
+//   `  Period: ${info.periodSeconds.toFixed(0)}s (${info.periodDays.toFixed(2)} days)`,
+// );
+// console.log(`  Semi-major axis: ${info.semiMajorAxisKm.toFixed(0)} km`);
+
+// console.log(`\n${"=".repeat(60)}`);
+// console.log("📞 TEST 1: Small request");
+// console.log("=".repeat(60));
+
+// const params1: OrbitCalculationParams = {
+//   objectId: planetData.uuid,
+//   objectType: "planet",
+//   startTimeS: 0,
+//   durationS: 100, // 100 secondes
+//   timestepS: 0.01666667,
+//   orbitalElements,
+// };
+
+// console.log(`\n📊 Request:`);
+// console.log(`  startTimeS: ${params1.startTimeS}`);
+// console.log(`  durationS: ${params1.durationS}s`);
+// console.log(`  timestepS: ${params1.timestepS}s`);
+// console.log(
+//   `  Expected samples: ${Math.ceil(params1.durationS / params1.timestepS)}`,
+// );
+
+// try {
+//   const samples1 = keplerOrbitService.getPositions(params1);
+//   console.log(`\n✅ SUCCESS: Received ${samples1.length} samples`);
+
+//   if (samples1.length > 0) {
+//     console.log(`   First sample: T=${samples1[0].timeS}s`);
+//     console.log(`   Last sample:  T=${samples1[samples1.length - 1].timeS}s`);
+//     console.log(
+//       `   Position at T=0: (${(samples1[0].position.x / 1e9).toFixed(4)}, ${(samples1[0].position.y / 1e9).toFixed(4)}, ${(samples1[0].position.z / 1e9).toFixed(4)}) million km`,
+//     );
+//   }
+// } catch (error) {
+//   console.error(`\n❌ ERROR:`, error);
+// }
+
+// console.log(`\n${"=".repeat(60)}`);
+// console.log("📞 TEST 2: Same request (should hit cache)");
+// console.log("=".repeat(60));
+
+// try {
+//   const samples2 = keplerOrbitService.getPositions(params1);
+//   console.log(`\n✅ SUCCESS: Received ${samples2.length} samples`);
+// } catch (error) {
+//   console.error(`\n❌ ERROR:`, error);
+// }
+
+// console.log(`\n${"=".repeat(60)}`);
+// console.log("📊 CACHE STATS");
+// console.log("=".repeat(60));
+
+// const stats = keplerOrbitService.getCacheStats();
+// console.log(`\nCache size: ${stats.size}`);
+// stats.entries.forEach((entry, i) => {
+//   console.log(`\nEntry ${i + 1}:`);
+//   console.log(`  Key: ${entry.key}`);
+//   console.log(`  Samples: ${entry.sampleCount.toLocaleString()}`);
+//   console.log(`  Time range: ${entry.timeRange}`);
+//   console.log(`  Access count: ${entry.accessCount}`);
+// });
+
+console.log("🧪 Testing auto-prefetch...\n");
+
+const keplerService = new KeplerOrbitService(
+  { maxCacheSize: 20, cacheExpirationMs: 600000, evictionPolicy: "lru" },
+  {
+    enabled: true,
+    multiplier: 10,
+    maxDurationS: 600,
+    minDurationS: 10,
+    autoThreshold: 0.8, // Prefetch à 80%
+  },
 );
-console.log(`  Semi-major axis: ${info.semiMajorAxisKm.toFixed(0)} km`);
 
-console.log(`\n${"=".repeat(60)}`);
-console.log("📞 TEST 1: Small request");
-console.log("=".repeat(60));
+let currentTimeS = 0;
+const deltaTimeS = 0.01666667;
+const totalFrames = 20000;
 
-const params1: OrbitCalculationParams = {
-  objectId: planetData.uuid,
-  objectType: "planet",
-  startTimeS: 0,
-  durationS: 100, // 100 secondes
-  timestepS: 0.01666667,
-  orbitalElements,
-};
+// ✅ Collecter les événements importants
+const events: Array<{
+  frame: number;
+  timeS: number;
+  event: string;
+  calcTimeMs: number;
+  cacheSize: number;
+  prefetching: number;
+}> = [];
 
-console.log(`\n📊 Request:`);
-console.log(`  startTimeS: ${params1.startTimeS}`);
-console.log(`  durationS: ${params1.durationS}s`);
-console.log(`  timestepS: ${params1.timestepS}s`);
-console.log(
-  `  Expected samples: ${Math.ceil(params1.durationS / params1.timestepS)}`,
-);
+console.log(`\n⏱️  Simulating ${totalFrames} frames...`);
+console.log(`⏳ Running...\n`);
 
-try {
-  const samples1 = keplerOrbitService.getPositions(params1);
-  console.log(`\n✅ SUCCESS: Received ${samples1.length} samples`);
+const simStart = performance.now();
 
-  if (samples1.length > 0) {
-    console.log(`   First sample: T=${samples1[0].timeS}s`);
-    console.log(`   Last sample:  T=${samples1[samples1.length - 1].timeS}s`);
-    console.log(
-      `   Position at T=0: (${(samples1[0].position.x / 1e9).toFixed(4)}, ${(samples1[0].position.y / 1e9).toFixed(4)}, ${(samples1[0].position.z / 1e9).toFixed(4)}) million km`,
-    );
+// Simuler la game loop
+for (let frame = 0; frame < totalFrames; frame++) {
+  const params = {
+    objectId: planetData.uuid,
+    objectType: "planet" as const,
+    startTimeS: currentTimeS,
+    durationS: 60,
+    timestepS: deltaTimeS,
+    orbitalElements,
+  };
+
+  const frameStart = performance.now();
+  const samples = keplerService.getPositions(params);
+  const frameTime = performance.now() - frameStart;
+
+  const stats = keplerService.getCacheStats();
+
+  // ✅ Enregistrer les frames importantes (tous les 1000 frames OU si calcul > 1ms)
+  if (frame % 1000 === 0 || frameTime > 1) {
+    events.push({
+      frame,
+      timeS: currentTimeS,
+      event: frameTime > 1 ? "CACHE MISS" : "CACHE HIT",
+      calcTimeMs: frameTime,
+      cacheSize: stats.size,
+      prefetching: stats.activePrefetches,
+    });
   }
-} catch (error) {
-  console.error(`\n❌ ERROR:`, error);
+
+  currentTimeS += deltaTimeS;
 }
 
-console.log(`\n${"=".repeat(60)}`);
-console.log("📞 TEST 2: Same request (should hit cache)");
+const simTime = performance.now() - simStart;
+
+console.log(`✅ Simulation complete in ${simTime.toFixed(0)}ms\n`);
+
+// ✅ AFFICHER LE RAPPORT
+console.log("=".repeat(60));
+console.log("📊 PERFORMANCE REPORT");
 console.log("=".repeat(60));
 
-try {
-  const samples2 = keplerOrbitService.getPositions(params1);
-  console.log(`\n✅ SUCCESS: Received ${samples2.length} samples`);
-} catch (error) {
-  console.error(`\n❌ ERROR:`, error);
-}
+console.log("\n🎯 IMPORTANT FRAMES:");
+console.log("─".repeat(60));
+console.log("Frame      Time(s)    Calc(ms)  Event         Cache  Prefetch");
+console.log("─".repeat(60));
 
-console.log(`\n${"=".repeat(60)}`);
-console.log("📊 CACHE STATS");
-console.log("=".repeat(60));
-
-const stats = keplerOrbitService.getCacheStats();
-console.log(`\nCache size: ${stats.size}`);
-stats.entries.forEach((entry, i) => {
-  console.log(`\nEntry ${i + 1}:`);
-  console.log(`  Key: ${entry.key}`);
-  console.log(`  Samples: ${entry.sampleCount.toLocaleString()}`);
-  console.log(`  Time range: ${entry.timeRange}`);
-  console.log(`  Access count: ${entry.accessCount}`);
+events.forEach((e) => {
+  console.log(
+    `${e.frame.toString().padStart(10)} ` +
+      `${e.timeS.toFixed(1).padStart(10)} ` +
+      `${e.calcTimeMs.toFixed(2).padStart(10)} ` +
+      ` ${e.event.padEnd(12)} ` +
+      `${e.cacheSize.toString().padStart(5)} ` +
+      `${e.prefetching.toString().padStart(8)}`,
+  );
 });
+
+// Stats finales
+const finalStats = keplerService.getCacheStats();
+const hitFrames = events.filter((e) => e.event === "CACHE HIT").length;
+const missFrames = events.filter((e) => e.event === "CACHE MISS").length;
+const avgHitTime =
+  events
+    .filter((e) => e.event === "CACHE HIT")
+    .reduce((sum, e) => sum + e.calcTimeMs, 0) / hitFrames || 0;
+const avgMissTime =
+  events
+    .filter((e) => e.event === "CACHE MISS")
+    .reduce((sum, e) => sum + e.calcTimeMs, 0) / missFrames || 0;
+
+console.log(`\n${"=".repeat(60)}`);
+console.log("📈 STATISTICS");
+console.log("=".repeat(60));
+console.log(`Total frames simulated: ${totalFrames.toLocaleString()}`);
+console.log(`Total simulation time: ${simTime.toFixed(0)}ms`);
+console.log(
+  `Cache hits: ~${(totalFrames - missFrames).toLocaleString()} (~${(((totalFrames - missFrames) / totalFrames) * 100).toFixed(2)}%)`,
+);
+console.log(`Cache misses: ~${missFrames}`);
+console.log(`Avg time (cache hit): ${avgHitTime.toFixed(3)}ms`);
+console.log(`Avg time (cache miss): ${avgMissTime.toFixed(3)}ms`);
+console.log(
+  `Speedup with cache: ${(avgMissTime / avgHitTime).toFixed(0)}× faster`,
+);
+
+console.log(`\n${"=".repeat(60)}`);
+console.log("💾 FINAL CACHE STATE");
+console.log("=".repeat(60));
+console.log(`Cache entries: ${finalStats.size}`);
+console.log(`Active prefetches: ${finalStats.activePrefetches}`);
+
+finalStats.entries.forEach((entry, i) => {
+  console.log(`\nCache ${i + 1}:`);
+  console.log(`  Range: ${entry.timeRange}`);
+  console.log(`  Samples: ${entry.sampleCount.toLocaleString()}`);
+  console.log(`  Memory: ${entry.memoryMB.toFixed(1)} MB`);
+  console.log(`  Hits: ${entry.accessCount.toLocaleString()}`);
+  console.log(`  Age: ${(entry.ageMs / 1000).toFixed(1)}s`);
+});
+
+console.log(`\n${"=".repeat(60)}`);
+console.log("✅ TEST COMPLETE");
+console.log("=".repeat(60));
 
 const ws = new WebSocket("ws://localhost:9200");
 
