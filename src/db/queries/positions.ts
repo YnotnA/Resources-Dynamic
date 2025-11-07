@@ -104,7 +104,7 @@ export const getNextTicks = async (
       startTimeS: fromTime,
       durationS: count,
       timestepS: 0.01666667,
-      orbitalElements,
+      orbitalObject: orbitalElements,
     };
 
     const rows = keplerOrbitService.getPositions(params);

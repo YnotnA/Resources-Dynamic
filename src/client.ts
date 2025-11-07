@@ -1,44 +1,44 @@
-// import type { Planet, Star } from "@db/schema";
-// import type { Vector3 } from "@lib/kepler-orbit/kepler-orbit";
-// import type { OrbitCalculationParams } from "@lib/kepler-orbit/kepler-orbit-service";
-// import { keplerOrbitService } from "@lib/kepler-orbit/kepler-orbit-service";
-// import { OrbitDataHelper } from "@lib/kepler-orbit/kerpler-orbit-helper";
+import type { Planet, Star } from "@db/schema";
+import type { OrbitCalculationParams } from "@lib/kepler-orbit/kepler-orbit-service";
+import { keplerOrbitService } from "@lib/kepler-orbit/kepler-orbit-service";
+import { OrbitDataHelper } from "@lib/kepler-orbit/kerpler-orbit-helper";
 import { decode, encode } from "@msgpack/msgpack";
 import type { ResponseWsType } from "@websocket/schema/Response/response.model";
+import type { Vector3Type } from "@websocket/schema/vector3.model";
 import WebSocket from "ws";
 
-// const planetData: Planet = {
-//   id: 3,
-//   uuid: "5514fdf5-a411-42ea-aee5-0c2d6343accc",
-//   systemId: 1,
-//   name: "Tarsis_1",
-//   internalName: "Tarsis_1",
-//   massKg: 0.318718034317024,
-//   periapsisAu: 0.0518740964529183,
-//   apoapsisAu: 0.0561969378239948,
-//   incDeg: 0.43879826599353,
-//   nodeDeg: 3.73398360904092,
-//   argPeriDeg: 89.2849996583068,
-//   meanAnomalyDeg: 81.9,
-//   radiusKm: 4678.72368420455,
-//   radiusGravityInfluenceKm: 35315.60801443042,
-// };
+const planetData: Planet = {
+  id: 3,
+  uuid: "5514fdf5-a411-42ea-aee5-0c2d6343accc",
+  systemId: 1,
+  name: "Tarsis_1",
+  internalName: "Tarsis_1",
+  massKg: 0.318718034317024,
+  periapsisAu: 0.0518740964529183,
+  apoapsisAu: 0.0561969378239948,
+  incDeg: 0.43879826599353,
+  nodeDeg: 3.73398360904092,
+  argPeriDeg: 89.2849996583068,
+  meanAnomalyDeg: 81.9,
+  radiusKm: 4678.72368420455,
+  radiusGravityInfluenceKm: 35315.60801443042,
+};
 
-// // Données du système stellaire (à récupérer depuis DB)
-// const starData: Star = {
-//   id: 1,
-//   uuid: "5514fdf5-a411-42ea-aee5-0c2d6343a000",
-//   name: "plop",
-//   internalName: "plop",
-//   systemId: 1,
-//   massKg: 0.758581416228569, // Multiplicateur (75.8% de la masse solaire)
-// };
+// Données du système stellaire (à récupérer depuis DB)
+const starData: Star = {
+  id: 1,
+  uuid: "5514fdf5-a411-42ea-aee5-0c2d6343a000",
+  name: "plop",
+  internalName: "plop",
+  systemId: 1,
+  massKg: 0.758581416228569, // Multiplicateur (75.8% de la masse solaire)
+};
 
-// // Conversion
-// const orbitalElements = OrbitDataHelper.planetDBToOrbitalElements(
-//   planetData,
-//   starData,
-// );
+// Conversion
+const orbitalElements = OrbitDataHelper.planetDBToOrbitalElements(
+  planetData,
+  starData,
+);
 
 // console.log("🌟 Orbital Elements:");
 // console.log(`  Star mass: ${orbitalElements.starMassKg.toExponential(2)} kg`);
@@ -290,7 +290,7 @@ import WebSocket from "ws";
 //   fullPeriod, // Full period (should return to start!)
 // ];
 
-// const positions: { time: number; pos: Vector3; dist: number }[] = [];
+// const positions: { time: number; pos: Vector3Type; dist: number }[] = [];
 
 // testTimes.forEach((timeS) => {
 //   const params: OrbitCalculationParams = {
@@ -299,7 +299,7 @@ import WebSocket from "ws";
 //     startTimeS: timeS,
 //     durationS: 60,
 //     timestepS: 0.01666667,
-//     orbitalElements,
+//     orbitalObject: orbitalElements,
 //   };
 
 //   const samples = keplerOrbitService.getPositions(params);
@@ -483,20 +483,21 @@ import WebSocket from "ws";
 
 // // Simuler la game loop
 // for (let frame = 0; frame < totalFrames; frame++) {
-//   const params = {
+//   const params: OrbitCalculationParams = {
 //     objectId: planetData.uuid as string,
 //     objectType: "planet" as const,
 //     startTimeS: currentTimeS,
 //     durationS: 60,
 //     timestepS: deltaTimeS,
-//     orbitalElements,
+//     orbitalObject: orbitalElements,
 //   };
 
+//   const cachePosition = keplerService.getCachePosition();
 //   const frameStart = performance.now();
 //   const samples = keplerService.getPositions(params);
 //   const frameTime = performance.now() - frameStart;
 
-//   const stats = keplerService.getCacheStats();
+//   const stats = cachePosition.getCacheStats();
 
 //   // ✅ Enregistrer les frames importantes (tous les 1000 frames OU si calcul > 1ms)
 //   if (frame % 1000 === 0 || frameTime > 1) {
@@ -539,7 +540,7 @@ import WebSocket from "ws";
 // });
 
 // // Stats finales
-// const finalStats = keplerService.getCacheStats();
+// const finalStats = keplerService.getCachePosition().getCacheStats();
 // const hitFrames = events.filter((e) => e.event === "CACHE HIT").length;
 // const missFrames = events.filter((e) => e.event === "CACHE MISS").length;
 // const avgHitTime =

@@ -65,7 +65,7 @@ if (!isDev && !isTest) {
   process.on("SIGTERM", closeStreams);
 } else {
   baseLogger = pino({
-    level: isDev ? "trace" : "info",
+    level: isDev ? "info" : "info",
     transport: {
       target: "pino-pretty",
       options: {
@@ -94,6 +94,8 @@ export const pgDbLogger = baseLogger.child({ component: "🐘 Postgres" });
 export const apiLogger = baseLogger.child({ component: "🌐 API" });
 
 export const cacheLogger = baseLogger.child({ component: "💾 Cache" });
+
+export const cachePositionLogger = baseLogger.child({ component: "💾 Cache" });
 
 export const keplerOrbitLogger = baseLogger.child({
   component: "🪐 KeplerOrbit",

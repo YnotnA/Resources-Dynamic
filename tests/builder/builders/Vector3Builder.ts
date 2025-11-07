@@ -5,13 +5,11 @@ import { BuilderBase } from "./BuilderBase";
 
 export class Vector3Builder extends BuilderBase<typeof vector3Schema> {
   constructor(faker: Faker) {
-     
     super(vector3Schema, {
       x: faker.number.int(),
       y: faker.number.int(),
       z: faker.number.int(),
     });
-     
   }
 
   withX(x: number): this {

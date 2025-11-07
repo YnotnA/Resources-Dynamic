@@ -1,6 +1,7 @@
 import type { Planet, Star } from "@db/schema";
+import type { Vector3Type } from "@websocket/schema/vector3.model";
 
-import type { OrbitalElements, Vector3 } from "./kepler-orbit";
+import type { OrbitalObject } from "./kepler-orbit";
 import type { OrbitCalculationParams } from "./kepler-orbit-service";
 
 /**
@@ -23,14 +24,14 @@ export class OrbitDataHelper {
       startTimeS,
       durationS,
       timestepS,
-      orbitalElements: OrbitDataHelper.planetDBToOrbitalElements(planet, star),
+      orbitalObject: OrbitDataHelper.planetDBToOrbitalElements(planet, star),
     };
   }
 
   /**
    * Validate orbital elements consistency
    */
-  static validateOrbitalElements(elements: OrbitalElements): {
+  static validateOrbitalElements(elements: OrbitalObject): {
     valid: boolean;
     warnings: string[];
   } {
@@ -73,7 +74,7 @@ export class OrbitDataHelper {
   /**
    * Calculate orbital info
    */
-  static getOrbitalInfo(elements: OrbitalElements): {
+  static getOrbitalInfo(elements: OrbitalObject): {
     semiMajorAxisAU: number;
     semiMajorAxisKm: number;
     eccentricity: number;
@@ -109,8 +110,8 @@ export class OrbitDataHelper {
    * Compare two positions for testing
    */
   static comparePositions(
-    pos1: Vector3,
-    pos2: Vector3,
+    pos1: Vector3Type,
+    pos2: Vector3Type,
     label1: string = "Position 1",
     label2: string = "Position 2",
   ): void {
@@ -140,10 +141,7 @@ export class OrbitDataHelper {
   /**
    * Convert PostgreSQL planet data to OrbitalElements
    */
-  static planetDBToOrbitalElements(
-    planet: Planet,
-    star: Star,
-  ): OrbitalElements {
+  static planetDBToOrbitalElements(planet: Planet, star: Star): OrbitalObject {
     const SOLAR_MASS_KG = 1.98847e30;
     const starMassMultiplier = star.massKg ?? 0.758581416228569;
 
