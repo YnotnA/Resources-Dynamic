@@ -1,4 +1,4 @@
-import { getInit, getNextTicks } from "@dbduck/queries/positions";
+import { getInit, getNextTicks } from "@db/queries/positions";
 import { createTimer, logError, wsLogger } from "@lib/logger";
 import { decode, encode } from "@msgpack/msgpack";
 import type { WebSocket } from "ws";
@@ -98,7 +98,7 @@ const handleInit = async (ws: WebSocket) => {
 
     const init: InitMessageType["data"] = objects.map((object) => {
       return {
-        uuid: object.target.uuid,
+        uuid: object.target.uuid as string,
         name: object.target.name,
         internalName: object.target.internalName,
         rotation: {
@@ -106,11 +106,7 @@ const handleInit = async (ws: WebSocket) => {
           y: 0, // TODO: define
           z: 0, // TODO: define
         },
-        position: {
-          x: object.item.x,
-          y: object.item.y,
-          z: object.item.z,
-        },
+        position: object.item.position,
       };
     });
 
@@ -164,17 +160,13 @@ const handleNextTicks = async (ws: WebSocket, msg: NextTicksType) => {
       (objectPosition) => {
         return {
           uuid: msg.target,
-          time: objectPosition.time_s,
+          time: objectPosition.timeS,
           rotation: {
             x: 0, // TODO: define
             y: 0, // TODO: define
             z: 0, // TODO: define
           },
-          position: {
-            x: objectPosition.x,
-            y: objectPosition.y,
-            z: objectPosition.z,
-          },
+          position: objectPosition.position,
         };
       },
     );

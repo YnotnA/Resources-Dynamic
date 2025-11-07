@@ -95,6 +95,14 @@ export const apiLogger = baseLogger.child({ component: "🌐 API" });
 
 export const cacheLogger = baseLogger.child({ component: "💾 Cache" });
 
+export const keplerOrbitLogger = baseLogger.child({
+  component: "🪐 KeplerOrbit",
+});
+
+export const keplerOrbitServiceLogger = baseLogger.child({
+  component: "🚀 KeplerOrbitService",
+});
+
 // ===================================
 // Helpers pour logs structurés
 // ===================================

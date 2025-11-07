@@ -1,10 +1,10 @@
+import { getInit } from "@db/queries/positions";
 import { serve } from "@hono/node-server";
 import * as dotenv from "dotenv";
 
 import app from "./app";
 import { testConnection } from "./db/connection";
-import { syncMappingTable } from "./db/queries/mapping";
-import { logError, logger } from "./lib/logger";
+import { logger } from "./lib/logger";
 import { mappingCache } from "./websocket/cache/mapping-cache";
 import { createStandaloneWebSocket } from "./websocket/server";
 
@@ -24,21 +24,23 @@ const start = async () => {
     process.exit(1);
   }
 
-  logger.info("🔄 Syncing mapping table...");
-  try {
-    await syncMappingTable();
-  } catch (error) {
-    logError(logger, error, { context: "start" });
-  }
+  await getInit();
 
-  logger.info("📥 Loading mapping cache...");
-  await mappingCache.load();
-  logger.info(
-    {
-      entries: mappingCache.getStats().totalEntries,
-    },
-    `✅ Cache ready`,
-  );
+  // logger.info("🔄 Syncing mapping table...");
+  // try {
+  //   await syncMappingTable();
+  // } catch (error) {
+  //   logError(logger, error, { context: "start" });
+  // }
+
+  // logger.info("📥 Loading mapping cache...");
+  // await mappingCache.load();
+  // logger.info(
+  //   {
+  //     entries: mappingCache.getStats().totalEntries,
+  //   },
+  //   `✅ Cache ready`,
+  // );
 
   // WebSocket standalone
   createStandaloneWebSocket(WS_PORT);

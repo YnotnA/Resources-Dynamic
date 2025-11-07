@@ -1,54 +1,44 @@
-import type { PlanetFromDB, SystemFromDB, Vector3 } from "@lib/kepler-orbit";
-import {
-  KeplerOrbitService,
-  type OrbitCalculationParams,
-  // keplerOrbitService,
-  keplerOrbitService,
-} from "@lib/kepler-orbit";
-// console.log(samples1);
-
-// // Deuxième appel pour une plage suivante: utilisera le cache!
-// console.log("📞 Deuxième demande: 100-200s (couverts par le cache)");
-// const params2: OrbitCalculationParams = {
-//   ...params1,
-//   startTimeS: 100,
-//   durationS: 100,
-// };
-// const samples2 = keplerOrbitService.getPositions(params2);
-// console.log(`✅ Reçu: ${samples2.length} échantillons (depuis cache)\n`);
-
-import { OrbitDataHelper } from "@lib/kepler-orbit";
+// import type { Planet, Star } from "@db/schema";
+// import type { Vector3 } from "@lib/kepler-orbit/kepler-orbit";
+// import type { OrbitCalculationParams } from "@lib/kepler-orbit/kepler-orbit-service";
+// import { keplerOrbitService } from "@lib/kepler-orbit/kepler-orbit-service";
+// import { OrbitDataHelper } from "@lib/kepler-orbit/kerpler-orbit-helper";
 import { decode, encode } from "@msgpack/msgpack";
+import type { ResponseWsType } from "@websocket/schema/Response/response.model";
 import WebSocket from "ws";
 
-const planetData: PlanetFromDB = {
-  id: 3,
-  uuid: "5514fdf5-a411-42ea-aee5-0c2d6343accc",
-  system_id: 1,
-  name: "Tarsis_1",
-  internal_name: "Tarsis_1",
-  mass_kg: 0.318718034317024,
-  periapsis_au: 0.0518740964529183,
-  apoapsis_au: 0.0561969378239948,
-  inc_deg: 0.43879826599353,
-  node_deg: 3.73398360904092,
-  arg_peri_deg: 89.2849996583068,
-  mean_anomaly_deg: 81.9,
-  radius_km: 4678.72368420455,
-  radius_gravity_influence_km: 35315.60801443042,
-};
+// const planetData: Planet = {
+//   id: 3,
+//   uuid: "5514fdf5-a411-42ea-aee5-0c2d6343accc",
+//   systemId: 1,
+//   name: "Tarsis_1",
+//   internalName: "Tarsis_1",
+//   massKg: 0.318718034317024,
+//   periapsisAu: 0.0518740964529183,
+//   apoapsisAu: 0.0561969378239948,
+//   incDeg: 0.43879826599353,
+//   nodeDeg: 3.73398360904092,
+//   argPeriDeg: 89.2849996583068,
+//   meanAnomalyDeg: 81.9,
+//   radiusKm: 4678.72368420455,
+//   radiusGravityInfluenceKm: 35315.60801443042,
+// };
 
-// Données du système stellaire (à récupérer depuis DB)
-const systemData: SystemFromDB = {
-  id: 1,
-  star_mass_kg: 0.758581416228569, // Multiplicateur (75.8% de la masse solaire)
-};
+// // Données du système stellaire (à récupérer depuis DB)
+// const starData: Star = {
+//   id: 1,
+//   uuid: "5514fdf5-a411-42ea-aee5-0c2d6343a000",
+//   name: "plop",
+//   internalName: "plop",
+//   systemId: 1,
+//   massKg: 0.758581416228569, // Multiplicateur (75.8% de la masse solaire)
+// };
 
-// Conversion
-const orbitalElements = KeplerOrbitService.planetDBToOrbitalElements(
-  planetData,
-  systemData,
-);
+// // Conversion
+// const orbitalElements = OrbitDataHelper.planetDBToOrbitalElements(
+//   planetData,
+//   starData,
+// );
 
 // console.log("🌟 Orbital Elements:");
 // console.log(`  Star mass: ${orbitalElements.starMassKg.toExponential(2)} kg`);
@@ -304,7 +294,7 @@ const orbitalElements = KeplerOrbitService.planetDBToOrbitalElements(
 
 // testTimes.forEach((timeS) => {
 //   const params: OrbitCalculationParams = {
-//     objectId: planetData.uuid,
+//     objectId: planetData.uuid as string,
 //     objectType: "planet",
 //     startTimeS: timeS,
 //     durationS: 60,
@@ -457,141 +447,143 @@ const orbitalElements = KeplerOrbitService.planetDBToOrbitalElements(
 //   console.log(`  Access count: ${entry.accessCount}`);
 // });
 
-console.log("🧪 Testing auto-prefetch...\n");
+// console.log("🧪 Testing auto-prefetch...\n");
 
-const keplerService = new KeplerOrbitService(
-  { maxCacheSize: 20, cacheExpirationMs: 600000, evictionPolicy: "lru" },
-  {
-    enabled: true,
-    multiplier: 10,
-    maxDurationS: 600,
-    minDurationS: 10,
-    autoThreshold: 0.8, // Prefetch à 80%
-  },
-);
+// // const keplerService = new KeplerOrbitService(
+// //   { maxCacheSize: 20, cacheExpirationMs: 600000, evictionPolicy: "lru" },
+// //   {
+// //     enabled: true,
+// //     multiplier: 10,
+// //     maxDurationS: 600,
+// //     minDurationS: 10,
+// //     autoThreshold: 0.8, // Prefetch à 80%
+// //   },
+// // );
 
-let currentTimeS = 0;
-const deltaTimeS = 0.01666667;
-const totalFrames = 20000;
+// const keplerService = keplerOrbitService;
 
-// ✅ Collecter les événements importants
-const events: Array<{
-  frame: number;
-  timeS: number;
-  event: string;
-  calcTimeMs: number;
-  cacheSize: number;
-  prefetching: number;
-}> = [];
+// let currentTimeS = 0;
+// const deltaTimeS = 0.01666667;
+// const totalFrames = 20000;
 
-console.log(`\n⏱️  Simulating ${totalFrames} frames...`);
-console.log(`⏳ Running...\n`);
+// // ✅ Collecter les événements importants
+// const events: Array<{
+//   frame: number;
+//   timeS: number;
+//   event: string;
+//   calcTimeMs: number;
+//   cacheSize: number;
+//   prefetching: number;
+// }> = [];
 
-const simStart = performance.now();
+// console.log(`\n⏱️  Simulating ${totalFrames} frames...`);
+// console.log(`⏳ Running...\n`);
 
-// Simuler la game loop
-for (let frame = 0; frame < totalFrames; frame++) {
-  const params = {
-    objectId: planetData.uuid,
-    objectType: "planet" as const,
-    startTimeS: currentTimeS,
-    durationS: 60,
-    timestepS: deltaTimeS,
-    orbitalElements,
-  };
+// const simStart = performance.now();
 
-  const frameStart = performance.now();
-  const samples = keplerService.getPositions(params);
-  const frameTime = performance.now() - frameStart;
+// // Simuler la game loop
+// for (let frame = 0; frame < totalFrames; frame++) {
+//   const params = {
+//     objectId: planetData.uuid as string,
+//     objectType: "planet" as const,
+//     startTimeS: currentTimeS,
+//     durationS: 60,
+//     timestepS: deltaTimeS,
+//     orbitalElements,
+//   };
 
-  const stats = keplerService.getCacheStats();
+//   const frameStart = performance.now();
+//   const samples = keplerService.getPositions(params);
+//   const frameTime = performance.now() - frameStart;
 
-  // ✅ Enregistrer les frames importantes (tous les 1000 frames OU si calcul > 1ms)
-  if (frame % 1000 === 0 || frameTime > 1) {
-    events.push({
-      frame,
-      timeS: currentTimeS,
-      event: frameTime > 1 ? "CACHE MISS" : "CACHE HIT",
-      calcTimeMs: frameTime,
-      cacheSize: stats.size,
-      prefetching: stats.activePrefetches,
-    });
-  }
+//   const stats = keplerService.getCacheStats();
 
-  currentTimeS += deltaTimeS;
-}
+//   // ✅ Enregistrer les frames importantes (tous les 1000 frames OU si calcul > 1ms)
+//   if (frame % 1000 === 0 || frameTime > 1) {
+//     events.push({
+//       frame,
+//       timeS: currentTimeS,
+//       event: frameTime > 1 ? "CACHE MISS" : "CACHE HIT",
+//       calcTimeMs: frameTime,
+//       cacheSize: stats.size,
+//       prefetching: stats.activePrefetches,
+//     });
+//   }
 
-const simTime = performance.now() - simStart;
+//   currentTimeS += deltaTimeS;
+// }
 
-console.log(`✅ Simulation complete in ${simTime.toFixed(0)}ms\n`);
+// const simTime = performance.now() - simStart;
 
-// ✅ AFFICHER LE RAPPORT
-console.log("=".repeat(60));
-console.log("📊 PERFORMANCE REPORT");
-console.log("=".repeat(60));
+// console.log(`✅ Simulation complete in ${simTime.toFixed(0)}ms\n`);
 
-console.log("\n🎯 IMPORTANT FRAMES:");
-console.log("─".repeat(60));
-console.log("Frame      Time(s)    Calc(ms)  Event         Cache  Prefetch");
-console.log("─".repeat(60));
+// // ✅ AFFICHER LE RAPPORT
+// console.log("=".repeat(60));
+// console.log("📊 PERFORMANCE REPORT");
+// console.log("=".repeat(60));
 
-events.forEach((e) => {
-  console.log(
-    `${e.frame.toString().padStart(10)} ` +
-      `${e.timeS.toFixed(1).padStart(10)} ` +
-      `${e.calcTimeMs.toFixed(2).padStart(10)} ` +
-      ` ${e.event.padEnd(12)} ` +
-      `${e.cacheSize.toString().padStart(5)} ` +
-      `${e.prefetching.toString().padStart(8)}`,
-  );
-});
+// console.log("\n🎯 IMPORTANT FRAMES:");
+// console.log("─".repeat(60));
+// console.log("Frame      Time(s)    Calc(ms)  Event         Cache  Prefetch");
+// console.log("─".repeat(60));
 
-// Stats finales
-const finalStats = keplerService.getCacheStats();
-const hitFrames = events.filter((e) => e.event === "CACHE HIT").length;
-const missFrames = events.filter((e) => e.event === "CACHE MISS").length;
-const avgHitTime =
-  events
-    .filter((e) => e.event === "CACHE HIT")
-    .reduce((sum, e) => sum + e.calcTimeMs, 0) / hitFrames || 0;
-const avgMissTime =
-  events
-    .filter((e) => e.event === "CACHE MISS")
-    .reduce((sum, e) => sum + e.calcTimeMs, 0) / missFrames || 0;
+// events.forEach((e) => {
+//   console.log(
+//     `${e.frame.toString().padStart(10)} ` +
+//       `${e.timeS.toFixed(1).padStart(10)} ` +
+//       `${e.calcTimeMs.toFixed(2).padStart(10)} ` +
+//       ` ${e.event.padEnd(12)} ` +
+//       `${e.cacheSize.toString().padStart(5)} ` +
+//       `${e.prefetching.toString().padStart(8)}`,
+//   );
+// });
 
-console.log(`\n${"=".repeat(60)}`);
-console.log("📈 STATISTICS");
-console.log("=".repeat(60));
-console.log(`Total frames simulated: ${totalFrames.toLocaleString()}`);
-console.log(`Total simulation time: ${simTime.toFixed(0)}ms`);
-console.log(
-  `Cache hits: ~${(totalFrames - missFrames).toLocaleString()} (~${(((totalFrames - missFrames) / totalFrames) * 100).toFixed(2)}%)`,
-);
-console.log(`Cache misses: ~${missFrames}`);
-console.log(`Avg time (cache hit): ${avgHitTime.toFixed(3)}ms`);
-console.log(`Avg time (cache miss): ${avgMissTime.toFixed(3)}ms`);
-console.log(
-  `Speedup with cache: ${(avgMissTime / avgHitTime).toFixed(0)}× faster`,
-);
+// // Stats finales
+// const finalStats = keplerService.getCacheStats();
+// const hitFrames = events.filter((e) => e.event === "CACHE HIT").length;
+// const missFrames = events.filter((e) => e.event === "CACHE MISS").length;
+// const avgHitTime =
+//   events
+//     .filter((e) => e.event === "CACHE HIT")
+//     .reduce((sum, e) => sum + e.calcTimeMs, 0) / hitFrames || 0;
+// const avgMissTime =
+//   events
+//     .filter((e) => e.event === "CACHE MISS")
+//     .reduce((sum, e) => sum + e.calcTimeMs, 0) / missFrames || 0;
 
-console.log(`\n${"=".repeat(60)}`);
-console.log("💾 FINAL CACHE STATE");
-console.log("=".repeat(60));
-console.log(`Cache entries: ${finalStats.size}`);
-console.log(`Active prefetches: ${finalStats.activePrefetches}`);
+// console.log(`\n${"=".repeat(60)}`);
+// console.log("📈 STATISTICS");
+// console.log("=".repeat(60));
+// console.log(`Total frames simulated: ${totalFrames.toLocaleString()}`);
+// console.log(`Total simulation time: ${simTime.toFixed(0)}ms`);
+// console.log(
+//   `Cache hits: ~${(totalFrames - missFrames).toLocaleString()} (~${(((totalFrames - missFrames) / totalFrames) * 100).toFixed(2)}%)`,
+// );
+// console.log(`Cache misses: ~${missFrames}`);
+// console.log(`Avg time (cache hit): ${avgHitTime.toFixed(3)}ms`);
+// console.log(`Avg time (cache miss): ${avgMissTime.toFixed(3)}ms`);
+// console.log(
+//   `Speedup with cache: ${(avgMissTime / avgHitTime).toFixed(0)}× faster`,
+// );
 
-finalStats.entries.forEach((entry, i) => {
-  console.log(`\nCache ${i + 1}:`);
-  console.log(`  Range: ${entry.timeRange}`);
-  console.log(`  Samples: ${entry.sampleCount.toLocaleString()}`);
-  console.log(`  Memory: ${entry.memoryMB.toFixed(1)} MB`);
-  console.log(`  Hits: ${entry.accessCount.toLocaleString()}`);
-  console.log(`  Age: ${(entry.ageMs / 1000).toFixed(1)}s`);
-});
+// console.log(`\n${"=".repeat(60)}`);
+// console.log("💾 FINAL CACHE STATE");
+// console.log("=".repeat(60));
+// console.log(`Cache entries: ${finalStats.size}`);
+// console.log(`Active prefetches: ${finalStats.activePrefetches}`);
 
-console.log(`\n${"=".repeat(60)}`);
-console.log("✅ TEST COMPLETE");
-console.log("=".repeat(60));
+// finalStats.entries.forEach((entry, i) => {
+//   console.log(`\nCache ${i + 1}:`);
+//   console.log(`  Range: ${entry.timeRange}`);
+//   console.log(`  Samples: ${entry.sampleCount.toLocaleString()}`);
+//   console.log(`  Memory: ${entry.memoryMB.toFixed(1)} MB`);
+//   console.log(`  Hits: ${entry.accessCount.toLocaleString()}`);
+//   console.log(`  Age: ${(entry.ageMs / 1000).toFixed(1)}s`);
+// });
+
+// console.log(`\n${"=".repeat(60)}`);
+// console.log("✅ TEST COMPLETE");
+// console.log("=".repeat(60));
 
 const ws = new WebSocket("ws://localhost:9200");
 
@@ -604,19 +596,29 @@ ws.on("open", () => {
     }),
   );
 
-  ws.send(
-    encode({
-      action: "next-ticks",
-      count: 60,
-      fromTime: Math.floor(Math.random() * 86400) + 1,
-      target: "5514fdf5-a411-42ea-aee5-0c2d6343accc",
-    }),
-  );
+  let fromTime = 0;
+  setInterval(() => {
+    ws.send(
+      encode({
+        action: "next-ticks",
+        count: 60,
+        // fromTime: Math.floor(Math.random() * 86400) + 1,
+        fromTime,
+        target: "5514fdf5-a411-42ea-aee5-0c2d6343accc",
+      }),
+    );
+    fromTime += 60;
+  }, 5000);
 });
 
 ws.on("message", (data) => {
-  const decoded = decode(data as Buffer);
-  console.log("🎯 Received:", decoded);
+  const decoded = decode(data as Buffer) as ResponseWsType;
+
+  if ("data" in decoded) {
+    console.log("🎯 Received:", decoded.data);
+  } else {
+    console.log("🎯 Received:", decoded);
+  }
 });
 
 ws.on("close", () => console.log("🔴 Disconnected"));
