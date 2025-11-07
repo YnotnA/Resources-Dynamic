@@ -123,6 +123,7 @@ export class KeplerOrbit {
   private static readonly AU_M = 1.495978707e11;
   private static readonly G = 6.6743e-11;
   private static readonly TAU = 2.0 * Math.PI;
+  private static readonly SOLAR_MASS_KG = 1.98892e30;
 
   private basis: Basis3D;
   private orbitCenter: Vector3Type;
@@ -166,10 +167,18 @@ export class KeplerOrbit {
       throw new Error("periapsisAU and apoapsisAU must be provided");
     }
 
+    if (elements.starMassKg === 0) {
+      keplerOrbitLogger.warn(
+        { defaultValue: KeplerOrbit.SOLAR_MASS_KG, orbitalObject: elements },
+        "⚠️ Star mass missing. Use default value",
+      );
+    }
+
+    const starMass = elements.starMassKg || KeplerOrbit.SOLAR_MASS_KG;
+    const planetMass = elements.planetMassKg;
+
     // Create mean motion
-    const mu =
-      KeplerOrbit.G *
-      Math.max(elements.starMassKg + elements.planetMassKg, 1.0);
+    const mu = KeplerOrbit.G * (starMass + planetMass);
     this.meanMotion = Math.sqrt(mu / Math.pow(this.semiMajorAxisM, 3));
 
     // Create the orbital rotation base

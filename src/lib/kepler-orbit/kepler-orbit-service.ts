@@ -23,7 +23,7 @@ export class KeplerOrbitService {
     this.cachePosition = new CachePosition(cacheStrategy, prefetchConfig);
   }
 
-  private calculateInternal(params: OrbitCalculationParams): Position[] {
+  private calculateInternal = (params: OrbitCalculationParams): Position[] => {
     const startTime = performance.now();
 
     const orbitalObject = params.orbitalObject;
@@ -67,7 +67,7 @@ export class KeplerOrbitService {
     );
 
     return positions;
-  }
+  };
 
   getCachePosition(): CachePosition {
     return this.cachePosition;
@@ -95,8 +95,9 @@ export class KeplerOrbitService {
       }
     }
 
-    return this.cachePosition.getPositions(normalizedParams, (p) =>
-      this.calculateInternal(p),
+    return this.cachePosition.getPositions(
+      normalizedParams,
+      this.calculateInternal,
     );
   }
 }

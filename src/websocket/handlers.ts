@@ -143,7 +143,12 @@ const handleNextTicks = async (ws: WebSocket, msg: NextTicksType) => {
   );
 
   try {
-    const coords = await getNextTicks(msg.target, msg.fromTime, msg.count);
+    const coords = await getNextTicks(
+      msg.target,
+      msg.fromTime,
+      msg.count,
+      msg.timeStep,
+    );
     const duration = timer.end();
 
     wsLogger.debug(

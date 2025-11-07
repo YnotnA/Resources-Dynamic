@@ -57,6 +57,7 @@ export const getNextTicks = async (
   target: string,
   fromTime: number,
   count: number,
+  timesteps: number = 0.01666667,
 ) => {
   const timer = createTimer();
 
@@ -103,7 +104,7 @@ export const getNextTicks = async (
       objectType: "planet" as const,
       startTimeS: fromTime,
       durationS: count,
-      timestepS: 0.01666667,
+      timestepS: timesteps,
       orbitalObject: orbitalElements,
     };
 

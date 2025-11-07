@@ -23,6 +23,8 @@ vi.mock("@lib/logger", () => {
     pgDbLogger: createMockLogger(),
     apiLogger: createMockLogger(),
     cacheLogger: createMockLogger(),
+    cachePositionLogger: createMockLogger(),
+    keplerOrbitServiceLogger: createMockLogger(),
     logError: vi.fn(),
     logPerformance: vi.fn(),
     createTimer: vi.fn(() => ({

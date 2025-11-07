@@ -3,6 +3,8 @@ import type { OrbitCalculationParams } from "@lib/kepler-orbit/kepler-orbit-serv
 import { keplerOrbitService } from "@lib/kepler-orbit/kepler-orbit-service";
 import { OrbitDataHelper } from "@lib/kepler-orbit/kerpler-orbit-helper";
 import { decode, encode } from "@msgpack/msgpack";
+import type { NextTicksType } from "@websocket/schema/Request/nextTicks.model";
+import { NextTicksMessageType } from "@websocket/schema/Response/nextTick.model";
 import type { ResponseWsType } from "@websocket/schema/Response/response.model";
 import type { Vector3Type } from "@websocket/schema/vector3.model";
 import WebSocket from "ws";
@@ -599,15 +601,14 @@ ws.on("open", () => {
 
   let fromTime = 0;
   setInterval(() => {
-    ws.send(
-      encode({
-        action: "next-ticks",
-        count: 60,
-        // fromTime: Math.floor(Math.random() * 86400) + 1,
-        fromTime,
-        target: "5514fdf5-a411-42ea-aee5-0c2d6343accc",
-      }),
-    );
+    const nextTicksRequest: NextTicksType = {
+      action: "next-ticks",
+      count: 60,
+      // fromTime: Math.floor(Math.random() * 86400) + 1,
+      fromTime,
+      target: "5514fdf5-a411-42ea-aee5-0c2d6343accc",
+    };
+    ws.send(encode(nextTicksRequest));
     fromTime += 60;
   }, 5000);
 });

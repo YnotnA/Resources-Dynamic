@@ -132,13 +132,15 @@ Used to retrieve the position of a stellar object by UUID, specifying the start 
   "action": "next-ticks",
   "count": "<number>",
   "fromTime": "<number>",
-  "target": "<string>"
+  "target": "<string>",
+  "timeStep": "<number>"
 }
 ```
 
 - **count** : number of ticks
 - **fromTime**: time
 - **target**: uuid
+- **timeStep**: Frequency (optionnal default 0.01666667 => 60Hz)
 
 #### Response :
 
