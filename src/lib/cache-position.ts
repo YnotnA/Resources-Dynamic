@@ -27,7 +27,7 @@ export interface CachedData {
 export interface PrefetchConfig {
   enabled: boolean;
   multiplier: number;
-  maxDurationS: number;
+  maxSampleCount: number;
   minDurationS: number;
   autoThreshold: number;
 }
@@ -44,17 +44,17 @@ export class CachePosition {
   private completedPrefetches: Set<string> = new Set();
 
   private cacheStrategy: CacheStrategy = {
-    maxCacheSize: 100, // 100 objets max
-    cacheExpirationMs: 60000, // 1 minute of expiration
-    evictionPolicy: "lru", // Least Recently Used (see evictCache method)
+    maxCacheSize: 100,
+    cacheExpirationMs: 60000,
+    evictionPolicy: "lru",
   };
 
   private prefetchConfig: PrefetchConfig = {
     enabled: true,
-    multiplier: 300, // Prefetch buffer multiplier (e.g., 1s requested → 300s cached)
-    maxDurationS: 600, // Maximum duration per cache entry: 10 minutes (~1.2 MB at 60 Hz)
-    minDurationS: 1, // Minimum request duration to trigger prefetch (ignore micro-requests < 1s)
-    autoThreshold: 0.8, // Auto-prefetch threshold: trigger when cache progress > 80%
+    multiplier: 300,
+    maxSampleCount: 10000,
+    minDurationS: 1,
+    autoThreshold: 0.8,
   };
 
   constructor(
@@ -236,7 +236,10 @@ export class CachePosition {
     return subset;
   }
 
-  private calculatePrefetchDuration(requestedDuration: number): number {
+  private calculatePrefetchDuration(
+    requestedDuration: number,
+    timestepS: number,
+  ): number {
     if (!this.prefetchConfig.enabled) {
       cachePositionLogger.info(`🔧 Prefetch disabled`);
       return requestedDuration;
@@ -253,19 +256,18 @@ export class CachePosition {
     const bufferDuration = requestedDuration * this.prefetchConfig.multiplier;
     const totalDuration = requestedDuration + bufferDuration;
 
-    // Apply max limit
-    const finalDuration = Math.min(
-      totalDuration,
-      this.prefetchConfig.maxDurationS,
-    );
+    const maxDurationSamples = this.prefetchConfig.maxSampleCount * timestepS;
+    const finalDuration = Math.min(totalDuration, maxDurationSamples);
 
     cachePositionLogger.debug(
       {
         requestedDuration,
         multiplier: this.prefetchConfig.multiplier,
         finalDuration,
+        maxAllowedPoints: this.prefetchConfig.maxSampleCount,
+        timestepS,
       },
-      `🔧 Prefetch: ${requestedDuration.toFixed(1)}s x ${this.prefetchConfig.multiplier} = ${finalDuration.toFixed(1)}s`,
+      `🔧 Prefetch: ${requestedDuration.toFixed(1)}s (step=${timestepS}) x ${this.prefetchConfig.multiplier} = ${finalDuration.toFixed(1)}s [Max ${this.prefetchConfig.maxSampleCount} pts]`,
     );
 
     return finalDuration;
@@ -316,8 +318,10 @@ export class CachePosition {
     this.activePrefetches.set(prefetchKey, Promise.resolve());
 
     try {
-      const cacheDuration = this.calculatePrefetchDuration(params.durationS);
-
+      const cacheDuration = this.calculatePrefetchDuration(
+        params.durationS,
+        params.timestepS,
+      );
       const nextParams = {
         ...params,
         startTimeS: cacheEnd,
@@ -350,7 +354,7 @@ export class CachePosition {
   }
 
   /**
-   * Generic method to get positions with custom calculation function
+   * Get positions with respect to maxSampleCount
    */
   getPositions<T extends CacheCalculationParams>(
     params: T,
@@ -415,6 +419,7 @@ export class CachePosition {
 
     const cacheDuration = this.calculatePrefetchDuration(
       normalizedParams.durationS,
+      normalizedParams.timestepS,
     );
 
     const cacheParams = {
@@ -518,6 +523,7 @@ export class CachePosition {
     maxSize: number;
     prefetchMultiplier: number;
     activePrefetches: number;
+    maxSampleCount: number;
     entries: Array<{
       key: string;
       sampleCount: number;
@@ -541,6 +547,7 @@ export class CachePosition {
       maxSize: this.cacheStrategy.maxCacheSize,
       prefetchMultiplier: this.prefetchConfig.multiplier,
       activePrefetches: this.activePrefetches.size,
+      maxSampleCount: this.prefetchConfig.maxSampleCount,
       entries,
     };
   }

@@ -1,46 +1,46 @@
-import type { Planet, Star } from "@db/schema";
-import type { OrbitCalculationParams } from "@lib/kepler-orbit/kepler-orbit-service";
-import { keplerOrbitService } from "@lib/kepler-orbit/kepler-orbit-service";
-import { OrbitDataHelper } from "@lib/kepler-orbit/kerpler-orbit-helper";
+// import type { Planet, Star } from "@db/schema";
+// import type { OrbitCalculationParams } from "@lib/kepler-orbit/kepler-orbit-service";
+// import { keplerOrbitService } from "@lib/kepler-orbit/kepler-orbit-service";
+// import { OrbitDataHelper } from "@lib/kepler-orbit/orbit-data-helper";
 import { decode, encode } from "@msgpack/msgpack";
 import type { NextTicksType } from "@websocket/schema/Request/nextTicks.model";
-import { NextTicksMessageType } from "@websocket/schema/Response/nextTick.model";
+// import { NextTicksMessageType } from "@websocket/schema/Response/nextTick.model";
 import type { ResponseWsType } from "@websocket/schema/Response/response.model";
-import type { Vector3Type } from "@websocket/schema/vector3.model";
+// import type { Vector3Type } from "@websocket/schema/vector3.model";
 import WebSocket from "ws";
 
-const planetData: Planet = {
-  id: 3,
-  uuid: "5514fdf5-a411-42ea-aee5-0c2d6343accc",
-  systemId: 1,
-  name: "Tarsis_1",
-  internalName: "Tarsis_1",
-  massKg: 0.318718034317024,
-  periapsisAu: 0.0518740964529183,
-  apoapsisAu: 0.0561969378239948,
-  incDeg: 0.43879826599353,
-  nodeDeg: 3.73398360904092,
-  argPeriDeg: 89.2849996583068,
-  meanAnomalyDeg: 81.9,
-  radiusKm: 4678.72368420455,
-  radiusGravityInfluenceKm: 35315.60801443042,
-};
+// const planetData: Planet = {
+//   id: 3,
+//   uuid: "5514fdf5-a411-42ea-aee5-0c2d6343accc",
+//   systemId: 1,
+//   name: "Tarsis_1",
+//   internalName: "Tarsis_1",
+//   massKg: 0.318718034317024,
+//   periapsisAu: 0.0518740964529183,
+//   apoapsisAu: 0.0561969378239948,
+//   incDeg: 0.43879826599353,
+//   nodeDeg: 3.73398360904092,
+//   argPeriDeg: 89.2849996583068,
+//   meanAnomalyDeg: 81.9,
+//   radiusKm: 4678.72368420455,
+//   radiusGravityInfluenceKm: 35315.60801443042,
+// };
 
-// Données du système stellaire (à récupérer depuis DB)
-const starData: Star = {
-  id: 1,
-  uuid: "5514fdf5-a411-42ea-aee5-0c2d6343a000",
-  name: "plop",
-  internalName: "plop",
-  systemId: 1,
-  massKg: 0.758581416228569, // Multiplicateur (75.8% de la masse solaire)
-};
+// // Données du système stellaire (à récupérer depuis DB)
+// const starData: Star = {
+//   id: 1,
+//   uuid: "5514fdf5-a411-42ea-aee5-0c2d6343a000",
+//   name: "plop",
+//   internalName: "plop",
+//   systemId: 1,
+//   massKg: 0.758581416228569, // Multiplicateur (75.8% de la masse solaire)
+// };
 
-// Conversion
-const orbitalElements = OrbitDataHelper.planetDBToOrbitalElements(
-  planetData,
-  starData,
-);
+// // Conversion
+// const orbitalElements = OrbitDataHelper.planetDBToOrbitalElements(
+//   planetData,
+//   starData,
+// );
 
 // console.log("🌟 Orbital Elements:");
 // console.log(`  Star mass: ${orbitalElements.starMassKg.toExponential(2)} kg`);
@@ -603,7 +603,7 @@ ws.on("open", () => {
   setInterval(() => {
     const nextTicksRequest: NextTicksType = {
       action: "next-ticks",
-      count: 60,
+      duration: 60,
       // fromTime: Math.floor(Math.random() * 86400) + 1,
       fromTime,
       target: "5514fdf5-a411-42ea-aee5-0c2d6343accc",

@@ -77,28 +77,7 @@ export class KeplerOrbitService {
    * Get orbital position
    */
   getPositions(params: OrbitCalculationParams): Position[] {
-    const normalizedParams = { ...params };
-
-    // Calculate a startTime based on the orbital period
-    if (params.orbitalObject) {
-      try {
-        const orbit = new KeplerOrbit(params.orbitalObject, 0);
-        const period = orbit.getOrbitalPeriod();
-
-        if (params.startTimeS >= period || params.startTimeS < 0) {
-          const normalizedStartTime =
-            ((params.startTimeS % period) + period) % period;
-          normalizedParams.startTimeS = normalizedStartTime;
-        }
-      } catch (_error) {
-        // Ignore
-      }
-    }
-
-    return this.cachePosition.getPositions(
-      normalizedParams,
-      this.calculateInternal,
-    );
+    return this.cachePosition.getPositions(params, this.calculateInternal);
   }
 }
 

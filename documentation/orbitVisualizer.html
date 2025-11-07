@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orbit Visualizer</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: #000;
+        font-family: monospace;
+        color: white;
+      }
+      canvas {
+        display: block;
+      }
+      #info {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 15px;
+        border-radius: 5px;
+        font-size: 12px;
+        max-width: 300px;
+        max-height: 90vh;
+        overflow-y: auto;
+        z-index: 100;
+      }
+      #controls {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 15px;
+        border-radius: 5px;
+        z-index: 100;
+      }
+      button {
+        background: #0077ff;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        margin: 5px;
+        border-radius: 3px;
+        cursor: pointer;
+        display: block;
+        width: 100%;
+      }
+      button:hover {
+        background: #0055cc;
+      }
+      button:disabled {
+        background: #555;
+        cursor: not-allowed;
+      }
+      .status {
+        padding: 5px;
+        border-radius: 3px;
+        margin: 5px 0;
+      }
+      .status.connected {
+        background: #00ff00;
+        color: #000;
+      }
+      .status.disconnected {
+        background: #ff0000;
+        color: #fff;
+      }
+      .status.connecting {
+        background: #ffaa00;
+        color: #000;
+      }
+      input {
+        width: 100%;
+        padding: 5px;
+        margin: 5px 0;
+        background: #222;
+        color: white;
+        border: 1px solid #555;
+        border-radius: 3px;
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="info">
+      <h3>🌍 Orbit Visualizer</h3>
+      <div id="ws-status" class="status disconnected">⚫ Disconnected</div>
+      <div id="stats">No data</div>
+      <hr />
+      <div id="objects-list"></div>
+    </div>
+
+    <div id="controls">
+      <label>WebSocket URL:</label>
+      <input type="text" id="ws-url" value="ws://localhost:9200" />
+
+      <button id="connect-btn" onclick="connectWebSocket()">🔌 Connect</button>
+      <button id="disconnect-btn" onclick="disconnectWebSocket()" disabled>
+        🔌 Disconnect
+      </button>
+      <hr />
+      <button onclick="toggleAnimation()">⏯️ Play/Pause</button>
+      <button onclick="resetView()">🔄 Reset View</button>
+      <button onclick="speedUp()">⏩ Speed Up</button>
+      <button onclick="slowDown()">⏪ Slow Down</button>
+      <button onclick="toggleTrails()">✨ Toggle Trails</button>
+      <button onclick="clearScene()">🗑️ Clear Scene</button>
+    </div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "@msgpack/msgpack": "https://cdn.jsdelivr.net/npm/@msgpack/msgpack@3.0.0/+esm",
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import { decode, encode } from "@msgpack/msgpack";
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      // ===== CONFIGURATION EN FONCTION DES RAYONS Physiques
+      const PLANET_RADII = {
+        "5514fdf5-a411-42ea-aee5-0c2d6343accc": 4678.72368420455,
+        "d19fb3ab-c437-4e4a-b73b-967ba8f6e6a5": 3122.71283112507,
+        "129a2bda-e6d2-4386-8a02-57439ac9db44": 69291.7080302848,
+        "abc0e875-a364-4548-b9cb-15f64e976028": 26806.4515106004,
+        "a58b8dac-c756-4af9-b338-ed7f05d9c047": 3515.09681331966,
+        "49b15711-9c59-4d8f-b359-082d8c1151fa": 3467.49548953844,
+      };
+
+      // ============ ÉCHELLES NUMÉRIQUES ============
+      // La position reçue est en m, il faut le ramener à une scène lisible (1 unité ~ 10_000_000 km)
+      // Le rayon est en km, on veut aussi le mettre à l'échelle de la scène
+      const AU = 149597870700; // 1 AU en mètres
+      const SCALE_POSITION = (1 / AU) * 20; // 1 AU = 10 units three.js pour la position
+      const SCALE_RADIUS = 1 / 40000; // 1 unité = 6000 km pour la taille visuelle
+      const DURATION = 172800; // 2 jours
+      const TIME_STEP = 900; //
+
+      let ws = null;
+      let isConnected = false;
+      let allPlanetUuids = [];
+
+      // ===== SCENE SETUP =====
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x000011);
+
+      // Zoom out pour voir tout le système
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        100000,
+      );
+      camera.position.set(0, 0, 110);
+      camera.lookAt(0, 0, 0);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+
+      // ===== LUMIÈRE =====
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      scene.add(ambientLight);
+
+      const pointLight = new THREE.PointLight(0xffffff, 2, 0, 0.1);
+      pointLight.position.set(0, 0, 0);
+      scene.add(pointLight);
+
+      // ===== SOLEIL =====
+      const sunGeometry = new THREE.SphereGeometry(
+        10000 * SCALE_RADIUS,
+        64,
+        64,
+      );
+      const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+      const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+      scene.add(sun);
+
+      // Glow
+      const glowGeometry = new THREE.SphereGeometry(17 * SCALE_RADIUS, 64, 64);
+      const glowMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffaa00,
+        transparent: true,
+        opacity: 0.2,
+      });
+      const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+      scene.add(glow);
+
+      // ===== AXES & GRILLE =====
+      const axesHelper = new THREE.AxesHelper(15);
+      scene.add(axesHelper);
+
+      const gridHelper = new THREE.GridHelper(40, 20, 0x444444, 0x222222);
+      scene.add(gridHelper);
+
+      // ===== GESTION DES OBJETS ORBITAUX =====
+      const orbitalObjects = new Map();
+      let animationSpeed = 1; // Positions par frame
+      let isPlaying = true;
+      let showTrails = true;
+
+      const colors = [
+        0x0077ff, 0xff0077, 0x00ff77, 0xff7700, 0x7700ff, 0x00ffff, 0xff00ff,
+        0xffff00,
+      ];
+      let colorIndex = 0;
+
+      function createPlanet(uuid, name = "Unknown") {
+        const color = colors[colorIndex % colors.length];
+        colorIndex++;
+
+        // --- Rayon physique ---
+        const radiusKm = PLANET_RADII[uuid] || 6000;
+        const sphereRadius = radiusKm * SCALE_RADIUS;
+
+        const geometry = new THREE.SphereGeometry(sphereRadius, 32, 32);
+        const material = new THREE.MeshStandardMaterial({ color });
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+        const trailMaterial = new THREE.LineBasicMaterial({
+          color,
+          transparent: true,
+          opacity: 0.6,
+        });
+        const trailGeometry = new THREE.BufferGeometry();
+        const trail = new THREE.Line(trailGeometry, trailMaterial);
+        scene.add(trail);
+
+        orbitalObjects.set(uuid, {
+          mesh,
+          trail,
+          positions: [],
+          currentIndex: 0,
+          color,
+          name,
+          lastUpdateTime: Date.now(),
+        });
+
+        console.log(
+          `✅ Created planet: ${name} (${uuid.substring(
+            0,
+            8,
+          )}) — Rayon réel: ${radiusKm} km => scène: ${sphereRadius}`,
+        );
+      }
+
+      function updateObjectsList() {
+        const list = document.getElementById("objects-list");
+        list.innerHTML = "<strong>Objects:</strong><br>";
+
+        orbitalObjects.forEach((obj, uuid) => {
+          const shortUuid = uuid.substring(0, 8);
+          const color = `#${obj.color.toString(16).padStart(6, "0")}`;
+          list.innerHTML += `
+          <div style="margin: 5px 0;">
+            <span style="color: ${color}">⬤</span> ${obj.name || shortUuid}
+            <span style="color: #888; font-size: 10px;">(${
+              obj.positions.length
+            } pts)</span>
+          </div>
+        `;
+        });
+      }
+
+      function updateTrail(obj) {
+        const idx = Math.floor(obj.currentIndex);
+        obj.trail.visible = showTrails;
+        const start = Math.max(0, idx - TRAIL_LENGTH + 1);
+        const points = obj.positions
+          .slice(start, idx + 1)
+          .map((p) => new THREE.Vector3(p.x, p.y, p.z));
+        obj.trail.geometry.setFromPoints(points);
+        obj.trail.geometry.attributes.position.needsUpdate = true;
+      }
+
+      // ===== WEBSOCKET =====
+      window.connectWebSocket = function () {
+        const url = document.getElementById("ws-url").value;
+
+        updateStatus("connecting", "🟡 Connecting...");
+
+        ws = new WebSocket(url);
+        ws.binaryType = "arraybuffer";
+
+        ws.onopen = () => {
+          isConnected = true;
+          updateStatus("connected", "🟢 Connected");
+          document.getElementById("connect-btn").disabled = true;
+          document.getElementById("disconnect-btn").disabled = false;
+          console.log("✅ WebSocket connected");
+
+          ws.send(encode({ action: "init" }));
+          console.log("📤 Requesting init...");
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const buffer = event.data;
+            const decoded = decode(new Uint8Array(buffer));
+
+            console.log(
+              "📦 Received:",
+              decoded.type,
+              "with",
+              decoded.data?.length || 0,
+              "items",
+            );
+
+            if (decoded.type === "init") {
+              handleInit(decoded.data);
+            } else if (decoded.type === "next-ticks") {
+              handleNextTicks(decoded.data);
+            } else if (decoded.type === "connected") {
+              console.log("🔗 Connected with clientId:", decoded.clientId);
+            }
+          } catch (error) {
+            console.error("❌ Error decoding message:", error);
+          }
+        };
+
+        ws.onerror = (error) => {
+          console.error("❌ WebSocket error:", error);
+          updateStatus("disconnected", "🔴 Error");
+        };
+
+        ws.onclose = () => {
+          isConnected = false;
+          updateStatus("disconnected", "⚫ Disconnected");
+          document.getElementById("connect-btn").disabled = false;
+          document.getElementById("disconnect-btn").disabled = true;
+          console.log("🔌 WebSocket closed");
+        };
+      };
+
+      window.disconnectWebSocket = function () {
+        if (ws) {
+          ws.close();
+          ws = null;
+        }
+      };
+
+      function updateStatus(status, text) {
+        const statusEl = document.getElementById("ws-status");
+        statusEl.className = `status ${status}`;
+        statusEl.textContent = text;
+      }
+
+      // ===== GESTION INIT =====
+      function handleInit(data) {
+        console.log("🎯 Init received:", data);
+
+        if (!Array.isArray(data) || data.length === 0) {
+          console.error("❌ Init data is empty or not an array");
+          return;
+        }
+
+        allPlanetUuids = data.map((planet) => planet.uuid);
+
+        data.forEach((planet) => {
+          if (!orbitalObjects.has(planet.uuid)) {
+            createPlanet(planet.uuid, planet.name);
+          }
+
+          // Position initiale EXACTE
+          const obj = orbitalObjects.get(planet.uuid);
+          const x = planet.position.x * SCALE_POSITION;
+          const y = planet.position.z * SCALE_POSITION; // Swap Y/Z pour Three.js
+          const z = planet.position.y * SCALE_POSITION;
+
+          obj.mesh.position.set(x, y, z);
+
+          const distanceMeters = Math.sqrt(
+            planet.position.x ** 2 +
+              planet.position.y ** 2 +
+              planet.position.z ** 2,
+          );
+          const distanceAU = distanceMeters / AU;
+
+          console.log(`📍 ${planet.name}:`, {
+            raw: planet.position,
+            scaled: { x, y, z },
+            distance: distanceAU.toFixed(3) + " AU",
+          });
+        });
+
+        console.log(`✅ Created ${allPlanetUuids.length} planets`);
+        updateObjectsList();
+
+        requestMoreData();
+      }
+
+      // ===== REQUÊTER DES DONNÉES =====
+      function requestMoreData() {
+        if (!allPlanetUuids.length || !ws || ws.readyState !== WebSocket.OPEN) {
+          console.warn("⚠️ Cannot request data");
+          return;
+        }
+
+        allPlanetUuids.forEach((uuid) => {
+          const obj = orbitalObjects.get(uuid);
+          const lastTime =
+            obj && obj.positions.length > 0
+              ? obj.positions[obj.positions.length - 1].time
+              : 0;
+
+          const request = {
+            action: "next-ticks",
+            duration: DURATION,
+            fromTime: lastTime,
+            target: uuid,
+            timeStep: TIME_STEP,
+          };
+
+          console.log(request);
+
+          console.log(`📤 Request for ${uuid.substring(0, 8)}:`, request);
+          ws.send(encode(request));
+        });
+      }
+
+      // ===== RÉCEPTION DES POSITIONS =====
+      function handleNextTicks(data) {
+        if (!Array.isArray(data) || data.length === 0) {
+          console.warn("⚠️ Empty tick data");
+          return;
+        }
+
+        console.log(
+          `📥 Received ${data.length} positions for ${data[0]?.uuid?.substring(
+            0,
+            8,
+          )}`,
+        );
+
+        data.forEach((tick) => {
+          let obj = orbitalObjects.get(tick.uuid);
+
+          if (!obj) {
+            createPlanet(tick.uuid);
+            obj = orbitalObjects.get(tick.uuid);
+          }
+
+          obj.positions.push({
+            x: tick.position.x * SCALE_POSITION,
+            y: tick.position.z * SCALE_POSITION,
+            z: tick.position.y * SCALE_POSITION,
+            time: tick.time,
+          });
+
+          obj.isFetching = false;
+        });
+
+        updateObjectsList();
+      }
+
+      // ===== ANIMATION =====
+      const FETCH_THRESHOLD = 500;
+      const TRAIL_LENGTH = 1000; // longueur de la traînée visible
+      const EXTRA_BUFFER = 200; // marge de sécurité en plus, pour stabilité
+
+      function updatePlanets() {
+        if (!isPlaying) return;
+
+        orbitalObjects.forEach((obj, uuid) => {
+          if (obj.positions.length === 0) return;
+
+          // const trailLength = 5760;
+          const idx = Math.floor(obj.currentIndex);
+
+          if (obj.positions.length > TRAIL_LENGTH + EXTRA_BUFFER) {
+            const oldestToKeep = Math.max(0, idx - TRAIL_LENGTH - EXTRA_BUFFER);
+            if (oldestToKeep > 0) {
+              obj.positions.splice(0, oldestToKeep);
+              obj.currentIndex -= oldestToKeep;
+              // Correction: obj.currentIndex -= oldestToKeep;
+              // Mais uniquement si c'est nécessaire (éviter de rendre négatif)
+              if (obj.currentIndex < 0) obj.currentIndex = 0;
+            }
+          }
+
+          if (
+            ws &&
+            ws.readyState === WebSocket.OPEN &&
+            obj.positions.length - obj.currentIndex < FETCH_THRESHOLD &&
+            !obj.isFetching // Ajoute un flag pour éviter de spammer
+          ) {
+            obj.isFetching = true; // marque comme fetch en cours
+            const lastTime = obj.positions[obj.positions.length - 1].time;
+            ws.send(
+              encode({
+                action: "next-ticks",
+                duration: DURATION,
+                fromTime: lastTime,
+                target: uuid,
+                timeStep: TIME_STEP,
+              }),
+            );
+          }
+
+          if (idx >= obj.positions.length) {
+            obj.currentIndex = obj.positions.length - 1;
+            return;
+          }
+
+          const pos = obj.positions[idx];
+          obj.mesh.position.set(pos.x, pos.y, pos.z);
+
+          if (showTrails) {
+            updateTrail(obj);
+          }
+
+          obj.currentIndex += animationSpeed;
+
+          if (obj.positions.length > 2000 && obj.currentIndex > 1000) {
+            const toRemove = Math.floor(obj.currentIndex) - 500;
+            obj.positions.splice(0, toRemove);
+            obj.currentIndex -= toRemove;
+          }
+        });
+
+        // Stats
+        const firstUuid = Array.from(orbitalObjects.keys())[0];
+        if (firstUuid) {
+          const obj = orbitalObjects.get(firstUuid);
+          if (obj && obj.positions.length > 0) {
+            const idx = Math.floor(obj.currentIndex);
+            if (idx < obj.positions.length) {
+              const pos = obj.positions[idx];
+              const distance = Math.sqrt(pos.x ** 2 + pos.y ** 2 + pos.z ** 2);
+              const distanceAU = distance / 10;
+
+              document.getElementById("stats").innerHTML = `
+              <strong>Time:</strong> ${(pos.time / 86400).toFixed(2)} days<br>
+              <strong>Buffer:</strong> ${obj.positions.length} positions<br>
+              <strong>Index:</strong> ${idx}/${obj.positions.length}<br>
+              <strong>Position (EXACT):</strong><br>
+              X: ${pos.x.toFixed(2)}<br>
+              Y: ${pos.y.toFixed(2)}<br>
+              Z: ${pos.z.toFixed(2)}<br>
+              <strong>Distance:</strong> ${distanceAU.toFixed(3)} AU<br>
+              <strong>Speed:</strong> ${animationSpeed}x<br>
+              <strong>Objects:</strong> ${orbitalObjects.size}
+            `;
+            }
+          }
+        }
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        updatePlanets();
+        controls.update();
+        renderer.render(scene, camera);
+      }
+
+      // ===== CONTRÔLES =====
+      window.toggleAnimation = function () {
+        isPlaying = !isPlaying;
+        console.log(isPlaying ? "▶️ Playing" : "⏸️ Paused");
+      };
+
+      window.resetView = function () {
+        camera.position.set(0, 0, 110);
+        controls.target.set(0, 0, 0);
+        orbitalObjects.forEach((obj) => {
+          obj.currentIndex = 0;
+        });
+        console.log("🔄 Reset");
+      };
+
+      window.speedUp = function () {
+        animationSpeed = Math.min(animationSpeed * 2, 64);
+        console.log(`⏩ Speed: ${animationSpeed}x`);
+      };
+
+      window.slowDown = function () {
+        animationSpeed = Math.max(animationSpeed / 2, 0.125);
+        console.log(`⏪ Speed: ${animationSpeed}x`);
+      };
+
+      window.toggleTrails = function () {
+        showTrails = !showTrails;
+        orbitalObjects.forEach((obj) => {
+          obj.trail.visible = showTrails;
+        });
+        console.log(`✨ Trails: ${showTrails ? "ON" : "OFF"}`);
+      };
+
+      window.clearScene = function () {
+        orbitalObjects.forEach((obj) => {
+          scene.remove(obj.mesh);
+          scene.remove(obj.trail);
+          obj.mesh.geometry.dispose();
+          obj.mesh.material.dispose();
+          obj.trail.geometry.dispose();
+          obj.trail.material.dispose();
+        });
+        orbitalObjects.clear();
+        allPlanetUuids = [];
+        updateObjectsList();
+        console.log("🗑️ Cleared");
+      };
+
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      animate();
+      console.log("✅ Orbit visualizer ready!");
+    </script>
+  </body>
+</html>

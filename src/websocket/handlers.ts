@@ -137,7 +137,7 @@ const handleNextTicks = async (ws: WebSocket, msg: NextTicksType) => {
       clientId,
       target: msg.target,
       fromTime: msg.fromTime,
-      count: msg.count,
+      duration: msg.duration,
     },
     "Processing next-ticks request",
   );
@@ -146,17 +146,16 @@ const handleNextTicks = async (ws: WebSocket, msg: NextTicksType) => {
     const coords = await getNextTicks(
       msg.target,
       msg.fromTime,
-      msg.count,
+      msg.duration,
       msg.timeStep,
     );
-    const duration = timer.end();
 
     wsLogger.debug(
       {
         clientId,
         target: coords.target.name,
         count: coords.count,
-        duration,
+        duration: timer.end(),
       },
       `✅ Sent ${coords.count} positions`,
     );

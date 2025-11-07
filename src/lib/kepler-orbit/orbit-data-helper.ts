@@ -142,11 +142,8 @@ export class OrbitDataHelper {
    * Convert PostgreSQL planet data to OrbitalElements
    */
   static planetDBToOrbitalElements(planet: Planet, star: Star): OrbitalObject {
-    const SOLAR_MASS_KG = 1.98847e30;
-    const starMassMultiplier = star.massKg ?? 0.758581416228569;
-
     return {
-      starMassKg: SOLAR_MASS_KG * starMassMultiplier,
+      starMassKg: star.massKg,
       planetMassKg: planet.massKg,
       periapsisAU: planet.periapsisAu,
       apoapsisAU: planet.apoapsisAu,

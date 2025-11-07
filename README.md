@@ -130,17 +130,24 @@ Used to retrieve the position of a stellar object by UUID, specifying the start 
 ```json
 {
   "action": "next-ticks",
-  "count": "<number>",
+  "duration": "<number>",
   "fromTime": "<number>",
   "target": "<string>",
   "timeStep": "<number>"
 }
 ```
 
-- **count** : number of ticks
-- **fromTime**: time
 - **target**: uuid
-- **timeStep**: Frequency (optionnal default 0.01666667 => 60Hz)
+- **fromTime**: time
+- **duration** : duration
+- **timeStep** : Frequency (optionnal) default 0.01666667 => 60Hz
+
+**Example**
+
+duration: 60
+timeStep: 0.01666667
+
+**Result:** duration (60) / timeStep (0.01666667) = 3600 positions
 
 #### Response :
 
@@ -181,6 +188,10 @@ To make API calls, a collection for [Bruno](https://www.usebruno.com/) software 
 All endpoints contain an example :
 
 ![api_rest_endpoints_example](documentation/assets/api_rest_endpoints_example.png)
+
+## BONUS
+
+Test Websocket with [Orbit Visualizer 🔮](documentation/orbitVisualizer.html) (no need server, just open file)
 
 ---
 

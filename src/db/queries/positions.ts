@@ -1,7 +1,7 @@
 import type { Planet, Star } from "@db/schema";
 import type { OrbitCalculationParams } from "@lib/kepler-orbit/kepler-orbit-service";
 import { keplerOrbitService } from "@lib/kepler-orbit/kepler-orbit-service";
-import { OrbitDataHelper } from "@lib/kepler-orbit/kerpler-orbit-helper";
+import { OrbitDataHelper } from "@lib/kepler-orbit/orbit-data-helper";
 import { createTimer, logError, logPerformance, logger } from "@lib/logger";
 
 import { getAllPlanets } from "./planets";
@@ -56,7 +56,7 @@ export const getInit = async () => {
 export const getNextTicks = async (
   target: string,
   fromTime: number,
-  count: number,
+  duration: number,
   timesteps: number = 0.01666667,
 ) => {
   const timer = createTimer();
@@ -84,35 +84,34 @@ export const getNextTicks = async (
       throw new Error(`Star not found: ${target}`);
     }
 
+    const orbitalObject = OrbitDataHelper.planetDBToOrbitalElements(
+      planet,
+      star,
+    );
+
     logger.debug(
       {
         planet,
         target,
         fromTime,
-        count,
+        duration,
+        orbitalInfo: OrbitDataHelper.getOrbitalInfo(orbitalObject),
       },
       "Querying positions",
-    );
-
-    const orbitalElements = OrbitDataHelper.planetDBToOrbitalElements(
-      planet,
-      star,
     );
 
     const params: OrbitCalculationParams = {
       objectId: planet.uuid as string,
       objectType: "planet" as const,
       startTimeS: fromTime,
-      durationS: count,
+      durationS: duration,
       timestepS: timesteps,
-      orbitalObject: orbitalElements,
+      orbitalObject,
     };
 
     const rows = keplerOrbitService.getPositions(params);
 
-    const duration = timer.end();
-
-    logPerformance(logger, `Query for ${planet.name}`, duration, {
+    logPerformance(logger, `Query for ${planet.name}`, timer.end(), {
       rowCount: rows.length,
       target: planet.name,
     });
