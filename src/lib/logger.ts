@@ -65,7 +65,7 @@ if (!isDev && !isTest) {
   process.on("SIGTERM", closeStreams);
 } else {
   baseLogger = pino({
-    level: isDev ? "info" : "info",
+    level: isDev ? "trace" : "info",
     transport: {
       target: "pino-pretty",
       options: {
