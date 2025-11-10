@@ -4,7 +4,7 @@ import { Vector3Math } from "@lib/vector3/vector3Math";
 import type { Vector3Type } from "@websocket/schema/vector3.model";
 
 export interface OrbitalObject {
-  starMassKg: number;
+  primaryMassKg: number;
   objectMassKg: number;
   periapsisAU: number;
   apoapsisAU: number;
@@ -62,14 +62,14 @@ export class KeplerOrbit {
       throw new Error("periapsisAU and apoapsisAU must be provided");
     }
 
-    if (elements.starMassKg === 0) {
+    if (elements.primaryMassKg === 0) {
       keplerOrbitLogger.warn(
         { defaultValue: KeplerOrbit.SOLAR_MASS_KG, orbitalObject: elements },
         "⚠️ Star mass missing. Use default value",
       );
     }
 
-    const starMass = elements.starMassKg || KeplerOrbit.SOLAR_MASS_KG;
+    const starMass = elements.primaryMassKg || KeplerOrbit.SOLAR_MASS_KG;
     const objectMass = elements.objectMassKg;
 
     // Create mean motion

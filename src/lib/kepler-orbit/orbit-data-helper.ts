@@ -81,7 +81,7 @@ export class OrbitDataHelper {
     }
 
     // Check masses
-    if (elements.starMassKg <= 0 || elements.objectMassKg <= 0) {
+    if (elements.primaryMassKg <= 0 || elements.objectMassKg <= 0) {
       warnings.push("Masses must be positive");
     }
 
@@ -113,7 +113,7 @@ export class OrbitDataHelper {
       (elements.apoapsisAU - elements.periapsisAU) /
       (elements.apoapsisAU + elements.periapsisAU);
 
-    const mu = G * (elements.starMassKg + elements.objectMassKg);
+    const mu = G * (elements.primaryMassKg + elements.objectMassKg);
     const periodS = 2 * Math.PI * Math.sqrt(Math.pow(semiMajorAxisM, 3) / mu);
 
     return {
@@ -163,7 +163,7 @@ export class OrbitDataHelper {
    */
   static planetDBToOrbitalElements(object: Planet, star: Star): OrbitalObject {
     return {
-      starMassKg: star.massKg,
+      primaryMassKg: star.massKg,
       objectMassKg: object.massKg,
       periapsisAU: object.periapsisAu,
       apoapsisAU: object.apoapsisAu,
@@ -176,7 +176,7 @@ export class OrbitDataHelper {
 
   static moonDBToOrbitalElements(object: Moon, planet: Planet): OrbitalObject {
     return {
-      starMassKg: planet.massKg,
+      primaryMassKg: planet.massKg,
       objectMassKg: object.massKg,
       periapsisAU: object.periapsisAu,
       apoapsisAU: object.apoapsisAu,
