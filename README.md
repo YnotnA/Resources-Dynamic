@@ -28,13 +28,21 @@ DUCKDB_PATH=/app/data/my-db.duckdb
 1. Run `make up` This will start containers Postgres + Node (use for `make pnpm` command).
 2. Run `make pnpm i` to install dependencies.
 3. Run `make db-migrate` to execute migration scripts.
-4. Run `make pnpm dev` to start development server.
-5. To stop the server, stop the Docker container with `make down`.
+4. Run `make pnpm import-system` to import systems from `data/system/` folder
+5. Run `make pnpm dev` to start development server.
+6. To stop the server, stop the Docker container with `make down`.
 
 ### Testing
 
 1. Run `make start` to start the server. This will install dependencies, start containers and execute migration scripts.
-2. To stop the server, stop the Docker container with `Ctrl+C` in the terminal where `make start` was run.
+2. Run `make pnpm import-system` to import systems from `data/system/` folder
+3. To stop the server, stop the Docker container with `Ctrl+C` in the terminal where `make start` was run.
+
+## Database
+
+A clean SQL is available in `documentation/sql/cleanBdd.sql`. It must be executed with an SQL client (e.g., [DBeaver](https://dbeaver.io/)).
+
+**Info**: All UUID updates are used for the [Orbit Visualizer](#bonus) because the radius of elements (e.g., planets, stars) are hard-coded into the code.
 
 ## WebSocket
 
@@ -192,6 +200,11 @@ All endpoints contain an example :
 ## BONUS
 
 Test Websocket with [Orbit Visualizer 🔮](documentation/orbitVisualizer.html) (no need server, just open file)
+
+1. Start server with `make pnpm dev` or `make pnpm build && make pnpm start`
+2. Click `Connect`
+
+![orbit-visualizer](documentation/assets/orbit-visualizer.png)
 
 ---
 
