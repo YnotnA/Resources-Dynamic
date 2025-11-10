@@ -172,4 +172,4 @@ const importMoonDb = async (moon: MoonType, planet: Planet) => {
   return await createMoon(newMoon);
 };
 
-importSystem();
+await importSystem();

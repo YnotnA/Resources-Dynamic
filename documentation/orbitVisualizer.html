@@ -466,12 +466,26 @@
             obj = orbitalObjects.get(tick.uuid);
           }
 
-          obj.positions.push({
+          const newTime = tick.time;
+          const newPos = {
             x: tick.position.x * SCALE_POSITION,
             y: tick.position.z * SCALE_POSITION,
             z: tick.position.y * SCALE_POSITION,
-            time: tick.time,
-          });
+            time: newTime,
+          };
+
+          // Cherche si time existe déjà
+          const existingIdx = obj.positions.findIndex(
+            (p) => p.time === newTime,
+          );
+
+          if (existingIdx >= 0) {
+            // Remplace la position existante
+            obj.positions[existingIdx] = newPos;
+          } else {
+            // Ajoute à la fin
+            obj.positions.push(newPos);
+          }
 
           obj.isFetching = false;
         });

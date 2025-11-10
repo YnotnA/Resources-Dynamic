@@ -23,43 +23,19 @@ export const getInit = async () => {
   await loadData();
 
   try {
-    const planetsDataPromises = planets.map(async (planet) => {
-      const firstTick = await getNextTicks(planet.uuid as string, 0, 1);
-      const firstTickItem = firstTick.rows.at(0);
-
-      if (!firstTickItem) {
-        return null;
-      }
-
-      return {
-        target: planet,
-        item: firstTickItem,
-      };
-    });
-
-    const planetsData = (await Promise.all(planetsDataPromises)).filter(
-      (item) => item !== null,
+    const planetsData = getInitData<Planet>(
+      planets,
+      (target, fromTime, duration, timesteps) =>
+        getPlanetNextTicks(target, fromTime, duration, timesteps),
     );
 
-    const moonsDataPromises = moons.map(async (moon) => {
-      const firstTick = await getNextTicks(moon.uuid as string, 0, 1);
-      const firstTickItem = firstTick.rows.at(0);
-
-      if (!firstTickItem) {
-        return null;
-      }
-
-      return {
-        target: moon,
-        item: firstTickItem,
-      };
-    });
-
-    const moonsData = (await Promise.all(moonsDataPromises)).filter(
-      (item) => item !== null,
+    const moonsData = getInitData<Moon>(
+      moons,
+      (target, fromTime, duration, timesteps) =>
+        getMoonNextTicks(target, fromTime, duration, timesteps),
     );
 
-    logPerformance(logger, `Query for init`, timer.end());
+    logPerformance(logger, `Queries for init`, timer.end());
 
     return [...planetsData, ...moonsData];
   } catch (error) {
@@ -68,6 +44,31 @@ export const getInit = async () => {
     });
     throw error;
   }
+};
+
+const getInitData = <T extends Moon | Planet>(
+  dataDb: T[],
+  nextTicksCn: (
+    target: string,
+    fromTime: number,
+    duration: number,
+    timesteps: number,
+  ) => { object: T; positions: Position[] } | null,
+) => {
+  const allData = dataDb.map((data) => {
+    const planetNextTicks = nextTicksCn(data.uuid as string, 0, 1, 1); // Only one position from T0
+
+    if (!planetNextTicks || planetNextTicks.positions.length === 0) {
+      return null;
+    }
+
+    return {
+      target: data,
+      item: planetNextTicks.positions[0],
+    };
+  });
+
+  return allData.filter((item) => item !== null);
 };
 
 export const getNextTicks = async (
@@ -81,23 +82,18 @@ export const getNextTicks = async (
   await loadData();
 
   try {
-    if (await isPlanet(target)) {
-      nextTicks = await getPlanetNextTicks(
-        target,
-        fromTime,
-        duration,
-        timesteps,
-      );
-    } else if (await isMoon(target)) {
-      nextTicks = await getMoonNextTicks(target, fromTime, duration, timesteps);
+    if (isPlanet(target)) {
+      nextTicks = getPlanetNextTicks(target, fromTime, duration, timesteps);
+    } else if (isMoon(target)) {
+      nextTicks = getMoonNextTicks(target, fromTime, duration, timesteps);
     } else {
       logger.error({ target }, `Object not found: ${target}`);
       throw new Error(`Object not found not found: ${target}`);
     }
 
     if (!nextTicks) {
-      logger.error({ target }, `Next ticks not found: ${target}`);
-      throw new Error(`Next ticks not found: ${target}`);
+      logger.error({ target }, `Next ticks not found for target: ${target}`);
+      throw new Error(`Next ticks not found for target: ${target}`);
     }
 
     logPerformance(logger, `Query for ${nextTicks.object.name}`, timer.end(), {
@@ -132,16 +128,16 @@ const getStar = (target: string, systemId: number): Star => {
   return star;
 };
 
-const isPlanet = async (target: string): Promise<boolean> => {
+const isPlanet = (target: string): boolean => {
   return !!planets.find((planet) => planet.uuid === target);
 };
 
-const getPlanetNextTicks = async (
+const getPlanetNextTicks = (
   target: string,
   fromTime: number,
   duration: number,
   timesteps: number = 0.01666667,
-): Promise<{ object: Planet; positions: Position[] } | null> => {
+): { object: Planet; positions: Position[] } | null => {
   const planet = planets.find((planet) => planet.uuid === target);
 
   if (!planet) {
@@ -177,16 +173,16 @@ const getPlanetNextTicks = async (
   };
 };
 
-const isMoon = async (target: string): Promise<boolean> => {
+const isMoon = (target: string): boolean => {
   return !!moons.find((moon) => moon.uuid === target);
 };
 
-const getMoonNextTicks = async (
+const getMoonNextTicks = (
   target: string,
   fromTime: number,
   duration: number,
   timesteps: number = 0.01666667,
-): Promise<{ object: Moon; positions: Position[] } | null> => {
+): { object: Moon; positions: Position[] } | null => {
   const moon = moons.find((moon) => moon.uuid === target);
 
   if (!moon) {
@@ -200,7 +196,7 @@ const getMoonNextTicks = async (
     throw new Error(`Planet for moon ${moon.name} not found: ${target}`);
   }
 
-  const moonPlanetPositions = await getPlanetNextTicks(
+  const moonPlanetPositions = getPlanetNextTicks(
     moonPlanet.uuid as string,
     fromTime,
     duration,

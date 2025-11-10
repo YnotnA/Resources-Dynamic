@@ -28,6 +28,9 @@ export class OrbitDataHelper {
     };
   }
 
+  /**
+   * Create OrbitCalculationParams from database moon
+   */
   static createMoonParamsFromDB(
     moon: Moon,
     planet: Planet,
