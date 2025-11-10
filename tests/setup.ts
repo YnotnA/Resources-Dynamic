@@ -25,6 +25,7 @@ vi.mock("@lib/logger", () => {
     cacheLogger: createMockLogger(),
     cachePositionLogger: createMockLogger(),
     keplerOrbitServiceLogger: createMockLogger(),
+    keplerOrbitLogger: createMockLogger(),
     logError: vi.fn(),
     logPerformance: vi.fn(),
     createTimer: vi.fn(() => ({

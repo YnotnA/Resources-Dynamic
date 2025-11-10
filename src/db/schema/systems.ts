@@ -11,7 +11,7 @@ import { planets } from "./planets";
 import { stars } from "./stars";
 
 export const systems = pgTable("systems", {
-  id: integer("id").primaryKey(),
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   name: text("name").notNull().unique(),
   internalName: text("internal_name").notNull().unique(),
 });

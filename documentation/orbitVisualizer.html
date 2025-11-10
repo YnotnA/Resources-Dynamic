@@ -127,22 +127,39 @@
 
       // ===== CONFIGURATION EN FONCTION DES RAYONS Physiques
       const PLANET_RADII = {
-        "5514fdf5-a411-42ea-aee5-0c2d6343accc": 4678.72368420455,
-        "d19fb3ab-c437-4e4a-b73b-967ba8f6e6a5": 3122.71283112507,
-        "129a2bda-e6d2-4386-8a02-57439ac9db44": 69291.7080302848,
-        "abc0e875-a364-4548-b9cb-15f64e976028": 26806.4515106004,
-        "a58b8dac-c756-4af9-b338-ed7f05d9c047": 3515.09681331966,
-        "49b15711-9c59-4d8f-b359-082d8c1151fa": 3467.49548953844,
+        "844221a5-e2be-432c-94c2-947462c1c310": 4678.72368420455,
+        "fc22a2f0-80be-4da2-89db-bc7a19665e82": 3122.71283112507,
+        "418a2436-81f5-4069-a042-5e33ce313b20": 5875.0,
+        "3f99e498-31cd-450f-8c72-d7ae2362d27c": 6356.0,
+        "87720dfc-0699-4cf2-bacb-7e867e272c62": 69291.7080302848,
+        "384b6c37-c8b3-4bad-b338-1b5d09509fed": 26806.4515106004,
+        "8a15cc8a-98c0-4c72-b5d5-f8ec34169d6b": 3515.09681331966,
+        "6d322080-dd78-4961-a895-bdb71c7f53f6": 3467.49548953844,
       };
 
-      // ============ ÉCHELLES NUMÉRIQUES ============
-      // La position reçue est en m, il faut le ramener à une scène lisible (1 unité ~ 10_000_000 km)
-      // Le rayon est en km, on veut aussi le mettre à l'échelle de la scène
+      // Numérique: rayon et parent pour chaque lune
+      const MOON_RADII = {
+        "88f3a0af-28c7-42f6-8228-551a98fc55cd": 1500,
+        "a1a66614-21d5-4541-8a3e-d4ae350b669c": 700.0,
+        "77ec9ee3-6e9b-47b5-af82-8f72a57cb4ac": 2552.0,
+      };
+      const MOON_PARENT = {
+        "88f3a0af-28c7-42f6-8228-551a98fc55cd":
+          "3f99e498-31cd-450f-8c72-d7ae2362d27c", // ex : Jupiter
+        "a1a66614-21d5-4541-8a3e-d4ae350b669c":
+          "3f99e498-31cd-450f-8c72-d7ae2362d27c", // ex : Terre
+        "77ec9ee3-6e9b-47b5-af82-8f72a57cb4ac":
+          "87720dfc-0699-4cf2-bacb-7e867e272c62",
+      };
+
+      // ÉCHELLES
       const AU = 149597870700; // 1 AU en mètres
-      const SCALE_POSITION = (1 / AU) * 20; // 1 AU = 10 units three.js pour la position
-      const SCALE_RADIUS = 1 / 40000; // 1 unité = 6000 km pour la taille visuelle
-      const DURATION = 172800; // 2 jours
-      const TIME_STEP = 900; //
+      const SCALE_POSITION = (1 / AU) * 20;
+      const SCALE_RADIUS = 1 / 40000;
+      const PLANET_RENDER_SCALE = 2.0; // facteur taille mesh planète (affichage)
+      const MOON_RENDER_SCALE = 4.0; // facteur taille mesh lune (affichage)
+      const DURATION = 172800;
+      const TIME_STEP = 900;
 
       let ws = null;
       let isConnected = false;
@@ -221,9 +238,12 @@
         const color = colors[colorIndex % colors.length];
         colorIndex++;
 
-        // --- Rayon physique ---
-        const radiusKm = PLANET_RADII[uuid] || 6000;
-        const sphereRadius = radiusKm * SCALE_RADIUS;
+        let radiusKm = PLANET_RADII[uuid] || MOON_RADII[uuid] || 6000;
+        let sphereRadius = radiusKm * SCALE_RADIUS;
+
+        // Agrandit planètes ou lunes pour la visibilité :
+        if (PLANET_RADII[uuid]) sphereRadius *= PLANET_RENDER_SCALE;
+        if (MOON_RADII[uuid]) sphereRadius *= MOON_RENDER_SCALE;
 
         const geometry = new THREE.SphereGeometry(sphereRadius, 32, 32);
         const material = new THREE.MeshStandardMaterial({ color });
@@ -240,6 +260,7 @@
         scene.add(trail);
 
         orbitalObjects.set(uuid, {
+          uuid,
           mesh,
           trail,
           positions: [],
@@ -277,6 +298,14 @@
 
       function updateTrail(obj) {
         const idx = Math.floor(obj.currentIndex);
+
+        // Si c'est une lune : on masque la trail et on sort (rien à afficher)
+        if (MOON_RADII[obj.uuid] && MOON_PARENT[obj.uuid]) {
+          obj.trail.visible = false;
+          return;
+        }
+
+        // Sinon, on affiche et met à jour la traînée normalement
         obj.trail.visible = showTrails;
         const start = Math.max(0, idx - TRAIL_LENGTH + 1);
         const points = obj.positions
@@ -373,27 +402,11 @@
           if (!orbitalObjects.has(planet.uuid)) {
             createPlanet(planet.uuid, planet.name);
           }
-
-          // Position initiale EXACTE
-          const obj = orbitalObjects.get(planet.uuid);
+          // Position initiale (absolue, ne pas toucher à l'échelle pour lune)
           const x = planet.position.x * SCALE_POSITION;
-          const y = planet.position.z * SCALE_POSITION; // Swap Y/Z pour Three.js
+          const y = planet.position.z * SCALE_POSITION;
           const z = planet.position.y * SCALE_POSITION;
-
-          obj.mesh.position.set(x, y, z);
-
-          const distanceMeters = Math.sqrt(
-            planet.position.x ** 2 +
-              planet.position.y ** 2 +
-              planet.position.z ** 2,
-          );
-          const distanceAU = distanceMeters / AU;
-
-          console.log(`📍 ${planet.name}:`, {
-            raw: planet.position,
-            scaled: { x, y, z },
-            distance: distanceAU.toFixed(3) + " AU",
-          });
+          orbitalObjects.get(planet.uuid).mesh.position.set(x, y, z);
         });
 
         console.log(`✅ Created ${allPlanetUuids.length} planets`);
@@ -476,8 +489,6 @@
 
         orbitalObjects.forEach((obj, uuid) => {
           if (obj.positions.length === 0) return;
-
-          // const trailLength = 5760;
           const idx = Math.floor(obj.currentIndex);
 
           if (obj.positions.length > TRAIL_LENGTH + EXTRA_BUFFER) {
@@ -485,8 +496,6 @@
             if (oldestToKeep > 0) {
               obj.positions.splice(0, oldestToKeep);
               obj.currentIndex -= oldestToKeep;
-              // Correction: obj.currentIndex -= oldestToKeep;
-              // Mais uniquement si c'est nécessaire (éviter de rendre négatif)
               if (obj.currentIndex < 0) obj.currentIndex = 0;
             }
           }
@@ -516,11 +525,46 @@
           }
 
           const pos = obj.positions[idx];
-          obj.mesh.position.set(pos.x, pos.y, pos.z);
 
-          if (showTrails) {
-            updateTrail(obj);
+          // ------ Correction : décalage lune ------
+          if (MOON_RADII[uuid] && MOON_PARENT[uuid]) {
+            const planetUuid = MOON_PARENT[uuid];
+            const planetObj = orbitalObjects.get(planetUuid);
+            if (planetObj && planetObj.mesh) {
+              const planetPos = planetObj.mesh.position;
+              const moonPos = new THREE.Vector3(pos.x, pos.y, pos.z);
+              const direction = moonPos.clone().sub(planetPos).normalize();
+
+              // Rayon graphique planète
+              const planetRadiusPhys = PLANET_RADII[planetUuid] * SCALE_RADIUS;
+              const planetRadiusGraph = planetRadiusPhys * PLANET_RENDER_SCALE;
+
+              // Rayon graphique lune
+              const moonRadiusPhys = MOON_RADII[uuid] * SCALE_RADIUS;
+              const moonRadiusGraph = moonRadiusPhys * MOON_RENDER_SCALE;
+              // Espace supplémentaire (ajuste la valeur selon ton rendu souhaité)
+              // const space = moonRadiusGraph * 2; // ou une valeur personnalisée
+              const space = moonRadiusGraph * 1.2 + planetRadiusGraph * 0.1;
+
+              // Décalage total
+              const offset = planetRadiusGraph + space;
+              const correctedPos = planetPos
+                .clone()
+                .add(direction.multiplyScalar(offset));
+              obj.mesh.position.set(
+                correctedPos.x,
+                correctedPos.y,
+                correctedPos.z,
+              );
+            } else {
+              obj.mesh.position.set(pos.x, pos.y, pos.z);
+            }
+          } else {
+            obj.mesh.position.set(pos.x, pos.y, pos.z);
           }
+          // ----------------------------------------
+
+          if (showTrails) updateTrail(obj);
 
           obj.currentIndex += animationSpeed;
 

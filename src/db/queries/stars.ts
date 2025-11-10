@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { db } from "../connection";
+import type { NewStar } from "../schema";
 import { type Star, stars } from "../schema";
 
 export const getAllStars = async (): Promise<Star[]> => {
@@ -14,4 +15,9 @@ export const getStarsBySystemId = async (systemId: number) => {
       moons: true,
     },
   });
+};
+
+export const createStar = async (star: NewStar): Promise<Star> => {
+  const result = await db.insert(stars).values(star).returning();
+  return result[0];
 };

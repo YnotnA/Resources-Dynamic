@@ -3,7 +3,7 @@ import type { Vector3Type } from "@websocket/schema/vector3.model";
 
 export interface OrbitalObject {
   starMassKg: number;
-  planetMassKg: number;
+  objectMassKg: number;
   periapsisAU: number;
   apoapsisAU: number;
   inclinationDeg: number;
@@ -12,7 +12,7 @@ export interface OrbitalObject {
   meanAnomalyDeg: number;
 }
 
-class Vector3Math {
+export class Vector3Math {
   static create(x: number = 0, y: number = 0, z: number = 0): Vector3Type {
     return { x, y, z };
   }
@@ -175,10 +175,10 @@ export class KeplerOrbit {
     }
 
     const starMass = elements.starMassKg || KeplerOrbit.SOLAR_MASS_KG;
-    const planetMass = elements.planetMassKg;
+    const objectMass = elements.objectMassKg;
 
     // Create mean motion
-    const mu = KeplerOrbit.G * (starMass + planetMass);
+    const mu = KeplerOrbit.G * (starMass + objectMass);
     this.meanMotion = Math.sqrt(mu / Math.pow(this.semiMajorAxisM, 3));
 
     // Create the orbital rotation base
@@ -208,7 +208,7 @@ export class KeplerOrbit {
       "✅ Initial position calculated",
     );
 
-    // Check if planet is on orbit
+    // Check if object is on orbit
     const minR = this.semiMajorAxisM * (1 - this.eccentricity);
     const maxR = this.semiMajorAxisM * (1 + this.eccentricity);
     if (initialDistance < minR * 0.99 || initialDistance > maxR * 1.01) {

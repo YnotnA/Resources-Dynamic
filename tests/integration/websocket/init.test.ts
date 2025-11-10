@@ -67,9 +67,9 @@ describe("WebSocket Init", () => {
       aObjectPositionBuilder().withTime(0).withTypeId(15).build(),
     ];
 
-    await duckHelper.insertPositions(mockDuckData);
+    // await duckHelper.insertPositions(mockDuckData);
 
-    await mappingCache.load();
+    // await mappingCache.load();
 
     client.send({
       action: "init",

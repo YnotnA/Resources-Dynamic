@@ -16,7 +16,7 @@ import type { z } from "zod";
 import { planets } from "./planets";
 
 export const moons = pgTable("planet_moons", {
-  id: integer("id").primaryKey(),
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   planetId: integer("planet_id").references(() => planets.id),
   uuid: uuid("uuid").defaultRandom().unique(),
   name: text("name").notNull().unique(),
@@ -43,14 +43,8 @@ export const moonsRelations = relations(moons, ({ one }) => ({
 }));
 
 export const moonSchema = createSelectSchema(moons);
-export const createMoonSchema = createInsertSchema(moons).omit({
-  id: true,
-  uuid: true,
-});
-export const updateMoonSchema = createUpdateSchema(moons).omit({
-  id: true,
-  uuid: true,
-});
+export const createMoonSchema = createInsertSchema(moons);
+export const updateMoonSchema = createUpdateSchema(moons);
 
 export type Moon = z.infer<typeof moonSchema>;
 export type NewMoon = z.infer<typeof createMoonSchema>;

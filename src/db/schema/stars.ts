@@ -16,7 +16,7 @@ import type { z } from "zod";
 import { systems } from "./systems";
 
 export const stars = pgTable("stars", {
-  id: integer("id").primaryKey(),
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   uuid: uuid("uuid").defaultRandom().unique(),
   systemId: integer("system_id").references(() => systems.id),
   name: text("name").notNull().unique(),

@@ -1,4 +1,4 @@
-import type { Planet, Star } from "@db/schema";
+import type { Moon, Planet, Star } from "@db/schema";
 import type { Vector3Type } from "@websocket/schema/vector3.model";
 
 import type { OrbitalObject } from "./kepler-orbit";
@@ -11,7 +11,7 @@ export class OrbitDataHelper {
   /**
    * Create OrbitCalculationParams from database planet
    */
-  static createParamsFromDB(
+  static createPlanetParamsFromDB(
     planet: Planet,
     star: Star,
     startTimeS: number = 0,
@@ -61,7 +61,7 @@ export class OrbitDataHelper {
     }
 
     // Check masses
-    if (elements.starMassKg <= 0 || elements.planetMassKg <= 0) {
+    if (elements.starMassKg <= 0 || elements.objectMassKg <= 0) {
       warnings.push("Masses must be positive");
     }
 
@@ -93,7 +93,7 @@ export class OrbitDataHelper {
       (elements.apoapsisAU - elements.periapsisAU) /
       (elements.apoapsisAU + elements.periapsisAU);
 
-    const mu = G * (elements.starMassKg + elements.planetMassKg);
+    const mu = G * (elements.starMassKg + elements.objectMassKg);
     const periodS = 2 * Math.PI * Math.sqrt(Math.pow(semiMajorAxisM, 3) / mu);
 
     return {
@@ -141,16 +141,29 @@ export class OrbitDataHelper {
   /**
    * Convert PostgreSQL planet data to OrbitalElements
    */
-  static planetDBToOrbitalElements(planet: Planet, star: Star): OrbitalObject {
+  static planetDBToOrbitalElements(object: Planet, star: Star): OrbitalObject {
     return {
       starMassKg: star.massKg,
-      planetMassKg: planet.massKg,
-      periapsisAU: planet.periapsisAu,
-      apoapsisAU: planet.apoapsisAu,
-      inclinationDeg: planet.incDeg,
-      longitudeOfAscendingNodeDeg: planet.nodeDeg,
-      argumentOfPeriapsisDeg: planet.argPeriDeg,
-      meanAnomalyDeg: planet.meanAnomalyDeg,
+      objectMassKg: object.massKg,
+      periapsisAU: object.periapsisAu,
+      apoapsisAU: object.apoapsisAu,
+      inclinationDeg: object.incDeg,
+      longitudeOfAscendingNodeDeg: object.nodeDeg,
+      argumentOfPeriapsisDeg: object.argPeriDeg,
+      meanAnomalyDeg: object.meanAnomalyDeg,
+    };
+  }
+
+  static moonDBToOrbitalElements(object: Moon, planet: Planet): OrbitalObject {
+    return {
+      starMassKg: planet.massKg,
+      objectMassKg: object.massKg,
+      periapsisAU: object.periapsisAu,
+      apoapsisAU: object.apoapsisAu,
+      inclinationDeg: object.incDeg,
+      longitudeOfAscendingNodeDeg: object.nodeDeg,
+      argumentOfPeriapsisDeg: object.argPeriDeg,
+      meanAnomalyDeg: object.meanAnomalyDeg,
     };
   }
 }
