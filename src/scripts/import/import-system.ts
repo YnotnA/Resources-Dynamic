@@ -52,13 +52,17 @@ export const importSystem = async () => {
     );
 
     const planets = await Promise.all(
-      data.structured.planets.map(async (planet, index) => {
-        const newPlanet = await importPlanetDb(planet, index + 1, stars[0]);
+      data.structured.planets.map(async (planet, planetIndex) => {
+        const newPlanet = await importPlanetDb(
+          planet,
+          planetIndex + 1,
+          stars[0],
+        );
 
         if (planet.moons && planet.moons.length > 0) {
           await Promise.all(
-            planet.moons.map(async (moon) => {
-              await importMoonDb(moon, newPlanet);
+            planet.moons.map(async (moon, moonIndex) => {
+              await importMoonDb(moon, moonIndex + 1, newPlanet);
             }),
           );
         }
@@ -116,7 +120,7 @@ const importPlanetDb = async (
       semiMajorAxeM * Math.pow(planetMassKg / star.massKg, 2 / 5);
   }
 
-  const internalName = `${star.name}_${planetNumber}`;
+  const internalName = `${star.name.toLowerCase()}.${planetNumber}`;
 
   const newPlanet: NewPlanet = {
     name: (getFlatInfo(planetNumber, "Name") ?? internalName).toString(),
@@ -135,7 +139,11 @@ const importPlanetDb = async (
   return await createPlanet(newPlanet);
 };
 
-const importMoonDb = async (moon: MoonType, planet: Planet) => {
+const importMoonDb = async (
+  moon: MoonType,
+  moonNumber: number,
+  planet: Planet,
+) => {
   if (
     !moon.apoapsis_km ||
     !moon.periapsis_km ||
@@ -161,7 +169,7 @@ const importMoonDb = async (moon: MoonType, planet: Planet) => {
     periapsisAu: (moon.periapsis_km * 1000) / AU,
     argPeriDeg: 0, // TODO fix
     incDeg: moon.inclination_deg,
-    internalName: moon.name,
+    internalName: `${planet.internalName.toLowerCase()}.${moonNumber}`,
     massKg: moonMassKg,
     meanAnomalyDeg: 0, // TODO fix
     nodeDeg: 0, // TODO fix

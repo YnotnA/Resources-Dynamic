@@ -14,7 +14,7 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "import-system": "tsx watch src/scripts/import/import-system.ts"
+    "import-system": "NODE_ENV=production tsup && node dist/scripts/import/import-system.mjs"
   },
   "dependencies": {
     "@duckdb/node-api": "1.4.1-r.4",
