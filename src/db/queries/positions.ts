@@ -1,13 +1,9 @@
 import type { Moon, Planet, Star } from "@db/schema";
-import {
-  type OrbitalObject,
-  Vector3Math,
-} from "@lib/kepler-orbit/kepler-orbit";
-import type { OrbitCalculationParams } from "@lib/kepler-orbit/kepler-orbit-service";
+import type { Position } from "@lib/cache-position";
+import { Vector3Math } from "@lib/kepler-orbit/kepler-orbit";
 import { keplerOrbitService } from "@lib/kepler-orbit/kepler-orbit-service";
 import { OrbitDataHelper } from "@lib/kepler-orbit/orbit-data-helper";
 import { createTimer, logError, logPerformance, logger } from "@lib/logger";
-import type { Vector3Type } from "@websocket/schema/vector3.model";
 
 import { getAllMoons } from "./moons";
 import { getAllPlanets } from "./planets";
@@ -17,22 +13,16 @@ let planets: Planet[] = [];
 let stars: Star[] = [];
 let moons: Moon[] = [];
 
+type NextTicksObjectType = {
+  object: Planet | Moon;
+  positions: Position[];
+} | null;
+
 export const getInit = async () => {
   const timer = createTimer();
+  await loadData();
 
   try {
-    if (planets.length === 0) {
-      planets = await getAllPlanets();
-    }
-
-    if (stars.length === 0) {
-      stars = await getAllStars();
-    }
-
-    if (moons.length === 0) {
-      moons = await getAllMoons();
-    }
-
     const planetsDataPromises = planets.map(async (planet) => {
       const firstTick = await getNextTicks(planet.uuid as string, 0, 1);
       const firstTickItem = firstTick.rows.at(0);
@@ -87,130 +77,39 @@ export const getNextTicks = async (
   timesteps: number = 0.01666667,
 ) => {
   const timer = createTimer();
+  let nextTicks: NextTicksObjectType;
+  await loadData();
 
   try {
-    if (planets.length === 0) {
-      planets = await getAllPlanets();
-    }
-
-    if (stars.length === 0) {
-      stars = await getAllStars();
-    }
-
-    if (moons.length === 0) {
-      moons = await getAllMoons();
-    }
-
-    const allObjects = [...planets, ...moons];
-
-    const object = allObjects.find((object) => object.uuid === target);
-
-    if (!object) {
-      logger.error(`Object not found: ${target}`);
-      throw new Error(`Object not found: ${target}`);
-    }
-
-    let systemId = "systemId" in object ? object.systemId : null;
-    let orbitalCenters: Vector3Type[] = [{ x: 0, y: 0, z: 0 }];
-    let star: Star | undefined;
-    let orbitalObject: OrbitalObject | undefined;
-
-    if (systemId) {
-      star = getStar(target, systemId);
-    }
-
-    // Si il s'agit d'une lune
-    if (!systemId && "planetId" in object) {
-      const planetMoon = planets.find(
-        (planet) => planet.id === object.planetId,
-      );
-      if (!planetMoon) {
-        logger.error(`Planet for moon ${object.name} not found: ${target}`);
-        throw new Error(`Planet for moon ${object.name} not found: ${target}`);
-      }
-      systemId = planetMoon.systemId as number;
-      star = getStar(target, systemId);
-
-      const orbitalPlanetMoon = OrbitDataHelper.planetDBToOrbitalElements(
-        planetMoon,
-        star,
-      );
-
-      const planetMoonParams: OrbitCalculationParams = {
-        objectId: planetMoon.uuid as string,
-        objectType: "planet" as const,
-        startTimeS: fromTime,
-        durationS: duration,
-        timestepS: timesteps,
-        orbitalObject: orbitalPlanetMoon,
-      };
-
-      const planetMoonPositions =
-        keplerOrbitService.getPositions(planetMoonParams);
-
-      orbitalCenters = planetMoonPositions.map(
-        (planetMoonPositions) => planetMoonPositions.position,
-      );
-
-      orbitalObject = OrbitDataHelper.moonDBToOrbitalElements(
-        object,
-        planetMoon,
-      );
-    }
-
-    if (!star) {
-      logger.error(`Missing star for ${target}`);
-      throw new Error(`Missing star for ${target}`);
-    }
-
-    if (!orbitalObject) {
-      orbitalObject = OrbitDataHelper.planetDBToOrbitalElements(
-        object as Planet,
-        star,
-      );
-    }
-
-    logger.debug(
-      {
-        object,
+    if (await isPlanet(target)) {
+      nextTicks = await getPlanetNextTicks(
         target,
         fromTime,
         duration,
-        orbitalInfo: OrbitDataHelper.getOrbitalInfo(orbitalObject),
-      },
-      "Querying positions",
-    );
+        timesteps,
+      );
+    } else if (await isMoon(target)) {
+      nextTicks = await getMoonNextTicks(target, fromTime, duration, timesteps);
+    } else {
+      logger.error({ target }, `Object not found: ${target}`);
+      throw new Error(`Object not found not found: ${target}`);
+    }
 
-    const params: OrbitCalculationParams = {
-      objectId: object.uuid as string,
-      objectType: "planet" as const,
-      startTimeS: fromTime,
-      durationS: duration,
-      timestepS: timesteps,
-      orbitalObject,
-    };
+    if (!nextTicks) {
+      logger.error({ target }, `Next ticks not found: ${target}`);
+      throw new Error(`Next ticks not found: ${target}`);
+    }
 
-    const rows = keplerOrbitService
-      .getPositions(params)
-      .map((position, index) => {
-        const newPosition = Vector3Math.add(
-          orbitalCenters[index] ?? orbitalCenters[0],
-          position.position,
-        );
-
-        return { ...position, position: newPosition };
-      });
-
-    logPerformance(logger, `Query for ${object.name}`, timer.end(), {
-      rowCount: rows.length,
-      target: object.name,
+    logPerformance(logger, `Query for ${nextTicks.object.name}`, timer.end(), {
+      positionCount: nextTicks.positions.length,
+      target: nextTicks.object,
     });
 
     return {
-      target: object,
+      target: nextTicks.object,
       timeStart: fromTime,
-      count: rows.length,
-      rows,
+      count: nextTicks.positions.length,
+      rows: nextTicks.positions,
     };
   } catch (error) {
     logError(logger, error, {
@@ -231,4 +130,132 @@ const getStar = (target: string, systemId: number): Star => {
   }
 
   return star;
+};
+
+const isPlanet = async (target: string): Promise<boolean> => {
+  return !!planets.find((planet) => planet.uuid === target);
+};
+
+const getPlanetNextTicks = async (
+  target: string,
+  fromTime: number,
+  duration: number,
+  timesteps: number = 0.01666667,
+): Promise<{ object: Planet; positions: Position[] } | null> => {
+  const planet = planets.find((planet) => planet.uuid === target);
+
+  if (!planet) {
+    return null;
+  }
+
+  const star = getStar(target, planet.systemId as number);
+
+  const orbitalCalculation = OrbitDataHelper.createPlanetParamsFromDB(
+    planet,
+    star,
+    fromTime,
+    duration,
+    timesteps,
+  );
+
+  logger.debug(
+    {
+      planet,
+      target,
+      fromTime,
+      duration,
+      orbitalInfo: OrbitDataHelper.getOrbitalInfo(
+        orbitalCalculation.orbitalObject,
+      ),
+    },
+    "Querying planet positions",
+  );
+
+  return {
+    object: planet,
+    positions: keplerOrbitService.getPositions(orbitalCalculation),
+  };
+};
+
+const isMoon = async (target: string): Promise<boolean> => {
+  return !!moons.find((moon) => moon.uuid === target);
+};
+
+const getMoonNextTicks = async (
+  target: string,
+  fromTime: number,
+  duration: number,
+  timesteps: number = 0.01666667,
+): Promise<{ object: Moon; positions: Position[] } | null> => {
+  const moon = moons.find((moon) => moon.uuid === target);
+
+  if (!moon) {
+    return null;
+  }
+
+  const moonPlanet = planets.find((planet) => planet.id === moon.planetId);
+
+  if (!moonPlanet) {
+    logger.error({ moon }, `Planet for moon ${moon.name} not found: ${target}`);
+    throw new Error(`Planet for moon ${moon.name} not found: ${target}`);
+  }
+
+  const moonPlanetPositions = await getPlanetNextTicks(
+    moonPlanet.uuid as string,
+    fromTime,
+    duration,
+    timesteps,
+  );
+
+  if (!moonPlanetPositions) {
+    logger.error({ moon }, `No positions for planet for moon ${moon.name}`);
+    throw new Error(`No positions for planet for moon ${moon.name}`);
+  }
+
+  const orbitalCalculation = OrbitDataHelper.createMoonParamsFromDB(
+    moon,
+    moonPlanet,
+    fromTime,
+    duration,
+    timesteps,
+  );
+
+  logger.debug(
+    {
+      moon,
+      target,
+      fromTime,
+      duration,
+      orbitalInfo: OrbitDataHelper.getOrbitalInfo(
+        orbitalCalculation.orbitalObject,
+      ),
+    },
+    "Querying moon positions",
+  );
+
+  const positions = keplerOrbitService
+    .getPositions(orbitalCalculation)
+    .map((position, index) => {
+      const newPosition = Vector3Math.add(
+        moonPlanetPositions.positions[index].position,
+        position.position,
+      );
+
+      return { ...position, position: newPosition };
+    });
+  return { object: moon, positions };
+};
+
+const loadData = async () => {
+  if (planets.length === 0) {
+    planets = await getAllPlanets();
+  }
+
+  if (stars.length === 0) {
+    stars = await getAllStars();
+  }
+
+  if (moons.length === 0) {
+    moons = await getAllMoons();
+  }
 };

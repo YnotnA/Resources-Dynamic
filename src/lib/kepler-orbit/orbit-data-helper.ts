@@ -28,6 +28,23 @@ export class OrbitDataHelper {
     };
   }
 
+  static createMoonParamsFromDB(
+    moon: Moon,
+    planet: Planet,
+    startTimeS: number = 0,
+    durationS: number = 3600,
+    timestepS: number = 0.01666667,
+  ): OrbitCalculationParams {
+    return {
+      objectId: moon.uuid as string,
+      objectType: "moon",
+      startTimeS,
+      durationS,
+      timestepS,
+      orbitalObject: OrbitDataHelper.moonDBToOrbitalElements(moon, planet),
+    };
+  }
+
   /**
    * Validate orbital elements consistency
    */
