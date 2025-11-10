@@ -193,8 +193,6 @@ export const logError = (
   error: unknown,
   context?: Record<string, unknown>,
 ) => {
-  console.log(error);
-
   if (error instanceof ZodError) {
     const formattedError = formatZodError(error);
 

@@ -1,38 +1,38 @@
-import {
-  aCelestialBodyMapping,
-  aObjectPositionBuilder,
-} from "@builder/builders";
-import { CelestialBodyMapping } from "@db/schema";
-import { ObjectPositionType } from "@dbduck/schema/objectPosition.model";
-import { mappingCache } from "@websocket/cache/mapping-cache";
+import { aMoon, aPlanet, aStar } from "@builder/builders";
+import { Moon, Planet, Star } from "@db/schema";
 import { createStandaloneWebSocket } from "@websocket/server";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Server } from "ws";
 
-import { TestDuckDBHelper } from "../../helpers/duckdb-helper";
 import { TestWebSocketClient } from "../../helpers/websocket-client";
 
-const duckHelper = new TestDuckDBHelper();
-let mockData: CelestialBodyMapping[] = [];
+let mockPlanets: Planet[] = [];
+let mockStars: Star[] = [];
+let mockMoons: Moon[] = [];
 
-vi.mock("@db/connection", () => ({
-  db: {
-    select: vi.fn(() => ({
-      from: vi.fn(() => Promise.resolve(mockData)),
-    })),
-  },
-}));
+vi.mock("@db/queries/stars.ts", () => {
+  return {
+    getAllStars: vi.fn(() => Promise.resolve(mockStars)),
+  };
+});
 
-vi.mock("@dbduck/connection", () => ({
-  getDuckDBConnection: vi.fn(() => duckHelper.getConnection()),
-}));
+vi.mock("@db/queries/planets.ts", () => {
+  return {
+    getAllPlanets: vi.fn(() => Promise.resolve(mockPlanets)),
+  };
+});
+
+vi.mock("@db/queries/moons.ts", () => {
+  return {
+    getAllMoons: vi.fn(() => Promise.resolve(mockMoons)),
+  };
+});
 
 describe("WebSocket Init", () => {
   let wss: Server;
   let client: TestWebSocketClient;
 
-  beforeAll(async () => {
-    await duckHelper.setup();
+  beforeAll(() => {
     wss = createStandaloneWebSocket(3101);
   });
 
@@ -45,9 +45,9 @@ describe("WebSocket Init", () => {
     await client.connect();
     await client.waitForConnected();
     client.clearMessages();
-    mockData = []; // Clear between tests
-    mappingCache.clear();
-    await duckHelper.clean();
+    mockStars = [];
+    mockPlanets = [];
+    mockMoons = [];
   });
 
   afterEach(() => {
@@ -55,21 +55,12 @@ describe("WebSocket Init", () => {
   });
 
   it("should accept init message", async () => {
-    mockData = [
-      aCelestialBodyMapping().withId(23).build(),
-      aCelestialBodyMapping().withId(15).build(),
-      aCelestialBodyMapping().withId(50).build(), // must not retrieve (ID not in duckdb)
+    mockStars = [aStar().withSystemId(1).build()];
+    mockPlanets = [
+      aPlanet().withSystemId(1).build(),
+      aPlanet().withSystemId(1).build(),
     ];
-
-    const mockDuckData: ObjectPositionType[] = [
-      aObjectPositionBuilder().withTime(50).withTypeId(23).build(), // must not retrieve (time > 0)
-      aObjectPositionBuilder().withTime(0).withTypeId(23).build(),
-      aObjectPositionBuilder().withTime(0).withTypeId(15).build(),
-    ];
-
-    // await duckHelper.insertPositions(mockDuckData);
-
-    // await mappingCache.load();
+    mockMoons = [aMoon().withPlanetId(mockPlanets[0].id).build()];
 
     client.send({
       action: "init",
@@ -78,12 +69,12 @@ describe("WebSocket Init", () => {
     const response = await client.waitForInit();
 
     expect(response.type).toBe("init");
-    expect(response.data).toHaveLength(2);
-    expect(response.data[0].uuid).toBe(mockData[0]["uuid"]);
-    expect(response.data[0].name).toBe(mockData[0]["name"]);
-    expect(response.data[0].internalName).toBe(mockData[0]["internalName"]);
-    expect(response.data[0].position.x).toBe(mockDuckData[1]["x"]);
-    expect(response.data[0].position.y).toBe(mockDuckData[1]["y"]);
-    expect(response.data[0].position.z).toBe(mockDuckData[1]["z"]);
+    expect(response.data).toHaveLength(3);
+    expect(response.data[0].uuid).toBe(mockPlanets[0]["uuid"]);
+    expect(response.data[0].name).toBe(mockPlanets[0]["name"]);
+    expect(response.data[0].internalName).toBe(mockPlanets[0]["internalName"]);
+    expect(response.data[2].uuid).toBe(mockMoons[0]["uuid"]);
+    expect(response.data[2].name).toBe(mockMoons[0]["name"]);
+    expect(response.data[2].internalName).toBe(mockMoons[0]["internalName"]);
   });
 });

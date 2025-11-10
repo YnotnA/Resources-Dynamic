@@ -5,7 +5,6 @@ import * as dotenv from "dotenv";
 import app from "./app";
 import { testConnection } from "./db/connection";
 import { logger } from "./lib/logger";
-import { mappingCache } from "./websocket/cache/mapping-cache";
 import { createStandaloneWebSocket } from "./websocket/server";
 
 dotenv.config();
@@ -24,23 +23,8 @@ const start = async () => {
     process.exit(1);
   }
 
+  // Load T0 positions
   await getInit();
-
-  // logger.info("🔄 Syncing mapping table...");
-  // try {
-  //   await syncMappingTable();
-  // } catch (error) {
-  //   logError(logger, error, { context: "start" });
-  // }
-
-  // logger.info("📥 Loading mapping cache...");
-  // await mappingCache.load();
-  // logger.info(
-  //   {
-  //     entries: mappingCache.getStats().totalEntries,
-  //   },
-  //   `✅ Cache ready`,
-  // );
 
   // WebSocket standalone
   createStandaloneWebSocket(WS_PORT);
@@ -54,7 +38,6 @@ const start = async () => {
 
 process.on("SIGINT", () => {
   logger.info("🛑 Shutting down gracefully...");
-  mappingCache.clear();
   process.exit(0);
 });
 

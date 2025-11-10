@@ -22,6 +22,7 @@ export default defineConfig({
       "@schema": path.resolve(__dirname, "./src/schema"),
       "@websocket": path.resolve(__dirname, "./src/websocket"),
       "@builder": path.resolve(__dirname, "./tests/builder"),
+      "@mocks": path.resolve(__dirname, "./tests/mocks"),
     },
   },
 });

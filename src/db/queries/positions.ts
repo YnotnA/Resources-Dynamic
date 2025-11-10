@@ -1,9 +1,9 @@
 import type { Moon, Planet, Star } from "@db/schema";
 import type { Position } from "@lib/cache-position";
-import { Vector3Math } from "@lib/kepler-orbit/kepler-orbit";
 import { keplerOrbitService } from "@lib/kepler-orbit/kepler-orbit-service";
 import { OrbitDataHelper } from "@lib/kepler-orbit/orbit-data-helper";
 import { createTimer, logError, logPerformance, logger } from "@lib/logger";
+import { Vector3Math } from "@lib/vector3/vector3Math";
 
 import { getAllMoons } from "./moons";
 import { getAllPlanets } from "./planets";

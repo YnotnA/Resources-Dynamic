@@ -1,8 +1,9 @@
 import { Faker } from "@faker-js/faker";
 
 import { FakerGeneratorFactory } from "./FakerGeneratorFactory";
-import { CelestialBodyMappingBuilder } from "./builders/CelestialBodyMappingBuilder";
-import { ObjectPositionBuilder } from "./builders/ObjectPositionBuilder";
+import { MoonBuilder } from "./builders/MoonBuilder";
+import { PlanetBuilder } from "./builders/PlanetBuilder";
+import { StarBuilder } from "./builders/StarBuilder";
 import { Vector3Builder } from "./builders/Vector3Builder";
 
 export const aVector3 = (generator?: Faker): Vector3Builder => {
@@ -11,18 +12,20 @@ export const aVector3 = (generator?: Faker): Vector3Builder => {
   return new Vector3Builder(faker);
 };
 
-export const aCelestialBodyMapping = (
-  generator?: Faker,
-): CelestialBodyMappingBuilder => {
+export const aPlanet = (generator?: Faker): PlanetBuilder => {
   const faker = generator ?? FakerGeneratorFactory.getInstance();
 
-  return new CelestialBodyMappingBuilder(faker);
+  return new PlanetBuilder(faker);
 };
 
-export const aObjectPositionBuilder = (
-  generator?: Faker,
-): ObjectPositionBuilder => {
+export const aMoon = (generator?: Faker): MoonBuilder => {
   const faker = generator ?? FakerGeneratorFactory.getInstance();
 
-  return new ObjectPositionBuilder(faker);
+  return new MoonBuilder(faker);
+};
+
+export const aStar = (generator?: Faker): StarBuilder => {
+  const faker = generator ?? FakerGeneratorFactory.getInstance();
+
+  return new StarBuilder(faker);
 };
