@@ -73,6 +73,9 @@ describe("WebSocket Init", () => {
     expect(response.data[0].uuid).toBe(mockPlanets[0]["uuid"]);
     expect(response.data[0].name).toBe(mockPlanets[0]["name"]);
     expect(response.data[0].internalName).toBe(mockPlanets[0]["internalName"]);
+    expect(response.data[1].uuid).toBe(mockPlanets[1]["uuid"]);
+    expect(response.data[1].name).toBe(mockPlanets[1]["name"]);
+    expect(response.data[1].internalName).toBe(mockPlanets[1]["internalName"]);
     expect(response.data[2].uuid).toBe(mockMoons[0]["uuid"]);
     expect(response.data[2].name).toBe(mockMoons[0]["name"]);
     expect(response.data[2].internalName).toBe(mockMoons[0]["internalName"]);
