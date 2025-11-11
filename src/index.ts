@@ -1,5 +1,5 @@
-import { getInit } from "@db/queries/positions";
 import { serve } from "@hono/node-server";
+import { getInit } from "@lib/celestial-bodies/positions";
 import * as dotenv from "dotenv";
 
 import app from "./app";

@@ -606,7 +606,7 @@ ws.on("open", () => {
       duration: 60,
       // fromTime: Math.floor(Math.random() * 86400) + 1,
       fromTime,
-      target: "5514fdf5-a411-42ea-aee5-0c2d6343accc",
+      target: "844221a5-e2be-432c-94c2-947462c1c310",
     };
     ws.send(encode(nextTicksRequest));
     fromTime += 60;

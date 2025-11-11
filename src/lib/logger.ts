@@ -263,7 +263,7 @@ export const logPerformance = (
       duration,
       ...metadata,
     },
-    `⏱️  ${operation} took ${duration}ms`,
+    `⏱️  ${operation} took ${duration.toFixed(3)}ms`,
   );
 };
 

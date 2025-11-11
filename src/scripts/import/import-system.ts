@@ -2,6 +2,7 @@ import { createPlanet, createSystem } from "@db/queries";
 import { createMoon } from "@db/queries/moons";
 import { createStar } from "@db/queries/stars";
 import type {
+  Moon,
   NewMoon,
   NewPlanet,
   NewStar,
@@ -51,6 +52,7 @@ export const importSystem = async () => {
       ),
     );
 
+    const moons: Moon[] = [];
     const planets = await Promise.all(
       data.structured.planets.map(async (planet, planetIndex) => {
         const newPlanet = await importPlanetDb(
@@ -62,7 +64,14 @@ export const importSystem = async () => {
         if (planet.moons && planet.moons.length > 0) {
           await Promise.all(
             planet.moons.map(async (moon, moonIndex) => {
-              await importMoonDb(moon, moonIndex + 1, newPlanet);
+              const newMoon = await importMoonDb(
+                moon,
+                moonIndex + 1,
+                newPlanet,
+              );
+              if (newMoon) {
+                moons.push(newMoon);
+              }
             }),
           );
         }
@@ -75,6 +84,7 @@ export const importSystem = async () => {
       system: system.name,
       stars: stars.map((star) => star.name),
       planets: planets.map((planet) => planet.name),
+      moons: moons.map((moon) => moon.name),
     });
   }
 };
@@ -90,7 +100,7 @@ const importSystemDb = async (system: SystemType) => {
 const importStarDb = async (star: StarType, system: System) => {
   const newStar: NewStar = {
     name: star.name,
-    internalName: star.name,
+    internalName: star.name.toLowerCase(),
     massKg: star.mass_Sun * MASS_SUN,
     systemId: system.id,
   };
@@ -180,4 +190,11 @@ const importMoonDb = async (
   return await createMoon(newMoon);
 };
 
-await importSystem();
+try {
+  await importSystem();
+} catch (error) {
+  console.error(error);
+  process.exit(1);
+}
+
+process.exit(0);

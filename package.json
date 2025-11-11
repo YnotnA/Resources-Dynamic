@@ -17,7 +17,6 @@
     "import-system": "NODE_ENV=production tsup && node dist/scripts/import/import-system.mjs"
   },
   "dependencies": {
-    "@duckdb/node-api": "1.4.1-r.4",
     "@hono/node-server": "^1.19.6",
     "@msgpack/msgpack": "^3.1.2",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",

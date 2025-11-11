@@ -1,4 +1,4 @@
-import { getInit, getNextTicks } from "@db/queries/positions";
+import { getInit, getNextTicks } from "@lib/celestial-bodies/positions";
 import { createTimer, logError, wsLogger } from "@lib/logger";
 import { decode, encode } from "@msgpack/msgpack";
 import type { WebSocket } from "ws";

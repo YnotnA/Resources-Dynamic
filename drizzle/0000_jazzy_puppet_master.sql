@@ -1,6 +1,5 @@
-CREATE SEQUENCE "public"."celestial_bodies_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1 CACHE 1;--> statement-breakpoint
 CREATE TABLE "systems" (
-        "id" integer PRIMARY KEY DEFAULT nextval('celestial_bodies_id_seq'),
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "systems_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
 	"name" text NOT NULL,
 	"internal_name" text NOT NULL,
 	CONSTRAINT "systems_name_unique" UNIQUE("name"),
@@ -8,7 +7,7 @@ CREATE TABLE "systems" (
 );
 --> statement-breakpoint
 CREATE TABLE "stars" (
-        "id" integer PRIMARY KEY DEFAULT nextval('celestial_bodies_id_seq'),
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "stars_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
 	"uuid" uuid DEFAULT gen_random_uuid(),
 	"system_id" integer,
 	"name" text NOT NULL,
@@ -20,7 +19,7 @@ CREATE TABLE "stars" (
 );
 --> statement-breakpoint
 CREATE TABLE "planets" (
-        "id" integer PRIMARY KEY DEFAULT nextval('celestial_bodies_id_seq'),
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "planets_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
 	"uuid" uuid DEFAULT gen_random_uuid(),
 	"system_id" integer,
 	"name" text NOT NULL,
@@ -40,7 +39,7 @@ CREATE TABLE "planets" (
 );
 --> statement-breakpoint
 CREATE TABLE "planet_moons" (
-        "id" integer PRIMARY KEY DEFAULT nextval('celestial_bodies_id_seq'),
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "planet_moons_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
 	"planet_id" integer,
 	"uuid" uuid DEFAULT gen_random_uuid(),
 	"name" text NOT NULL,
@@ -59,24 +58,6 @@ CREATE TABLE "planet_moons" (
 	CONSTRAINT "planet_moons_internal_name_unique" UNIQUE("internal_name")
 );
 --> statement-breakpoint
-CREATE TABLE "celestial_bodies_mapping" (
-	"uuid" uuid PRIMARY KEY NOT NULL,
-	"id" integer NOT NULL,
-	"type" text NOT NULL,
-	"name" text NOT NULL,
-	"internal_name" text NOT NULL,
-	"system_id" integer NOT NULL,
-	"parent_id" integer,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "celestial_bodies_mapping_uuid_unique" UNIQUE("uuid"),
-	CONSTRAINT "celestial_bodies_mapping_id_unique" UNIQUE("id"),
-	CONSTRAINT "celestial_bodies_mapping_name_unique" UNIQUE("name"),
-	CONSTRAINT "celestial_bodies_mapping_internal_name_unique" UNIQUE("internal_name")
-);
---> statement-breakpoint
 ALTER TABLE "stars" ADD CONSTRAINT "stars_system_id_systems_id_fk" FOREIGN KEY ("system_id") REFERENCES "public"."systems"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "planets" ADD CONSTRAINT "planets_system_id_systems_id_fk" FOREIGN KEY ("system_id") REFERENCES "public"."systems"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "planet_moons" ADD CONSTRAINT "planet_moons_planet_id_planets_id_fk" FOREIGN KEY ("planet_id") REFERENCES "public"."planets"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "idx_celestial_mapping_id_type" ON "celestial_bodies_mapping" USING btree ("id","type");--> statement-breakpoint
-CREATE INDEX "idx_celestial_mapping_system" ON "celestial_bodies_mapping" USING btree ("system_id");
+ALTER TABLE "planet_moons" ADD CONSTRAINT "planet_moons_planet_id_planets_id_fk" FOREIGN KEY ("planet_id") REFERENCES "public"."planets"("id") ON DELETE no action ON UPDATE no action;

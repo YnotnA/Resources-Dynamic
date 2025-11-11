@@ -9,7 +9,6 @@ export interface Position {
 
 export interface CacheCalculationParams {
   objectId: string;
-  objectType: "planet" | "moon";
   startTimeS: number;
   durationS: number;
   timestepS: number;
@@ -52,7 +51,7 @@ export class CachePosition {
   private prefetchConfig: PrefetchConfig = {
     enabled: true,
     multiplier: 300,
-    maxSampleCount: 10000,
+    maxSampleCount: 5000,
     minDurationS: 1,
     autoThreshold: 0.8,
   };
@@ -69,20 +68,16 @@ export class CachePosition {
     }
   }
 
-  private getCacheKey(
-    objectId: string,
-    objectType: string,
-    timestepS: number,
-  ): string {
-    return `${objectType}:${objectId}:${timestepS.toFixed(6)}`;
+  private getCacheKey(objectId: string, timestepS: number): string {
+    return `${objectId}:${timestepS.toFixed(6)}`;
+  }
+
+  private getPrefetchKey(objectId: string, timestepS: number): string {
+    return `prefetch:${this.getCacheKey(objectId, timestepS)}`;
   }
 
   private findMatchingCache(params: CacheCalculationParams): CachedData | null {
-    const cacheKey = this.getCacheKey(
-      params.objectId,
-      params.objectType,
-      params.timestepS,
-    );
+    const cacheKey = this.getCacheKey(params.objectId, params.timestepS);
 
     // Search in cache
     const cached = this.cache.get(cacheKey);
@@ -257,6 +252,7 @@ export class CachePosition {
     const totalDuration = requestedDuration + bufferDuration;
 
     const maxDurationSamples = this.prefetchConfig.maxSampleCount * timestepS;
+
     const finalDuration = Math.min(totalDuration, maxDurationSamples);
 
     cachePositionLogger.debug(
@@ -290,7 +286,7 @@ export class CachePosition {
       return;
     }
 
-    const prefetchKey = `prefetch:${params.objectId}:${params.objectType}:${cacheEnd.toFixed(0)}`;
+    const prefetchKey = this.getPrefetchKey(params.objectId, cacheEnd);
 
     if (
       this.activePrefetches.has(prefetchKey) ||
@@ -299,11 +295,7 @@ export class CachePosition {
       return;
     }
 
-    const cacheKey = this.getCacheKey(
-      params.objectId,
-      params.objectType,
-      params.timestepS,
-    );
+    const cacheKey = this.getCacheKey(params.objectId, params.timestepS);
 
     const tempKey = `${cacheKey}:next`;
 
@@ -362,11 +354,7 @@ export class CachePosition {
   ): Position[] {
     const normalizedParams = { ...params };
 
-    const cacheKey = this.getCacheKey(
-      params.objectId,
-      params.objectType,
-      params.timestepS,
-    );
+    const cacheKey = this.getCacheKey(params.objectId, params.timestepS);
 
     const cache = this.cache;
     const tempKey = `${cacheKey}:next`;
@@ -387,7 +375,10 @@ export class CachePosition {
         cache.delete(tempKey);
 
         const oldCacheEnd = prefetchStart;
-        const oldPrefetchKey = `prefetch:${params.objectId}:${params.objectType}:${oldCacheEnd.toFixed(0)}`;
+        const oldPrefetchKey = this.getPrefetchKey(
+          params.objectId,
+          oldCacheEnd,
+        );
         this.completedPrefetches.delete(oldPrefetchKey);
       }
     }
@@ -436,9 +427,10 @@ export class CachePosition {
       throw new Error("Failed to calculate orbital positions");
     }
 
-    const memoryMB = (positions.length * 32) / 1024 / 1024;
+    const BYTES_PER_POSITION = 120;
+    const memoryMB = (positions.length * BYTES_PER_POSITION) / 1024 / 1024;
     cachePositionLogger.debug(
-      `💾 ${positions.length.toLocaleString()} positions in ${calcTime.toFixed(1)}ms (~${memoryMB.toFixed(1)} MB)`,
+      `💾 ${positions.length.toLocaleString()} positions in ${calcTime.toFixed(1)}ms (~${memoryMB.toFixed(2)} MB)`,
     );
 
     this.evictCache();
@@ -489,8 +481,8 @@ export class CachePosition {
     cachePositionLogger.info("🧹 Cache cleared");
   }
 
-  clearCacheForObject(objectId: string, objectType: string): void {
-    const prefix = `${objectType}:${objectId}:`;
+  clearCacheForObject(objectId: string): void {
+    const prefix = `${objectId}:`;
     const keysToDelete: string[] = [];
 
     for (const key of this.cache.keys()) {
@@ -501,7 +493,7 @@ export class CachePosition {
 
     keysToDelete.forEach((key) => this.cache.delete(key));
 
-    const prefetchPrefix = `prefetch:${objectId}:${objectType}:`;
+    const prefetchPrefix = `prefetch:${objectId}:`;
     for (const key of this.completedPrefetches) {
       if (key.startsWith(prefetchPrefix)) {
         this.completedPrefetches.delete(key);
@@ -514,7 +506,7 @@ export class CachePosition {
     }
 
     cachePositionLogger.info(
-      `🧹 Cleared ${keysToDelete.length} cache entries for ${objectType}:${objectId}`,
+      `🧹 Cleared ${keysToDelete.length} cache entries for ${objectId}`,
     );
   }
 

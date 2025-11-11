@@ -1,13 +1,10 @@
+import { getAllMoons, getAllPlanets, getAllStars } from "@db/queries";
 import type { Moon, Planet, Star } from "@db/schema";
 import type { Position } from "@lib/cache-position";
 import { keplerOrbitService } from "@lib/kepler-orbit/kepler-orbit-service";
 import { OrbitDataHelper } from "@lib/kepler-orbit/orbit-data-helper";
 import { createTimer, logError, logPerformance, logger } from "@lib/logger";
 import { Vector3Math } from "@lib/vector3/vector3Math";
-
-import { getAllMoons } from "./moons";
-import { getAllPlanets } from "./planets";
-import { getAllStars } from "./stars";
 
 let planets: Planet[] = [];
 let stars: Star[] = [];

@@ -1,5 +1,5 @@
 {
-  "id": "87b5fc14-4e97-41ff-b76a-62291d16be8d",
+  "id": "4c6e92f4-66ca-48b4-a29a-8ac47aae3a75",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -12,7 +12,18 @@
           "name": "id",
           "type": "integer",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "systems_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
         },
         "name": {
           "name": "name",
@@ -58,7 +69,18 @@
           "name": "id",
           "type": "integer",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "stars_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
         },
         "uuid": {
           "name": "uuid",
@@ -144,7 +166,18 @@
           "name": "id",
           "type": "integer",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "planets_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
         },
         "uuid": {
           "name": "uuid",
@@ -278,7 +311,18 @@
           "name": "id",
           "type": "integer",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "planet_moons_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
         },
         "planet_id": {
           "name": "planet_id",
@@ -403,157 +447,11 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
-    },
-    "public.celestial_bodies_mapping": {
-      "name": "celestial_bodies_mapping",
-      "schema": "",
-      "columns": {
-        "uuid": {
-          "name": "uuid",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "type": {
-          "name": "type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "internal_name": {
-          "name": "internal_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "system_id": {
-          "name": "system_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "parent_id": {
-          "name": "parent_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "idx_celestial_mapping_id_type": {
-          "name": "idx_celestial_mapping_id_type",
-          "columns": [
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "type",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_celestial_mapping_system": {
-          "name": "idx_celestial_mapping_system",
-          "columns": [
-            {
-              "expression": "system_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "celestial_bodies_mapping_uuid_unique": {
-          "name": "celestial_bodies_mapping_uuid_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "uuid"
-          ]
-        },
-        "celestial_bodies_mapping_id_unique": {
-          "name": "celestial_bodies_mapping_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
-        },
-        "celestial_bodies_mapping_name_unique": {
-          "name": "celestial_bodies_mapping_name_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
-        },
-        "celestial_bodies_mapping_internal_name_unique": {
-          "name": "celestial_bodies_mapping_internal_name_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "internal_name"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
     }
   },
   "enums": {},
   "schemas": {},
-  "sequences": {
-    "public.celestial_bodies_id_seq": {
-      "name": "celestial_bodies_id_seq",
-      "schema": "public",
-      "increment": "1",
-      "startWith": "1",
-      "minValue": "1",
-      "maxValue": "9223372036854775807",
-      "cache": "1",
-      "cycle": false
-    }
-  },
+  "sequences": {},
   "roles": {},
   "policies": {},
   "views": {},
