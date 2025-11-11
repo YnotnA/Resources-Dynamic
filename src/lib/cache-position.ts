@@ -353,9 +353,10 @@ export class CachePosition {
     params: T,
     calculateFn: (params: T) => Position[],
   ): void {
-    const cacheStart = cached.params.startTimeS;
+    const cacheStart = params.startTimeS + params.durationS;
     const cacheEnd = cached.params.startTimeS + cached.params.durationS;
-    const cacheProgress = (currentTimeS - cacheStart) / cached.params.durationS;
+    const cacheProgress =
+      (cacheStart - cached.params.startTimeS) / cached.params.durationS;
 
     if (cacheProgress < this.prefetchConfig.autoThreshold) {
       return;
@@ -379,6 +380,7 @@ export class CachePosition {
     }
 
     cachePositionLogger.debug(
+      { cacheKey },
       `🔮 Prefetch at ${(cacheProgress * 100).toFixed(0)}% (T=${currentTimeS.toFixed(0)}s)`,
     );
 
