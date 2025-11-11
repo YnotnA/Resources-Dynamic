@@ -30,7 +30,7 @@ export interface SaveCachedData extends Omit<CachedData, "positions"> {
 export interface PrefetchConfig {
   enabled: boolean;
   multiplier: number;
-  maxSampleCount: number;
+  maxPositionCount: number;
   minDurationS: number;
   autoThreshold: number;
 }
@@ -64,9 +64,9 @@ export class CachePosition {
   private prefetchConfig: PrefetchConfig = {
     enabled: true,
     multiplier: 300,
-    maxSampleCount: 5000,
-    minDurationS: 1,
-    autoThreshold: 0.8,
+    maxPositionCount: 10000,
+    minDurationS: 5,
+    autoThreshold: 0.7,
   };
 
   constructor(
@@ -263,7 +263,7 @@ export class CachePosition {
     const bufferDuration = requestedDuration * this.prefetchConfig.multiplier;
     const totalDuration = requestedDuration + bufferDuration;
 
-    const maxDurationSamples = this.prefetchConfig.maxSampleCount * timestepS;
+    const maxDurationSamples = this.prefetchConfig.maxPositionCount * timestepS;
 
     const finalDuration = Math.min(totalDuration, maxDurationSamples);
 
@@ -272,10 +272,10 @@ export class CachePosition {
         requestedDuration,
         multiplier: this.prefetchConfig.multiplier,
         finalDuration,
-        maxAllowedPoints: this.prefetchConfig.maxSampleCount,
+        maxPositionCount: this.prefetchConfig.maxPositionCount,
         timestepS,
       },
-      `🔧 Prefetch: ${requestedDuration.toFixed(1)}s (step=${timestepS}) x ${this.prefetchConfig.multiplier} = ${finalDuration.toFixed(1)}s [Max ${this.prefetchConfig.maxSampleCount} pts]`,
+      `🔧 Prefetch: ${requestedDuration.toFixed(1)}s (step=${timestepS}) x ${this.prefetchConfig.multiplier} = ${finalDuration.toFixed(1)}s [Max ${this.prefetchConfig.maxPositionCount} pts]`,
     );
 
     return finalDuration;
@@ -349,8 +349,7 @@ export class CachePosition {
    */
   private checkAndPrefetch<T extends CacheCalculationParams>(
     cached: CachedData,
-    currentTimeS: number,
-    params: T,
+    params: CacheCalculationParams,
     calculateFn: (params: T) => Position[],
   ): void {
     const cacheStart = params.startTimeS + params.durationS;
@@ -359,6 +358,17 @@ export class CachePosition {
       (cacheStart - cached.params.startTimeS) / cached.params.durationS;
 
     if (cacheProgress < this.prefetchConfig.autoThreshold) {
+      return;
+    }
+
+    if (params.durationS < this.prefetchConfig.minDurationS) {
+      cachePositionLogger.debug(
+        {
+          requestedDuration: params.durationS,
+          minDuration: this.prefetchConfig.minDurationS,
+        },
+        `🔧 Request too short, no prefetch`,
+      );
       return;
     }
 
@@ -381,7 +391,7 @@ export class CachePosition {
 
     cachePositionLogger.debug(
       { cacheKey },
-      `🔮 Prefetch at ${(cacheProgress * 100).toFixed(0)}% (T=${currentTimeS.toFixed(0)}s)`,
+      `🔮 Prefetch at ${(cacheProgress * 100).toFixed(0)}% (T=${params.startTimeS.toFixed(0)}s)`,
     );
 
     this.activePrefetches.set(prefetchKey, Promise.resolve());
@@ -475,12 +485,7 @@ export class CachePosition {
 
       if (subset.length > 0) {
         if (this.prefetchConfig.enabled) {
-          this.checkAndPrefetch(
-            cached,
-            normalizedParams.startTimeS,
-            normalizedParams,
-            calculateFn,
-          );
+          this.checkAndPrefetch(cached, normalizedParams, calculateFn);
         }
         return subset;
       }
@@ -608,7 +613,7 @@ export class CachePosition {
       key,
       sampleCount: data.sampleCount,
       memoryMB: (data.sampleCount * BYTES_PER_POSITION) / 1024 / 1024,
-      timeRange: `${data.params.startTimeS.toFixed(0)}-${(data.params.startTimeS + data.params.durationS).toFixed(0)}s`,
+      timeRange: `${data.params.startTimeS.toFixed(3)}-${(data.params.startTimeS + data.params.durationS).toFixed(3)}s`,
       ageMs: Date.now() - data.calculatedAt.getTime(),
       accessCount: data.accessCount,
       lastAccessAt: data.lastAccessedAt,
@@ -619,7 +624,7 @@ export class CachePosition {
       maxSize: this.cacheStrategy.maxCacheSize,
       prefetchMultiplier: this.prefetchConfig.multiplier,
       activePrefetches: this.activePrefetches.size,
-      maxSampleCount: this.prefetchConfig.maxSampleCount,
+      maxSampleCount: this.prefetchConfig.maxPositionCount,
       entries,
     };
   }
