@@ -77,6 +77,10 @@ export class KeplerOrbitService {
    * Get orbital position
    */
   getPositions(params: OrbitCalculationParams): Position[] {
+    keplerOrbitServiceLogger.debug(
+      { cacheStats: this.cachePosition.getCacheStats() },
+      "Stats for cache",
+    );
     return this.cachePosition.getPositions(params, this.calculateInternal);
   }
 }

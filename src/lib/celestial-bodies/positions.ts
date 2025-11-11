@@ -53,7 +53,12 @@ const getInitData = <T extends Moon | Planet>(
   ) => { object: T; positions: Position[] } | null,
 ) => {
   const allData = dataDb.map((data) => {
-    const planetNextTicks = nextTicksCn(data.uuid as string, 0, 1, 1); // Only one position from T0
+    const planetNextTicks = nextTicksCn(
+      data.uuid as string,
+      0,
+      0.01666667,
+      0.01666667,
+    ); // Only one position from T0
 
     if (!planetNextTicks || planetNextTicks.positions.length === 0) {
       return null;
