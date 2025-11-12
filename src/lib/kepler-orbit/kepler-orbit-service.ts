@@ -1,10 +1,10 @@
 import type {
   CacheCalculationParams,
   CacheStrategy,
-  Position,
   PrefetchConfig,
+  Transform,
 } from "@lib/cache-position";
-import { CachePosition } from "@lib/cache-position";
+import { CacheTransform } from "@lib/cache-position";
 import { keplerOrbitServiceLogger, logPerformance } from "@lib/logger";
 
 import { KeplerOrbit, type OrbitalObject } from "./kepler-orbit";
@@ -14,16 +14,16 @@ export interface OrbitCalculationParams extends CacheCalculationParams {
 }
 
 export class KeplerOrbitService {
-  private cachePosition: CachePosition;
+  private cacheTransform: CacheTransform;
 
   constructor(
     cacheStrategy?: Partial<CacheStrategy>,
     prefetchConfig?: Partial<PrefetchConfig>,
   ) {
-    this.cachePosition = new CachePosition(cacheStrategy, prefetchConfig);
+    this.cacheTransform = new CacheTransform(cacheStrategy, prefetchConfig);
   }
 
-  private calculateInternal = (params: OrbitCalculationParams): Position[] => {
+  private calculateInternal = (params: OrbitCalculationParams): Transform[] => {
     const startTime = performance.now();
 
     const orbitalObject = params.orbitalObject;
@@ -42,7 +42,7 @@ export class KeplerOrbitService {
 
     const orbit = new KeplerOrbit(orbitalObject, params.startTimeS);
     const steps = Math.max(1, Math.ceil(params.durationS / params.timestepS));
-    const positions: Position[] = new Array(steps) as Position[];
+    const transforms: Transform[] = new Array(steps) as Transform[];
 
     let currentTime = params.startTimeS;
 
@@ -50,7 +50,7 @@ export class KeplerOrbitService {
       const dt = i === 0 ? 0 : params.timestepS;
       const position = orbit.advance(dt);
 
-      positions[i] = {
+      transforms[i] = {
         timeS: Math.round(currentTime * 1000) / 1000,
         position,
       };
@@ -62,26 +62,26 @@ export class KeplerOrbitService {
 
     logPerformance(
       keplerOrbitServiceLogger,
-      `Calculated ${steps} positions (${((steps / duration) * 1000).toFixed(0)} positions/sec)`,
+      `Calculated ${steps} transforms (${((steps / duration) * 1000).toFixed(0)} transforms/sec)`,
       duration,
     );
 
-    return positions;
+    return transforms;
   };
 
-  getCachePosition(): CachePosition {
-    return this.cachePosition;
+  getCacheTransform(): CacheTransform {
+    return this.cacheTransform;
   }
 
   /**
-   * Get orbital position
+   * Get orbital transform
    */
-  getPositions(params: OrbitCalculationParams): Position[] {
+  getTransforms(params: OrbitCalculationParams): Transform[] {
     // keplerOrbitServiceLogger.debug(
     //   { cacheStats: this.cachePosition.getCacheStats() },
     //   "Stats for cache",
     // );
-    return this.cachePosition.getPositions(params, this.calculateInternal);
+    return this.cacheTransform.getTransforms(params, this.calculateInternal);
   }
 }
 

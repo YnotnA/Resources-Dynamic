@@ -4,6 +4,7 @@ import { FakerGeneratorFactory } from "./FakerGeneratorFactory";
 import { MoonBuilder } from "./builders/MoonBuilder";
 import { PlanetBuilder } from "./builders/PlanetBuilder";
 import { StarBuilder } from "./builders/StarBuilder";
+import { SystemBuilder } from "./builders/SystemBuilder";
 import { Vector3Builder } from "./builders/Vector3Builder";
 
 export const aVector3 = (generator?: Faker): Vector3Builder => {
@@ -28,4 +29,10 @@ export const aStar = (generator?: Faker): StarBuilder => {
   const faker = generator ?? FakerGeneratorFactory.getInstance();
 
   return new StarBuilder(faker);
+};
+
+export const aSystem = (generator?: Faker): SystemBuilder => {
+  const faker = generator ?? FakerGeneratorFactory.getInstance();
+
+  return new SystemBuilder(faker);
 };

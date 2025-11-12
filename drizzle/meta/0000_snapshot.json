@@ -1,5 +1,5 @@
 {
-  "id": "4c6e92f4-66ca-48b4-a29a-8ac47aae3a75",
+  "id": "ed2e8ec2-23ff-4fd5-a996-5b3deab52faf",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -25,6 +25,13 @@
             "cycle": false
           }
         },
+        "uuid": {
+          "name": "uuid",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "gen_random_uuid()"
+        },
         "name": {
           "name": "name",
           "type": "text",
@@ -42,6 +49,13 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
+        "systems_uuid_unique": {
+          "name": "systems_uuid_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uuid"
+          ]
+        },
         "systems_name_unique": {
           "name": "systems_name_unique",
           "nullsNotDistinct": false,

@@ -1,19 +1,26 @@
-import { getAllMoons, getAllPlanets, getAllStars } from "@db/queries";
-import type { Moon, Planet, Star } from "@db/schema";
-import type { Position } from "@lib/cache-position";
+import { getAllSystemsWithDetails } from "@db/queries";
+import type { Moon, Planet, Star, System } from "@db/schema";
+import type { Transform } from "@lib/cache-position";
 import { keplerOrbitService } from "@lib/kepler-orbit/kepler-orbit-service";
 import { OrbitDataHelper } from "@lib/kepler-orbit/orbit-data-helper";
 import { createTimer, logError, logPerformance, logger } from "@lib/logger";
 import { Vector3Math } from "@lib/vector3/vector3Math";
 
+let hasInitData: boolean = false;
+let systems: System[] = [];
 let planets: Planet[] = [];
 let stars: Star[] = [];
 let moons: Moon[] = [];
 
-type NextTicksObjectType = {
-  object: Planet | Moon;
-  positions: Position[];
+type NextTicksResultType<T extends Planet | Moon> = {
+  system: System;
+  object: T;
+  transforms: Transform[];
 } | null;
+
+type NextTicksObjectType =
+  | NextTicksResultType<Planet>
+  | NextTicksResultType<Moon>;
 
 export const getInit = async () => {
   const timer = createTimer();
@@ -50,23 +57,24 @@ const getInitData = <T extends Moon | Planet>(
     fromTime: number,
     duration: number,
     timesteps: number,
-  ) => { object: T; positions: Position[] } | null,
+  ) => NextTicksResultType<T>,
 ) => {
   const allData = dataDb.map((data) => {
-    const planetNextTicks = nextTicksCn(
+    const objectNextTicks = nextTicksCn(
       data.uuid as string,
       0,
       0.01666667,
       0.01666667,
     ); // Only one position from T0
 
-    if (!planetNextTicks || planetNextTicks.positions.length === 0) {
+    if (!objectNextTicks || objectNextTicks.transforms.length === 0) {
       return null;
     }
 
     return {
+      system: objectNextTicks.system,
       target: data,
-      item: planetNextTicks.positions[0],
+      transform: objectNextTicks.transforms[0] ?? null,
     };
   });
 
@@ -99,15 +107,15 @@ export const getNextTicks = async (
     }
 
     logPerformance(logger, `Query for ${nextTicks.object.name}`, timer.end(), {
-      positionCount: nextTicks.positions.length,
+      positionCount: nextTicks.transforms.length,
       target: nextTicks.object,
     });
 
     return {
       target: nextTicks.object,
       timeStart: fromTime,
-      count: nextTicks.positions.length,
-      rows: nextTicks.positions,
+      count: nextTicks.transforms.length,
+      positions: nextTicks.transforms,
     };
   } catch (error) {
     logError(logger, error, {
@@ -117,6 +125,17 @@ export const getNextTicks = async (
     });
     throw error;
   }
+};
+
+const getSystem = (target: string, systemId: number): System => {
+  const system = systems.find((system) => system.id === systemId);
+
+  if (!system) {
+    logger.error(`System not found: ${target}`);
+    throw new Error(`System not found: ${target}`);
+  }
+
+  return system;
 };
 
 const getStar = (target: string, systemId: number): Star => {
@@ -139,14 +158,15 @@ const getPlanetNextTicks = (
   fromTime: number,
   duration: number,
   timesteps: number = 0.01666667,
-): { object: Planet; positions: Position[] } | null => {
+): NextTicksResultType<Planet> => {
   const planet = planets.find((planet) => planet.uuid === target);
 
-  if (!planet) {
+  if (!planet || !planet.systemId) {
     return null;
   }
 
-  const star = getStar(target, planet.systemId as number);
+  const star = getStar(target, planet.systemId);
+  const system = getSystem(target, planet.systemId);
 
   const orbitalCalculation = OrbitDataHelper.createPlanetParamsFromDB(
     planet,
@@ -170,8 +190,9 @@ const getPlanetNextTicks = (
   );
 
   return {
+    system,
     object: planet,
-    positions: keplerOrbitService.getPositions(orbitalCalculation),
+    transforms: keplerOrbitService.getTransforms(orbitalCalculation),
   };
 };
 
@@ -184,7 +205,7 @@ const getMoonNextTicks = (
   fromTime: number,
   duration: number,
   timesteps: number = 0.01666667,
-): { object: Moon; positions: Position[] } | null => {
+): NextTicksResultType<Moon> => {
   const moon = moons.find((moon) => moon.uuid === target);
 
   if (!moon) {
@@ -194,9 +215,14 @@ const getMoonNextTicks = (
   const moonPlanet = planets.find((planet) => planet.id === moon.planetId);
 
   if (!moonPlanet) {
-    logger.error({ moon }, `Planet for moon ${moon.name} not found: ${target}`);
-    throw new Error(`Planet for moon ${moon.name} not found: ${target}`);
+    logger.error(
+      { moon },
+      `Planet for moon "${moon.name}" not found: ${target}`,
+    );
+    throw new Error(`Planet for moon "${moon.name}" not found: ${target}`);
   }
+
+  const system = getSystem(target, moonPlanet.systemId as number);
 
   const moonPlanetPositions = getPlanetNextTicks(
     moonPlanet.uuid as string,
@@ -228,32 +254,43 @@ const getMoonNextTicks = (
         orbitalCalculation.orbitalObject,
       ),
     },
-    "Querying moon positions",
+    "Querying moon transforms",
   );
 
-  const positions = keplerOrbitService
-    .getPositions(orbitalCalculation)
-    .map((position, index) => {
+  const transforms = keplerOrbitService
+    .getTransforms(orbitalCalculation)
+    .map((transform, index) => {
       const newPosition = Vector3Math.add(
-        moonPlanetPositions.positions[index].position,
-        position.position,
+        moonPlanetPositions.transforms[index].position,
+        transform.position,
       );
 
-      return { ...position, position: newPosition };
+      return { ...transform, position: newPosition };
     });
-  return { object: moon, positions };
+  return { system, object: moon, transforms };
 };
 
 const loadData = async () => {
-  if (planets.length === 0) {
-    planets = await getAllPlanets();
-  }
+  if (!hasInitData) {
+    const systemsWithDetails = await getAllSystemsWithDetails();
 
-  if (stars.length === 0) {
-    stars = await getAllStars();
-  }
+    planets = systemsWithDetails.flatMap((system) =>
+      system.planets.map(
+        ({ moons: _moons, ...planetWithoutMoons }) => planetWithoutMoons,
+      ),
+    );
 
-  if (moons.length === 0) {
-    moons = await getAllMoons();
+    moons = systemsWithDetails.flatMap((system) =>
+      system.planets.flatMap((planet) => planet.moons),
+    );
+
+    stars = systemsWithDetails.flatMap((system) => system.stars);
+
+    systems = systemsWithDetails.map(
+      ({ planets: _planets, stars: _stars, ...systemWithoutChildren }) =>
+        systemWithoutChildren,
+    );
+
+    hasInitData = true;
   }
 };

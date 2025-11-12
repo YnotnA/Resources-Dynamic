@@ -1,11 +1,24 @@
 import { eq } from "drizzle-orm";
 
 import { db } from "../connection";
-import type { UpdateSystem} from "../schema";
+import type { UpdateSystem } from "../schema";
 import { type NewSystem, type System, systems } from "../schema";
 
 export const getAllSystems = async (): Promise<System[]> => {
   return await db.select().from(systems);
+};
+
+export const getAllSystemsWithDetails = async () => {
+  return await db.query.systems.findMany({
+    with: {
+      planets: {
+        with: {
+          moons: true,
+        },
+      },
+      stars: true,
+    },
+  });
 };
 
 /**

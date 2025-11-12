@@ -95,7 +95,7 @@ export const apiLogger = baseLogger.child({ component: "🌐 API" });
 
 export const cacheLogger = baseLogger.child({ component: "💾 Cache" });
 
-export const cachePositionLogger = baseLogger.child({ component: "💾 Cache" });
+export const cacheTransformLogger = baseLogger.child({ component: "💾 Cache" });
 
 export const keplerOrbitLogger = baseLogger.child({
   component: "🪐 KeplerOrbit",

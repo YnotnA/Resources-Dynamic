@@ -92,7 +92,7 @@ export const importSystem = async () => {
 const importSystemDb = async (system: SystemType) => {
   const newSystem: NewSystem = {
     name: system.name,
-    internalName: system.name,
+    internalName: system.name.toLowerCase(),
   };
   return await createSystem(newSystem);
 };

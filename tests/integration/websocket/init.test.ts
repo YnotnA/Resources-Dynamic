@@ -1,32 +1,10 @@
-import { aMoon, aPlanet, aStar } from "@builder/builders";
-import { Moon, Planet, Star } from "@db/schema";
+import { aMoon, aPlanet, aStar, aSystem } from "@builder/builders";
 import { createStandaloneWebSocket } from "@websocket/server";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Server } from "ws";
 
 import { TestWebSocketClient } from "../../helpers/websocket-client";
-
-let mockPlanets: Planet[] = [];
-let mockStars: Star[] = [];
-let mockMoons: Moon[] = [];
-
-vi.mock("@db/queries/stars.ts", () => {
-  return {
-    getAllStars: vi.fn(() => Promise.resolve(mockStars)),
-  };
-});
-
-vi.mock("@db/queries/planets.ts", () => {
-  return {
-    getAllPlanets: vi.fn(() => Promise.resolve(mockPlanets)),
-  };
-});
-
-vi.mock("@db/queries/moons.ts", () => {
-  return {
-    getAllMoons: vi.fn(() => Promise.resolve(mockMoons)),
-  };
-});
+import { mockSystemsWithDetails } from "../../setup";
 
 describe("WebSocket Init", () => {
   let wss: Server;
@@ -45,9 +23,9 @@ describe("WebSocket Init", () => {
     await client.connect();
     await client.waitForConnected();
     client.clearMessages();
-    mockStars = [];
-    mockPlanets = [];
-    mockMoons = [];
+    mockSystemsWithDetails.length = 0;
+    vi.resetModules(); // réinitialise le cache des imports
+    vi.clearAllMocks(); // réinitialise les mocks
   });
 
   afterEach(() => {
@@ -55,12 +33,15 @@ describe("WebSocket Init", () => {
   });
 
   it("should accept init message", async () => {
-    mockStars = [aStar().withSystemId(1).build()];
-    mockPlanets = [
-      aPlanet().withSystemId(1).build(),
-      aPlanet().withSystemId(1).build(),
-    ];
-    mockMoons = [aMoon().withPlanetId(mockPlanets[0].id).build()];
+    const system = aSystem()
+      .withPlanets([
+        aPlanet().withMoons([aMoon().build()]).build(),
+        aPlanet().withoutMoons().build(),
+      ])
+      .withStar(aStar().build())
+      .build();
+
+    mockSystemsWithDetails.push(system);
 
     client.send({
       action: "init",
@@ -69,15 +50,21 @@ describe("WebSocket Init", () => {
     const response = await client.waitForInit();
 
     expect(response.type).toBe("init");
-    expect(response.data).toHaveLength(3);
-    expect(response.data[0].uuid).toBe(mockPlanets[0]["uuid"]);
-    expect(response.data[0].name).toBe(mockPlanets[0]["name"]);
-    expect(response.data[0].internalName).toBe(mockPlanets[0]["internalName"]);
-    expect(response.data[1].uuid).toBe(mockPlanets[1]["uuid"]);
-    expect(response.data[1].name).toBe(mockPlanets[1]["name"]);
-    expect(response.data[1].internalName).toBe(mockPlanets[1]["internalName"]);
-    expect(response.data[2].uuid).toBe(mockMoons[0]["uuid"]);
-    expect(response.data[2].name).toBe(mockMoons[0]["name"]);
-    expect(response.data[2].internalName).toBe(mockMoons[0]["internalName"]);
+    expect(response.data).toHaveLength(3); // 2 planets + 1 moon
+    expect(response.data[0].uuid).toBe(system.planets[0]["uuid"]);
+    expect(response.data[0].name).toBe(system.planets[0]["name"]);
+    expect(response.data[0].internalName).toBe(
+      system.planets[0]["internalName"],
+    );
+    expect(response.data[1].uuid).toBe(system.planets[1]["uuid"]);
+    expect(response.data[1].name).toBe(system.planets[1]["name"]);
+    expect(response.data[1].internalName).toBe(
+      system.planets[1]["internalName"],
+    );
+    expect(response.data[2].uuid).toBe(system.planets[0].moons[0]["uuid"]);
+    expect(response.data[2].name).toBe(system.planets[0].moons[0]["name"]);
+    expect(response.data[2].internalName).toBe(
+      system.planets[0].moons[0]["internalName"],
+    );
   });
 });

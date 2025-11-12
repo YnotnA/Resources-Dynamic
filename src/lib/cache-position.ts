@@ -1,8 +1,8 @@
 import type { Vector3Type } from "@websocket/schema/vector3.model";
 
-import { cachePositionLogger, logError } from "./logger";
+import { cacheTransformLogger, logError } from "./logger";
 
-export interface Position {
+export interface Transform {
   timeS: number;
   position: Vector3Type;
 }
@@ -16,21 +16,21 @@ export interface CacheCalculationParams {
 
 export interface CachedData {
   params: CacheCalculationParams;
-  positions: Position[];
+  transforms: Transform[];
   calculatedAt: Date;
-  sampleCount: number;
+  transformCount: number;
   accessCount: number;
   lastAccessedAt: Date;
 }
 
-export interface SaveCachedData extends Omit<CachedData, "positions"> {
-  positions: Float64Array;
+export interface SaveCachedData extends Omit<CachedData, "transforms"> {
+  transforms: Float64Array;
 }
 
 export interface PrefetchConfig {
   enabled: boolean;
   multiplier: number;
-  maxPositionCount: number;
+  maxTransformCount: number;
   minDurationS: number;
   autoThreshold: number;
 }
@@ -48,9 +48,9 @@ export interface CacheStrategy {
  * position.y	float64	8 octets
  * position.z	float64	8 octets
  */
-const BYTES_PER_POSITION = 32;
+const BYTES_PER_TRANSFORM = 32;
 
-export class CachePosition {
+export class CacheTransform {
   private cache: Map<string, SaveCachedData> = new Map();
   private activePrefetches: Map<string, Promise<void>> = new Map();
   private completedPrefetches: Set<string> = new Set();
@@ -64,7 +64,7 @@ export class CachePosition {
   private prefetchConfig: PrefetchConfig = {
     enabled: true,
     multiplier: 300,
-    maxPositionCount: 10000,
+    maxTransformCount: 10000,
     minDurationS: 5,
     autoThreshold: 0.7,
   };
@@ -95,7 +95,7 @@ export class CachePosition {
     const cached = this.getCache(cacheKey);
 
     if (!cached) {
-      cachePositionLogger.debug(
+      cacheTransformLogger.debug(
         {
           objectId: params.objectId,
         },
@@ -107,7 +107,7 @@ export class CachePosition {
     // Check expiration
     const age = Date.now() - cached.calculatedAt.getTime();
     if (age >= this.cacheStrategy.cacheExpirationMs) {
-      cachePositionLogger.debug(
+      cacheTransformLogger.debug(
         {
           objectId: params.objectId,
         },
@@ -131,10 +131,10 @@ export class CachePosition {
     ) {
       this.incrementAccessCount(cacheKey);
       this.updateLastAccessAt(cacheKey);
-      cachePositionLogger.debug(
+      cacheTransformLogger.debug(
         {
           objectId: params.objectId,
-          cached: `${cachedStart.toFixed(0)}-${cachedEnd.toFixed(0)}s (${cached.positions.length} samples)`,
+          cached: `${cachedStart.toFixed(0)}-${cachedEnd.toFixed(0)}s (${cached.transforms.length} samples)`,
           request: `${requestedStart.toFixed(0)}-${requestedEnd.toFixed(0)}s`,
         },
         `✅ Cache HIT for ${params.objectId}`,
@@ -142,10 +142,10 @@ export class CachePosition {
       return cached;
     }
 
-    cachePositionLogger.debug(
+    cacheTransformLogger.debug(
       {
         objectId: params.objectId,
-        cached: `${cachedStart.toFixed(0)}-${cachedEnd.toFixed(0)}s (${cached.positions.length} samples)`,
+        cached: `${cachedStart.toFixed(0)}-${cachedEnd.toFixed(0)}s (${cached.transforms.length} samples)`,
         request: `${requestedStart.toFixed(0)}-${requestedEnd.toFixed(0)}s`,
       },
       `⚠️  Cache PARTIAL for ${params.objectId}`,
@@ -207,7 +207,7 @@ export class CachePosition {
 
     if (keyToEvict) {
       this.cache.delete(keyToEvict);
-      cachePositionLogger.debug(`🗑️  Evicted cache entry: ${keyToEvict}`);
+      cacheTransformLogger.debug(`🗑️  Evicted cache entry: ${keyToEvict}`);
     }
   }
 
@@ -215,7 +215,7 @@ export class CachePosition {
     cached: CachedData,
     startTimeS: number,
     durationS: number,
-  ): Position[] {
+  ): Transform[] {
     const endTimeS = startTimeS + durationS;
     const timestepS = cached.params.timestepS;
 
@@ -224,20 +224,20 @@ export class CachePosition {
       Math.ceil((startTimeS - cached.params.startTimeS) / timestepS),
     );
     const endIndex = Math.min(
-      cached.positions.length,
+      cached.transforms.length,
       Math.ceil((endTimeS - cached.params.startTimeS) / timestepS),
     );
 
-    const subset = cached.positions.slice(startIndex, endIndex);
+    const subset = cached.transforms.slice(startIndex, endIndex);
 
-    cachePositionLogger.debug(
+    cacheTransformLogger.debug(
       {
         startIndex,
         endIndex,
         count: subset.length,
-        cacheSize: cached.positions.length,
+        cacheSize: cached.transforms.length,
       },
-      `✂️  Extracted ${subset.length} samples [${startIndex}-${endIndex}] from cache of ${cached.positions.length}`,
+      `✂️  Extracted ${subset.length} samples [${startIndex}-${endIndex}] from cache of ${cached.transforms.length}`,
     );
 
     return subset;
@@ -248,12 +248,12 @@ export class CachePosition {
     timestepS: number,
   ): number {
     if (!this.prefetchConfig.enabled) {
-      cachePositionLogger.info(`🔧 Prefetch disabled`);
+      cacheTransformLogger.info(`🔧 Prefetch disabled`);
       return requestedDuration;
     }
 
     if (requestedDuration < this.prefetchConfig.minDurationS) {
-      cachePositionLogger.debug(
+      cacheTransformLogger.debug(
         { requestedDuration, minDuration: this.prefetchConfig.minDurationS },
         `🔧 Request too short, no prefetch`,
       );
@@ -263,58 +263,59 @@ export class CachePosition {
     const bufferDuration = requestedDuration * this.prefetchConfig.multiplier;
     const totalDuration = requestedDuration + bufferDuration;
 
-    const maxDurationSamples = this.prefetchConfig.maxPositionCount * timestepS;
+    const maxDurationSamples =
+      this.prefetchConfig.maxTransformCount * timestepS;
 
     const finalDuration = Math.min(totalDuration, maxDurationSamples);
 
-    cachePositionLogger.debug(
+    cacheTransformLogger.debug(
       {
         requestedDuration,
         multiplier: this.prefetchConfig.multiplier,
         finalDuration,
-        maxPositionCount: this.prefetchConfig.maxPositionCount,
+        maxTransformCount: this.prefetchConfig.maxTransformCount,
         timestepS,
       },
-      `🔧 Prefetch: ${requestedDuration.toFixed(1)}s (step=${timestepS}) x ${this.prefetchConfig.multiplier} = ${finalDuration.toFixed(1)}s [Max ${this.prefetchConfig.maxPositionCount} pts]`,
+      `🔧 Prefetch: ${requestedDuration.toFixed(1)}s (step=${timestepS}) x ${this.prefetchConfig.multiplier} = ${finalDuration.toFixed(1)}s [Max ${this.prefetchConfig.maxTransformCount} pts]`,
     );
 
     return finalDuration;
   }
 
-  private normalizeCache(positions: Position[]): Float64Array {
-    const arr = new Float64Array(positions.length * 4);
-    positions.forEach((pos, i) => {
+  private normalizeCache(transforms: Transform[]): Float64Array {
+    const arr = new Float64Array(transforms.length * 4);
+    transforms.forEach((transform, i) => {
       const idx = i * 4;
-      arr[idx] = pos.timeS;
-      arr[idx + 1] = pos.position.x;
-      arr[idx + 2] = pos.position.y;
-      arr[idx + 3] = pos.position.z;
+      arr[idx] = transform.timeS;
+      arr[idx + 1] = transform.position.x;
+      arr[idx + 2] = transform.position.y;
+      arr[idx + 3] = transform.position.z;
     });
     return arr;
   }
 
-  private denormalizeCache(arr: Float64Array): Position[] {
-    const positions: Position[] = [];
+  private denormalizeCache(arr: Float64Array): Transform[] {
+    const transforms: Transform[] = [];
     for (let i = 0; i < arr.length; i += 4) {
-      positions.push({
+      transforms.push({
         timeS: arr[i],
         position: { x: arr[i + 1], y: arr[i + 2], z: arr[i + 3] },
       });
     }
-    return positions;
+    return transforms;
   }
 
   private setCache(tempKey: string, cachedData: CachedData | SaveCachedData) {
     if (
-      Array.isArray(cachedData.positions[0]) &&
-      cachedData.positions.length > 0 &&
-      "timeS" in cachedData.positions[0]
+      Array.isArray(cachedData.transforms[0]) &&
+      cachedData.transforms.length > 0 &&
+      "timeS" in cachedData.transforms[0]
     ) {
       this.cache.set(tempKey, cachedData as SaveCachedData);
     } else {
       this.cache.set(tempKey, {
         ...cachedData,
-        positions: this.normalizeCache(cachedData.positions as Position[]),
+        transforms: this.normalizeCache(cachedData.transforms as Transform[]),
       });
     }
   }
@@ -325,7 +326,7 @@ export class CachePosition {
       return null;
     }
 
-    return { ...cache, positions: this.denormalizeCache(cache.positions) };
+    return { ...cache, transforms: this.denormalizeCache(cache.transforms) };
   }
 
   private incrementAccessCount(cacheKey: string): void {
@@ -344,13 +345,10 @@ export class CachePosition {
     cache.lastAccessedAt = new Date();
   }
 
-  /**
-   * Check and prefetch with custom calculation function
-   */
   private checkAndPrefetch<T extends CacheCalculationParams>(
     cached: CachedData,
     params: CacheCalculationParams,
-    calculateFn: (params: T) => Position[],
+    calculateFn: (params: T) => Transform[],
   ): void {
     const cacheStart = params.startTimeS + params.durationS;
     const cacheEnd = cached.params.startTimeS + cached.params.durationS;
@@ -362,7 +360,7 @@ export class CachePosition {
     }
 
     if (params.durationS < this.prefetchConfig.minDurationS) {
-      cachePositionLogger.debug(
+      cacheTransformLogger.debug(
         {
           requestedDuration: params.durationS,
           minDuration: this.prefetchConfig.minDurationS,
@@ -389,7 +387,7 @@ export class CachePosition {
       return;
     }
 
-    cachePositionLogger.debug(
+    cacheTransformLogger.debug(
       { cacheKey },
       `🔮 Prefetch at ${(cacheProgress * 100).toFixed(0)}% (T=${params.startTimeS.toFixed(0)}s)`,
     );
@@ -407,26 +405,26 @@ export class CachePosition {
         durationS: cacheDuration,
       } as T;
 
-      const positions = calculateFn(nextParams);
+      const transforms = calculateFn(nextParams);
 
-      if (positions.length > 0) {
+      if (transforms.length > 0) {
         this.setCache(tempKey, {
           params: nextParams,
-          positions,
+          transforms,
           calculatedAt: new Date(),
-          sampleCount: positions.length,
+          transformCount: transforms.length,
           accessCount: 0,
           lastAccessedAt: new Date(),
         });
 
-        cachePositionLogger.debug(
-          `✅ Prefetch ready (temp): ${positions.length.toLocaleString()} positions`,
+        cacheTransformLogger.debug(
+          `✅ Prefetch ready (temp): ${transforms.length.toLocaleString()} transforms`,
         );
 
         this.completedPrefetches.add(prefetchKey);
       }
     } catch (error) {
-      logError(cachePositionLogger, error, {
+      logError(cacheTransformLogger, error, {
         context: "checkAndPrefetch",
         msg: "❌ Prefetch failed",
       });
@@ -435,13 +433,10 @@ export class CachePosition {
     }
   }
 
-  /**
-   * Get positions with respect to maxSampleCount
-   */
-  getPositions<T extends CacheCalculationParams>(
+  getTransforms<T extends CacheCalculationParams>(
     params: T,
-    calculateFn: (params: T) => Position[],
-  ): Position[] {
+    calculateFn: (params: T) => Transform[],
+  ): Transform[] {
     const normalizedParams = { ...params };
 
     const cacheKey = this.getCacheKey(params.objectId, params.timestepS);
@@ -456,7 +451,7 @@ export class CachePosition {
         prefetched.params.startTimeS + prefetched.params.durationS;
 
       if (normalizedParams.startTimeS >= prefetchStart) {
-        cachePositionLogger.debug(
+        cacheTransformLogger.debug(
           `🔄 Promoting prefetch: ${prefetchStart.toFixed(0)}-${prefetchEnd.toFixed(0)}s`,
         );
 
@@ -491,7 +486,7 @@ export class CachePosition {
       }
     }
 
-    cachePositionLogger.debug("❌ Cache MISS, calculating...");
+    cacheTransformLogger.debug("❌ Cache MISS, calculating...");
 
     const cacheDuration = this.calculatePrefetchDuration(
       normalizedParams.durationS,
@@ -505,16 +500,16 @@ export class CachePosition {
     } as T;
 
     const startCalc = performance.now();
-    const positions = calculateFn(cacheParams);
+    const transforms = calculateFn(cacheParams);
     const calcTime = performance.now() - startCalc;
 
-    if (positions.length === 0) {
-      throw new Error("Failed to calculate orbital positions");
+    if (transforms.length === 0) {
+      throw new Error("Failed to calculate orbital transforms");
     }
 
-    const memoryMB = (positions.length * BYTES_PER_POSITION) / 1024 / 1024;
-    cachePositionLogger.debug(
-      `💾 ${positions.length.toLocaleString()} positions in ${calcTime.toFixed(1)}ms (~${memoryMB.toFixed(2)} MB)`,
+    const memoryMB = (transforms.length * BYTES_PER_TRANSFORM) / 1024 / 1024;
+    cacheTransformLogger.debug(
+      `💾 ${transforms.length.toLocaleString()} transforms in ${calcTime.toFixed(1)}ms (~${memoryMB.toFixed(2)} MB)`,
     );
 
     this.evictCache();
@@ -522,9 +517,9 @@ export class CachePosition {
 
     this.setCache(cacheKey, {
       params: cacheParams,
-      positions,
+      transforms,
       calculatedAt: new Date(),
-      sampleCount: positions.length,
+      transformCount: transforms.length,
       accessCount: 1,
       lastAccessedAt: new Date(),
     });
@@ -544,7 +539,7 @@ export class CachePosition {
 
   updatePrefetchConfig(config: Partial<PrefetchConfig>): void {
     this.prefetchConfig = { ...this.prefetchConfig, ...config };
-    cachePositionLogger.info(
+    cacheTransformLogger.info(
       { prefetchConfig: this.prefetchConfig },
       "⚙️  Prefetch config updated",
     );
@@ -552,7 +547,7 @@ export class CachePosition {
 
   updateCacheStrategy(strategy: Partial<CacheStrategy>): void {
     this.cacheStrategy = { ...this.cacheStrategy, ...strategy };
-    cachePositionLogger.info(
+    cacheTransformLogger.info(
       { cacheStrategy: this.cacheStrategy },
       "⚙️  Cache strategy updated",
     );
@@ -562,7 +557,7 @@ export class CachePosition {
     this.cache.clear();
     this.completedPrefetches.clear();
     this.activePrefetches.clear();
-    cachePositionLogger.info("🧹 Cache cleared");
+    cacheTransformLogger.info("🧹 Cache cleared");
   }
 
   clearCacheForObject(objectId: string): void {
@@ -589,7 +584,7 @@ export class CachePosition {
       }
     }
 
-    cachePositionLogger.info(
+    cacheTransformLogger.info(
       `🧹 Cleared ${keysToDelete.length} cache entries for ${objectId}`,
     );
   }
@@ -611,8 +606,8 @@ export class CachePosition {
   } {
     const entries = Array.from(this.cache.entries()).map(([key, data]) => ({
       key,
-      sampleCount: data.sampleCount,
-      memoryMB: (data.sampleCount * BYTES_PER_POSITION) / 1024 / 1024,
+      sampleCount: data.transformCount,
+      memoryMB: (data.transformCount * BYTES_PER_TRANSFORM) / 1024 / 1024,
       timeRange: `${data.params.startTimeS.toFixed(3)}-${(data.params.startTimeS + data.params.durationS).toFixed(3)}s`,
       ageMs: Date.now() - data.calculatedAt.getTime(),
       accessCount: data.accessCount,
@@ -624,7 +619,7 @@ export class CachePosition {
       maxSize: this.cacheStrategy.maxCacheSize,
       prefetchMultiplier: this.prefetchConfig.multiplier,
       activePrefetches: this.activePrefetches.size,
-      maxSampleCount: this.prefetchConfig.maxPositionCount,
+      maxSampleCount: this.prefetchConfig.maxTransformCount,
       entries,
     };
   }

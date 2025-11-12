@@ -1,7 +1,9 @@
 CREATE TABLE "systems" (
 	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "systems_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"uuid" uuid DEFAULT gen_random_uuid(),
 	"name" text NOT NULL,
 	"internal_name" text NOT NULL,
+	CONSTRAINT "systems_uuid_unique" UNIQUE("uuid"),
 	CONSTRAINT "systems_name_unique" UNIQUE("name"),
 	CONSTRAINT "systems_internal_name_unique" UNIQUE("internal_name")
 );

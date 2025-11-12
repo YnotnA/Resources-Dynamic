@@ -86,18 +86,18 @@ const handleInit = async (ws: WebSocket) => {
 
   try {
     const objects = await getInit();
-    const duration = timer.end();
 
     wsLogger.debug(
       {
         clientId,
-        duration,
+        duration: timer.end(),
       },
       `✅ Sent init ${objects.length} positions`,
     );
 
     const init: InitMessageType["data"] = objects.map((object) => {
       return {
+        systemUuid: object.system.uuid,
         uuid: object.target.uuid as string,
         name: object.target.name,
         internalName: object.target.internalName,
@@ -106,7 +106,7 @@ const handleInit = async (ws: WebSocket) => {
           y: 0, // TODO: define
           z: 0, // TODO: define
         },
-        position: object.item.position,
+        position: object.transform.position,
       };
     });
 
@@ -160,17 +160,17 @@ const handleNextTicks = async (ws: WebSocket, msg: NextTicksType) => {
       `✅ Sent ${coords.count} positions`,
     );
 
-    const nextTicks: NextTicksMessageType["data"] = coords.rows.map(
-      (objectPosition) => {
+    const nextTicks: NextTicksMessageType["data"] = coords.positions.map(
+      (position) => {
         return {
           uuid: msg.target,
-          time: objectPosition.timeS,
+          time: position.timeS,
           rotation: {
             x: 0, // TODO: define
             y: 0, // TODO: define
             z: 0, // TODO: define
           },
-          position: objectPosition.position,
+          position: position.position,
         };
       },
     );

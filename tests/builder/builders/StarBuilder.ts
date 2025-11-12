@@ -35,12 +35,3 @@ export class StarBuilder extends BuilderBase<typeof starSchema> {
     return this;
   }
 }
-
-// {
-//     id: number;
-//     uuid: string | null;
-//     systemId: number | null;
-//     name: string;
-//     internalName: string;
-//     massKg: number;
-// }

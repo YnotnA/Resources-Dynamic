@@ -33,14 +33,8 @@ export const starsRelations = relations(stars, ({ one }) => ({
 }));
 
 export const starSchema = createSelectSchema(stars);
-export const createStarSchema = createInsertSchema(stars).omit({
-  id: true,
-  uuid: true,
-});
-export const updateStarSchema = createUpdateSchema(stars).omit({
-  id: true,
-  uuid: true,
-});
+export const createStarSchema = createInsertSchema(stars);
+export const updateStarSchema = createUpdateSchema(stars);
 
 export type Star = z.infer<typeof starSchema>;
 export type NewStar = z.infer<typeof createStarSchema>;
