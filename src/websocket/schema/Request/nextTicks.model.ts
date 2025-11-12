@@ -1,11 +1,12 @@
 import { z } from "zod";
 
+import { requestTransform } from "./requestTransform.model";
+
 export const nextTicksSchema = z.object({
-  action: z.literal("next-ticks"),
-  target: z.uuid(),
-  fromTime: z.float32(),
-  duration: z.number().int().positive().default(60),
-  timeStep: z.number().positive().optional(),
+  event_type: z.literal("transform"),
+  data: requestTransform.extend({
+    uuid: z.uuid(),
+  }),
 });
 
 export type NextTicksType = z.infer<typeof nextTicksSchema>;

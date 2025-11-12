@@ -1,19 +1,27 @@
-import { getAllSystemsWithDetails } from "@db/queries";
+import { getSystemWithDetailsByInternalName } from "@db/queries";
 import type { Moon, Planet, Star, System } from "@db/schema";
 import type { Transform } from "@lib/cache-transform";
 import { keplerOrbitService } from "@lib/kepler-orbit/kepler-orbit-service";
 import { OrbitDataHelper } from "@lib/kepler-orbit/orbit-data-helper";
 import { createTimer, logError, logPerformance, logger } from "@lib/logger";
 import { Vector3Math } from "@lib/vector3/vector3Math";
+import type { RequestInitType } from "@websocket/schema/Request/init.model";
 
 let hasInitData: boolean = false;
-let systems: System[] = [];
+let system: System | undefined;
 let planets: Planet[] = [];
 let stars: Star[] = [];
 let moons: Moon[] = [];
 
-type NextTicksResultType<T extends Planet | Moon> = {
+type NextTicksResultType<T extends Planet | Moon | System | Star> = {
   system: System;
+  object_type: T extends Planet
+    ? "planet"
+    : T extends Moon
+      ? "moon"
+      : T extends Star
+        ? "star"
+        : "system";
   object: T;
   transforms: Transform[];
 } | null;
@@ -22,21 +30,23 @@ type NextTicksObjectType =
   | NextTicksResultType<Planet>
   | NextTicksResultType<Moon>;
 
-export const getInit = async () => {
+export const getInit = async (requestInitData: RequestInitType["data"]) => {
   const timer = createTimer();
-  await loadData();
+  await loadData(requestInitData.system_internal_name);
 
   try {
     const planetsData = getInitData<Planet>(
       planets,
       (target, fromTime, duration, timesteps) =>
         getPlanetNextTicks(target, fromTime, duration, timesteps),
+      requestInitData,
     );
 
     const moonsData = getInitData<Moon>(
       moons,
       (target, fromTime, duration, timesteps) =>
         getMoonNextTicks(target, fromTime, duration, timesteps),
+      requestInitData,
     );
 
     logPerformance(logger, `Queries for init`, timer.end());
@@ -50,7 +60,7 @@ export const getInit = async () => {
   }
 };
 
-const getInitData = <T extends Moon | Planet>(
+const getInitData = <T extends Planet | Moon | System | Star>(
   dataDb: T[],
   nextTicksCn: (
     target: string,
@@ -58,23 +68,33 @@ const getInitData = <T extends Moon | Planet>(
     duration: number,
     timesteps: number,
   ) => NextTicksResultType<T>,
+  requestInitData: RequestInitType["data"],
 ) => {
   const allData = dataDb.map((data) => {
     const objectNextTicks = nextTicksCn(
       data.uuid as string,
-      0,
-      0.01666667,
-      0.01666667,
-    ); // Only one position from T0
+      requestInitData.from_timestamp,
+      requestInitData.duration_s,
+      requestInitData.frequency,
+    );
 
     if (!objectNextTicks || objectNextTicks.transforms.length === 0) {
       return null;
     }
 
+    let parentId = "";
+    if ("systemId" in data) {
+      parentId = system?.uuid as string;
+    } else if ("planetId" in data && data.planetId) {
+      parentId = getPlanet(data.planetId).uuid as string;
+    }
+
     return {
-      system: objectNextTicks.system,
+      system,
+      parentId,
+      objectType: objectNextTicks.object_type,
       target: data,
-      transform: objectNextTicks.transforms[0] ?? null,
+      transforms: objectNextTicks.transforms,
     };
   });
 
@@ -85,7 +105,7 @@ export const getNextTicks = async (
   target: string,
   fromTime: number,
   duration: number,
-  timesteps: number = 0.01666667,
+  frequency: number,
 ) => {
   const timer = createTimer();
   let nextTicks: NextTicksObjectType;
@@ -93,9 +113,9 @@ export const getNextTicks = async (
 
   try {
     if (isPlanet(target)) {
-      nextTicks = getPlanetNextTicks(target, fromTime, duration, timesteps);
+      nextTicks = getPlanetNextTicks(target, fromTime, duration, frequency);
     } else if (isMoon(target)) {
-      nextTicks = getMoonNextTicks(target, fromTime, duration, timesteps);
+      nextTicks = getMoonNextTicks(target, fromTime, duration, frequency);
     } else {
       logger.error({ target }, `Object not found: ${target}`);
       throw new Error(`Object not found not found: ${target}`);
@@ -127,17 +147,6 @@ export const getNextTicks = async (
   }
 };
 
-const getSystem = (target: string, systemId: number): System => {
-  const system = systems.find((system) => system.id === systemId);
-
-  if (!system) {
-    logger.error(`System not found: ${target}`);
-    throw new Error(`System not found: ${target}`);
-  }
-
-  return system;
-};
-
 const getStar = (target: string, systemId: number): Star => {
   const star = stars.find((star) => star.systemId === systemId);
 
@@ -149,6 +158,17 @@ const getStar = (target: string, systemId: number): Star => {
   return star;
 };
 
+const getPlanet = (planetId: number): Planet => {
+  const planet = planets.find((planet) => planet.id === planetId);
+
+  if (!planet) {
+    logger.error(`Planet not found: ${planetId}`);
+    throw new Error(`Star not found: ${planetId}`);
+  }
+
+  return planet;
+};
+
 const isPlanet = (target: string): boolean => {
   return !!planets.find((planet) => planet.uuid === target);
 };
@@ -157,23 +177,22 @@ const getPlanetNextTicks = (
   target: string,
   fromTime: number,
   duration: number,
-  timesteps: number = 0.01666667,
+  frequency: number,
 ): NextTicksResultType<Planet> => {
   const planet = planets.find((planet) => planet.uuid === target);
 
-  if (!planet || !planet.systemId) {
+  if (!planet || !planet.systemId || !system) {
     return null;
   }
 
   const star = getStar(target, planet.systemId);
-  const system = getSystem(target, planet.systemId);
 
   const orbitalCalculation = OrbitDataHelper.createPlanetParamsFromDB(
     planet,
     star,
     fromTime,
     duration,
-    timesteps,
+    frequency,
   );
 
   logger.debug(
@@ -191,6 +210,7 @@ const getPlanetNextTicks = (
 
   return {
     system,
+    object_type: "planet",
     object: planet,
     transforms: keplerOrbitService.getTransforms(orbitalCalculation),
   };
@@ -208,7 +228,7 @@ const getMoonNextTicks = (
 ): NextTicksResultType<Moon> => {
   const moon = moons.find((moon) => moon.uuid === target);
 
-  if (!moon) {
+  if (!moon || !system) {
     return null;
   }
 
@@ -221,8 +241,6 @@ const getMoonNextTicks = (
     );
     throw new Error(`Planet for moon "${moon.name}" not found: ${target}`);
   }
-
-  const system = getSystem(target, moonPlanet.systemId as number);
 
   const moonPlanetPositions = getPlanetNextTicks(
     moonPlanet.uuid as string,
@@ -267,29 +285,36 @@ const getMoonNextTicks = (
 
       return { ...transform, position: newPosition };
     });
-  return { system, object: moon, transforms };
+  return { system, object_type: "moon", object: moon, transforms };
 };
 
-const loadData = async () => {
-  if (!hasInitData) {
-    const systemsWithDetails = await getAllSystemsWithDetails();
+const loadData = async (systemInternalName?: string) => {
+  if (!hasInitData && systemInternalName) {
+    const systemsWithDetails =
+      await getSystemWithDetailsByInternalName(systemInternalName);
 
-    planets = systemsWithDetails.flatMap((system) =>
-      system.planets.map(
-        ({ moons: _moons, ...planetWithoutMoons }) => planetWithoutMoons,
-      ),
+    if (!systemsWithDetails) {
+      logger.error(
+        { systemInternalName },
+        `System not found ${systemInternalName}`,
+      );
+      throw new Error(`System not found ${systemInternalName}`);
+    }
+
+    planets = systemsWithDetails.planets.map(
+      ({ moons: _moons, ...planetWithoutMoons }) => planetWithoutMoons,
     );
 
-    moons = systemsWithDetails.flatMap((system) =>
-      system.planets.flatMap((planet) => planet.moons),
-    );
+    moons = systemsWithDetails.planets.flatMap((planet) => planet.moons);
 
-    stars = systemsWithDetails.flatMap((system) => system.stars);
+    stars = systemsWithDetails.stars;
 
-    systems = systemsWithDetails.map(
-      ({ planets: _planets, stars: _stars, ...systemWithoutChildren }) =>
-        systemWithoutChildren,
-    );
+    system = (({ id, uuid, name, internalName }) => ({
+      id,
+      uuid,
+      name,
+      internalName,
+    }))(systemsWithDetails);
 
     hasInitData = true;
   }

@@ -9,9 +9,9 @@ export interface Transform {
 
 export interface CacheCalculationParams {
   objectId: string;
-  startTimeS: number;
-  durationS: number;
-  timestepS: number;
+  startTime: number;
+  duration: number;
+  frequency: number;
 }
 
 export interface CachedData {
@@ -31,7 +31,7 @@ export interface PrefetchConfig {
   enabled: boolean;
   multiplier: number;
   maxTransformCount: number;
-  minDurationS: number;
+  minDuration: number;
   autoThreshold: number;
 }
 
@@ -65,7 +65,7 @@ export class CacheTransform {
     enabled: true,
     multiplier: 300,
     maxTransformCount: 10000,
-    minDurationS: 5,
+    minDuration: 1,
     autoThreshold: 0.7,
   };
 
@@ -81,16 +81,16 @@ export class CacheTransform {
     }
   }
 
-  private getCacheKey(objectId: string, timestepS: number): string {
-    return `${objectId}:${timestepS.toFixed(6)}`;
+  private getCacheKey(objectId: string, frequency: number): string {
+    return `${objectId}:${frequency.toFixed(6)}`;
   }
 
-  private getPrefetchKey(objectId: string, timestepS: number): string {
-    return `prefetch:${this.getCacheKey(objectId, timestepS)}`;
+  private getPrefetchKey(objectId: string, frequency: number): string {
+    return `prefetch:${this.getCacheKey(objectId, frequency)}`;
   }
 
   private findMatchingCache(params: CacheCalculationParams): CachedData | null {
-    const cacheKey = this.getCacheKey(params.objectId, params.timestepS);
+    const cacheKey = this.getCacheKey(params.objectId, params.frequency);
 
     const cached = this.getCache(cacheKey);
 
@@ -118,12 +118,12 @@ export class CacheTransform {
       return null;
     }
 
-    const cachedStart = cached.params.startTimeS;
-    const cachedEnd = cached.params.startTimeS + cached.params.durationS;
-    const requestedStart = params.startTimeS;
-    const requestedEnd = params.startTimeS + params.durationS;
+    const cachedStart = cached.params.startTime;
+    const cachedEnd = cached.params.startTime + cached.params.duration;
+    const requestedStart = params.startTime;
+    const requestedEnd = params.startTime + params.duration;
 
-    const tolerance = params.timestepS;
+    const tolerance = 1 / params.frequency;
 
     if (
       requestedStart >= cachedStart - tolerance &&
@@ -213,19 +213,19 @@ export class CacheTransform {
 
   private extractSubset(
     cached: CachedData,
-    startTimeS: number,
-    durationS: number,
+    startTime: number,
+    duration: number,
   ): Transform[] {
-    const endTimeS = startTimeS + durationS;
-    const timestepS = cached.params.timestepS;
+    const endTime = startTime + duration;
+    const timestep = 1 / cached.params.frequency;
 
     const startIndex = Math.max(
       0,
-      Math.ceil((startTimeS - cached.params.startTimeS) / timestepS),
+      Math.ceil((startTime - cached.params.startTime) / timestep),
     );
     const endIndex = Math.min(
       cached.transforms.length,
-      Math.ceil((endTimeS - cached.params.startTimeS) / timestepS),
+      Math.ceil((endTime - cached.params.startTime) / timestep),
     );
 
     const subset = cached.transforms.slice(startIndex, endIndex);
@@ -245,16 +245,18 @@ export class CacheTransform {
 
   private calculatePrefetchDuration(
     requestedDuration: number,
-    timestepS: number,
+    frequency: number,
   ): number {
     if (!this.prefetchConfig.enabled) {
       cacheTransformLogger.info(`🔧 Prefetch disabled`);
       return requestedDuration;
     }
 
-    if (requestedDuration < this.prefetchConfig.minDurationS) {
+    const timeStep = 1 / frequency;
+
+    if (requestedDuration < this.prefetchConfig.minDuration) {
       cacheTransformLogger.debug(
-        { requestedDuration, minDuration: this.prefetchConfig.minDurationS },
+        { requestedDuration, minDuration: this.prefetchConfig.minDuration },
         `🔧 Request too short, no prefetch`,
       );
       return requestedDuration;
@@ -263,8 +265,7 @@ export class CacheTransform {
     const bufferDuration = requestedDuration * this.prefetchConfig.multiplier;
     const totalDuration = requestedDuration + bufferDuration;
 
-    const maxDurationSamples =
-      this.prefetchConfig.maxTransformCount * timestepS;
+    const maxDurationSamples = this.prefetchConfig.maxTransformCount * timeStep;
 
     const finalDuration = Math.min(totalDuration, maxDurationSamples);
 
@@ -274,9 +275,10 @@ export class CacheTransform {
         multiplier: this.prefetchConfig.multiplier,
         finalDuration,
         maxTransformCount: this.prefetchConfig.maxTransformCount,
-        timestepS,
+        timeStep,
+        frequency,
       },
-      `🔧 Prefetch: ${requestedDuration.toFixed(1)}s (step=${timestepS}) x ${this.prefetchConfig.multiplier} = ${finalDuration.toFixed(1)}s [Max ${this.prefetchConfig.maxTransformCount} pts]`,
+      `🔧 Prefetch: ${requestedDuration.toFixed(1)}s (step=${timeStep}) x ${this.prefetchConfig.multiplier} = ${finalDuration.toFixed(1)}s [Max ${this.prefetchConfig.maxTransformCount} pts]`,
     );
 
     return finalDuration;
@@ -350,20 +352,20 @@ export class CacheTransform {
     params: CacheCalculationParams,
     calculateFn: (params: T) => Transform[],
   ): void {
-    const cacheStart = params.startTimeS + params.durationS;
-    const cacheEnd = cached.params.startTimeS + cached.params.durationS;
+    const cacheStart = params.startTime + params.duration;
+    const cacheEnd = cached.params.startTime + cached.params.duration;
     const cacheProgress =
-      (cacheStart - cached.params.startTimeS) / cached.params.durationS;
+      (cacheStart - cached.params.startTime) / cached.params.duration;
 
     if (cacheProgress < this.prefetchConfig.autoThreshold) {
       return;
     }
 
-    if (params.durationS < this.prefetchConfig.minDurationS) {
+    if (params.duration < this.prefetchConfig.minDuration) {
       cacheTransformLogger.debug(
         {
-          requestedDuration: params.durationS,
-          minDuration: this.prefetchConfig.minDurationS,
+          requestedDuration: params.duration,
+          minDuration: this.prefetchConfig.minDuration,
         },
         `🔧 Request too short, no prefetch`,
       );
@@ -379,7 +381,7 @@ export class CacheTransform {
       return;
     }
 
-    const cacheKey = this.getCacheKey(params.objectId, params.timestepS);
+    const cacheKey = this.getCacheKey(params.objectId, params.frequency);
 
     const tempKey = `${cacheKey}:next`;
 
@@ -389,20 +391,20 @@ export class CacheTransform {
 
     cacheTransformLogger.debug(
       { cacheKey },
-      `🔮 Prefetch at ${(cacheProgress * 100).toFixed(0)}% (T=${params.startTimeS.toFixed(0)}s)`,
+      `🔮 Prefetch at ${(cacheProgress * 100).toFixed(0)}% (T=${params.startTime.toFixed(0)}s)`,
     );
 
     this.activePrefetches.set(prefetchKey, Promise.resolve());
 
     try {
       const cacheDuration = this.calculatePrefetchDuration(
-        params.durationS,
-        params.timestepS,
+        params.duration,
+        params.frequency,
       );
       const nextParams = {
         ...params,
-        startTimeS: cacheEnd,
-        durationS: cacheDuration,
+        startTime: cacheEnd,
+        duration: cacheDuration,
       } as T;
 
       const transforms = calculateFn(nextParams);
@@ -439,18 +441,18 @@ export class CacheTransform {
   ): Transform[] {
     const normalizedParams = { ...params };
 
-    const cacheKey = this.getCacheKey(params.objectId, params.timestepS);
+    const cacheKey = this.getCacheKey(params.objectId, params.frequency);
 
     const cache = this.cache;
     const tempKey = `${cacheKey}:next`;
     const prefetched = this.getCache(tempKey);
 
     if (prefetched) {
-      const prefetchStart = prefetched.params.startTimeS;
+      const prefetchStart = prefetched.params.startTime;
       const prefetchEnd =
-        prefetched.params.startTimeS + prefetched.params.durationS;
+        prefetched.params.startTime + prefetched.params.duration;
 
-      if (normalizedParams.startTimeS >= prefetchStart) {
+      if (normalizedParams.startTime >= prefetchStart) {
         cacheTransformLogger.debug(
           `🔄 Promoting prefetch: ${prefetchStart.toFixed(0)}-${prefetchEnd.toFixed(0)}s`,
         );
@@ -468,14 +470,13 @@ export class CacheTransform {
       }
     }
 
-    // Check cache
     const cached = this.findMatchingCache(normalizedParams);
 
     if (cached) {
       const subset = this.extractSubset(
         cached,
-        normalizedParams.startTimeS,
-        normalizedParams.durationS,
+        normalizedParams.startTime,
+        normalizedParams.duration,
       );
 
       if (subset.length > 0) {
@@ -489,14 +490,14 @@ export class CacheTransform {
     cacheTransformLogger.debug("❌ Cache MISS, calculating...");
 
     const cacheDuration = this.calculatePrefetchDuration(
-      normalizedParams.durationS,
-      normalizedParams.timestepS,
+      normalizedParams.duration,
+      normalizedParams.frequency,
     );
 
     const cacheParams = {
       ...normalizedParams,
-      startTimeS: normalizedParams.startTimeS,
-      durationS: cacheDuration,
+      startTime: normalizedParams.startTime,
+      duration: cacheDuration,
     } as T;
 
     const startCalc = performance.now();
@@ -526,8 +527,8 @@ export class CacheTransform {
 
     const result = this.extractSubset(
       this.getCache(cacheKey) as CachedData,
-      normalizedParams.startTimeS,
-      normalizedParams.durationS,
+      normalizedParams.startTime,
+      normalizedParams.duration,
     );
 
     if (result.length === 0) {
@@ -608,7 +609,7 @@ export class CacheTransform {
       key,
       sampleCount: data.transformCount,
       memoryMB: (data.transformCount * BYTES_PER_TRANSFORM) / 1024 / 1024,
-      timeRange: `${data.params.startTimeS.toFixed(3)}-${(data.params.startTimeS + data.params.durationS).toFixed(3)}s`,
+      timeRange: `${data.params.startTime.toFixed(3)}-${(data.params.startTime + data.params.duration).toFixed(3)}s`,
       ageMs: Date.now() - data.calculatedAt.getTime(),
       accessCount: data.accessCount,
       lastAccessAt: data.lastAccessedAt,

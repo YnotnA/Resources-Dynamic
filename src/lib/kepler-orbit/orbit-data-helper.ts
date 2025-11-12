@@ -14,16 +14,15 @@ export class OrbitDataHelper {
   static createPlanetParamsFromDB(
     planet: Planet,
     star: Star,
-    startTimeS: number = 0,
-    durationS: number = 3600,
-    timestepS: number = 0.01666667,
+    startTime: number,
+    duration: number,
+    frequency: number,
   ): OrbitCalculationParams {
     return {
       objectId: planet.uuid as string,
-      objectType: "planet",
-      startTimeS,
-      durationS,
-      timestepS,
+      startTime,
+      duration,
+      frequency,
       orbitalObject: OrbitDataHelper.planetDBToOrbitalElements(planet, star),
     };
   }
@@ -34,16 +33,15 @@ export class OrbitDataHelper {
   static createMoonParamsFromDB(
     moon: Moon,
     planet: Planet,
-    startTimeS: number = 0,
-    durationS: number = 3600,
-    timestepS: number = 0.01666667,
+    startTime: number,
+    duration: number,
+    frequency: number,
   ): OrbitCalculationParams {
     return {
       objectId: moon.uuid as string,
-      objectType: "moon",
-      startTimeS,
-      durationS,
-      timestepS,
+      startTime,
+      duration,
+      frequency,
       orbitalObject: OrbitDataHelper.moonDBToOrbitalElements(moon, planet),
     };
   }

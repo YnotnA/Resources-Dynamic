@@ -140,7 +140,7 @@ const importPlanetDb = async (
       semiMajorAxeM * Math.pow(planetMassKg / star.massKg, 2 / 5);
   }
 
-  const internalName = `${star.name.toLowerCase()}.${planetNumber}`;
+  const internalName = `${star.name.toLowerCase()}_${planetNumber}`;
 
   const newPlanet: NewPlanet = {
     name: (getFlatInfo(planetNumber, "Name") ?? internalName).toString(),
@@ -189,7 +189,7 @@ const importMoonDb = async (
     periapsisAu: (moon.periapsis_km * 1000) / AU / DISTANCE_FACTOR,
     argPeriDeg: moon.arg_peri_deg,
     incDeg: moon.inclination_deg,
-    internalName: `${planet.internalName.toLowerCase()}.${moonNumber}`,
+    internalName: `${planet.internalName.toLowerCase()}_${moonNumber}`,
     massKg: moonMassKg,
     meanAnomalyDeg: moon.M0_deg,
     nodeDeg: moon.ascending_node_deg,

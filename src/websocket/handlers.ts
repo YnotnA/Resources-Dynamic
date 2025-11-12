@@ -4,9 +4,10 @@ import { decode, encode } from "@msgpack/msgpack";
 import type { WebSocket } from "ws";
 import { ZodError } from "zod";
 
+import type { RequestInitType } from "./schema/Request/init.model";
 import type { NextTicksType } from "./schema/Request/nextTicks.model";
 import type { RequestWsType } from "./schema/Request/request.model";
-import { RequestWsSchema } from "./schema/Request/request.model";
+import { requestWsSchema } from "./schema/Request/request.model";
 import type { InitMessageType } from "./schema/Response/init.model";
 import type { NextTicksMessageType } from "./schema/Response/nextTick.model";
 import type { ResponseWsType } from "./schema/Response/response.model";
@@ -48,12 +49,12 @@ const handleMessage = async (ws: WebSocket, data: unknown) => {
     const decoded = decode(new Uint8Array(data as ArrayBuffer));
 
     // Validate with Zod
-    const msg: RequestWsType = RequestWsSchema.parse(decoded);
+    const msg: RequestWsType = requestWsSchema.parse(decoded);
 
     wsLogger.debug(
       {
         clientId: client?.id,
-        action: msg.action,
+        event_type: msg.event_type,
       },
       "Message received",
     );
@@ -65,27 +66,23 @@ const handleMessage = async (ws: WebSocket, data: unknown) => {
 };
 
 const routeMessage = async (ws: WebSocket, msg: RequestWsType) => {
-  switch (msg.action) {
+  switch (msg.event_type) {
     case "init":
-      await handleInit(ws);
+      await handleInit(ws, msg);
       break;
 
-    case "next-ticks":
-      await handleNextTicks(ws, msg);
-      break;
-
-    case "ping":
-      sendMessage(ws, { type: "pong", timestamp: Date.now() });
+    case "transform":
+      await handleTransform(ws, msg);
       break;
   }
 };
 
-const handleInit = async (ws: WebSocket) => {
+const handleInit = async (ws: WebSocket, msg: RequestInitType) => {
   const timer = createTimer();
   const clientId = clients.get(ws)?.id;
 
   try {
-    const objects = await getInit();
+    const objects = await getInit(msg.data);
 
     wsLogger.debug(
       {
@@ -97,20 +94,30 @@ const handleInit = async (ws: WebSocket) => {
 
     const init: InitMessageType["data"] = objects.map((object) => {
       return {
-        systemUuid: object.system.uuid,
-        uuid: object.target.uuid as string,
-        name: object.target.name,
-        internalName: object.target.internalName,
-        rotation: {
-          x: 0, // TODO: define
-          y: 0, // TODO: define
-          z: 0, // TODO: define
+        object_type: object.objectType,
+        object_uuid: object.target.uuid as string,
+        object_data: {
+          parent_id: object.parentId,
+          from_timestamp: msg.data.from_timestamp,
+          name: object.target.name,
+          scenename: `scenes/planet/${object.target.internalName}.tscn`,
+          positions: object.transforms.map((transform) => transform.position),
+          rotations: [
+            {
+              x: 0, // TODO: define
+              y: 0, // TODO: define
+              z: 0, // TODO: define
+            },
+          ],
         },
-        position: object.transform.position,
       };
     });
 
-    sendMessage(ws, { type: "init", data: init });
+    sendMessage(ws, {
+      namespace: "genericprops",
+      event: "create_object",
+      data: init,
+    });
   } catch (error) {
     logError(wsLogger, error, { context: "handleInit" });
     sendError(
@@ -128,27 +135,28 @@ const handleInit = async (ws: WebSocket) => {
   );
 };
 
-const handleNextTicks = async (ws: WebSocket, msg: NextTicksType) => {
+const handleTransform = async (ws: WebSocket, msg: NextTicksType) => {
   const timer = createTimer();
   const clientId = clients.get(ws)?.id;
+
+  const uuid = msg.data.uuid;
+  const fromTimestamp = msg.data.from_timestamp;
+  const duration = msg.data.duration_s;
+  const frequency = msg.data.frequency;
 
   wsLogger.debug(
     {
       clientId,
-      target: msg.target,
-      fromTime: msg.fromTime,
-      duration: msg.duration,
+      uuid,
+      fromTimestamp,
+      duration,
+      frequency,
     },
     "Processing next-ticks request",
   );
 
   try {
-    const coords = await getNextTicks(
-      msg.target,
-      msg.fromTime,
-      msg.duration,
-      msg.timeStep,
-    );
+    const coords = await getNextTicks(uuid, fromTimestamp, duration, frequency);
 
     wsLogger.debug(
       {
@@ -163,7 +171,7 @@ const handleNextTicks = async (ws: WebSocket, msg: NextTicksType) => {
     const nextTicks: NextTicksMessageType["data"] = coords.positions.map(
       (position) => {
         return {
-          uuid: msg.target,
+          uuid,
           time: position.timeS,
           rotation: {
             x: 0, // TODO: define
