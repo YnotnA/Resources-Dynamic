@@ -3,8 +3,8 @@ import type {
   CacheStrategy,
   PrefetchConfig,
   Transform,
-} from "@lib/cache-position";
-import { CacheTransform } from "@lib/cache-position";
+} from "@lib/cache-transform";
+import { CacheTransform } from "@lib/cache-transform";
 import { keplerOrbitServiceLogger, logPerformance } from "@lib/logger";
 
 import { KeplerOrbit, type OrbitalObject } from "./kepler-orbit";

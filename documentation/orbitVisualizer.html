@@ -107,6 +107,7 @@
       <button onclick="speedUp()">⏩ Speed Up</button>
       <button onclick="slowDown()">⏪ Slow Down</button>
       <button onclick="toggleTrails()">✨ Toggle Trails</button>
+      <button onclick="toggleLabels()">🔤 Toggle Labels</button>
       <button onclick="clearScene()">🗑️ Clear Scene</button>
     </div>
 
@@ -127,21 +128,21 @@
 
       // ===== CONFIGURATION EN FONCTION DES RAYONS Physiques
       const PLANET_RADII = {
-        "844221a5-e2be-432c-94c2-947462c1c310": 4678.72368420455,
-        "fc22a2f0-80be-4da2-89db-bc7a19665e82": 3122.71283112507,
-        "418a2436-81f5-4069-a042-5e33ce313b20": 5875.0,
-        "3f99e498-31cd-450f-8c72-d7ae2362d27c": 6356.0,
-        "87720dfc-0699-4cf2-bacb-7e867e272c62": 69291.7080302848,
-        "384b6c37-c8b3-4bad-b338-1b5d09509fed": 26806.4515106004,
-        "8a15cc8a-98c0-4c72-b5d5-f8ec34169d6b": 3515.09681331966,
-        "6d322080-dd78-4961-a895-bdb71c7f53f6": 3467.49548953844,
+        "844221a5-e2be-432c-94c2-947462c1c310": 1559.5745614015168,
+        "fc22a2f0-80be-4da2-89db-bc7a19665e82": 1040.90427704169,
+        "418a2436-81f5-4069-a042-5e33ce313b20": 1958.3333333333333,
+        "3f99e498-31cd-450f-8c72-d7ae2362d27c": 2118.6666666666665,
+        "87720dfc-0699-4cf2-bacb-7e867e272c62": 23097.236010094934,
+        "384b6c37-c8b3-4bad-b338-1b5d09509fed": 8935.4838368668,
+        "8a15cc8a-98c0-4c72-b5d5-f8ec34169d6b": 1171.69893777322,
+        "6d322080-dd78-4961-a895-bdb71c7f53f6": 1155.8318298461465,
       };
 
       // Numérique: rayon et parent pour chaque lune
       const MOON_RADII = {
-        "88f3a0af-28c7-42f6-8228-551a98fc55cd": 1500,
-        "a1a66614-21d5-4541-8a3e-d4ae350b669c": 700.0,
-        "77ec9ee3-6e9b-47b5-af82-8f72a57cb4ac": 2552.0,
+        "88f3a0af-28c7-42f6-8228-551a98fc55cd": 500.0,
+        "a1a66614-21d5-4541-8a3e-d4ae350b669c": 233.33333333333334,
+        "77ec9ee3-6e9b-47b5-af82-8f72a57cb4ac": 850.6666666666666,
       };
       const MOON_PARENT = {
         "88f3a0af-28c7-42f6-8228-551a98fc55cd":
@@ -154,8 +155,8 @@
 
       // ÉCHELLES
       const AU = 149597870700; // 1 AU en mètres
-      const SCALE_POSITION = (1 / AU) * 20;
-      const SCALE_RADIUS = 1 / 40000;
+      const SCALE_POSITION = (1 / AU) * 40;
+      const SCALE_RADIUS = 1 / 10000;
       const PLANET_RENDER_SCALE = 2.0; // facteur taille mesh planète (affichage)
       const MOON_RENDER_SCALE = 4.0; // facteur taille mesh lune (affichage)
       const DURATION = 172800;
@@ -176,7 +177,7 @@
         0.1,
         100000,
       );
-      camera.position.set(0, 0, 110);
+      camera.position.set(-20, 20, 30);
       camera.lookAt(0, 0, 0);
 
       const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -197,7 +198,7 @@
 
       // ===== SOLEIL =====
       const sunGeometry = new THREE.SphereGeometry(
-        10000 * SCALE_RADIUS,
+        (190644 * SCALE_RADIUS) / 100,
         64,
         64,
       );
@@ -227,6 +228,7 @@
       let animationSpeed = 1; // Positions par frame
       let isPlaying = true;
       let showTrails = true;
+      let showLabels = true;
 
       const colors = [
         0x0077ff, 0xff0077, 0x00ff77, 0xff7700, 0x7700ff, 0x00ffff, 0xff00ff,
@@ -241,7 +243,6 @@
         let radiusKm = PLANET_RADII[uuid] || MOON_RADII[uuid] || 6000;
         let sphereRadius = radiusKm * SCALE_RADIUS;
 
-        // Agrandit planètes ou lunes pour la visibilité :
         if (PLANET_RADII[uuid]) sphereRadius *= PLANET_RENDER_SCALE;
         if (MOON_RADII[uuid]) sphereRadius *= MOON_RENDER_SCALE;
 
@@ -249,6 +250,34 @@
         const material = new THREE.MeshStandardMaterial({ color });
         const mesh = new THREE.Mesh(geometry, material);
         scene.add(mesh);
+
+        // Create text planet
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        const fontSize = 64;
+        context.font = `${fontSize}px Arial`;
+        const textWidth = context.measureText(name).width;
+        canvas.width = textWidth;
+        canvas.height = fontSize * 1.2;
+
+        context.font = `${fontSize}px Arial`;
+        context.fillStyle = "white";
+        context.fillText(name, 0, fontSize);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.minFilter = THREE.LinearFilter;
+
+        const spriteMaterial = new THREE.SpriteMaterial({
+          map: texture,
+          transparent: true,
+        });
+        const sprite = new THREE.Sprite(spriteMaterial);
+
+        // Place text
+        sprite.scale.set(sphereRadius * 3, sphereRadius * 0.75, 1);
+        sprite.position.set(0, sphereRadius + sphereRadius * 0.6, 0);
+
+        mesh.add(sprite);
 
         const trailMaterial = new THREE.LineBasicMaterial({
           color,
@@ -267,6 +296,7 @@
           currentIndex: 0,
           color,
           name,
+          label: sprite,
           lastUpdateTime: Date.now(),
         });
 
@@ -631,7 +661,7 @@
       };
 
       window.resetView = function () {
-        camera.position.set(0, 0, 110);
+        camera.position.set(-20, 20, 30);
         controls.target.set(0, 0, 0);
         orbitalObjects.forEach((obj) => {
           obj.currentIndex = 0;
@@ -655,6 +685,15 @@
           obj.trail.visible = showTrails;
         });
         console.log(`✨ Trails: ${showTrails ? "ON" : "OFF"}`);
+      };
+
+      window.toggleLabels = function toggleLabels() {
+        showLabels = !showLabels;
+        for (const planet of orbitalObjects.values()) {
+          if (planet.label) {
+            planet.label.visible = showLabels;
+          }
+        }
       };
 
       window.clearScene = function () {

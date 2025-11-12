@@ -28,14 +28,14 @@ DUCKDB_PATH=/app/data/my-db.duckdb
 1. Run `make up` This will start containers Postgres + Node (use for `make pnpm` command).
 2. Run `make pnpm i` to install dependencies.
 3. Run `make db-migrate` to execute migration scripts.
-4. Run `make pnpm import-system` to import systems from `data/system/` folder
+4. Run `make db-import-system` to import systems from `data/system/` folder
 5. Run `make pnpm dev` to start development server.
 6. To stop the server, stop the Docker container with `make down`.
 
 ### Testing
 
 1. Run `make start` to start the server. This will install dependencies, start containers and execute migration scripts.
-2. Run `make pnpm import-system` to import systems from `data/system/` folder
+2. Run `make db-import-system` to import systems from `data/system/` folder
 3. To stop the server, stop the Docker container with `Ctrl+C` in the terminal where `make start` was run.
 
 ## Database

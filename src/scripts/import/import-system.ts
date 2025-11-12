@@ -11,6 +11,7 @@ import type {
   Star,
   System,
 } from "@db/schema";
+import { DrizzleQueryError } from "drizzle-orm";
 import { readFileSync, readdirSync } from "fs";
 import path from "path";
 
@@ -30,8 +31,17 @@ const jsonFiles = files.filter((file) => file.endsWith(".json"));
 const MASS_SUN = 1.989e30;
 const MASS_EARTH = 5.972e24;
 const AU = 1.496e11;
+const DISTANCE_FACTOR = 3;
 
 let flatInfo: FlatType;
+
+const formatDrizzleQueryError = (error: DrizzleQueryError) => {
+  return {
+    type: "DrizzleQueryError",
+    name: error.name,
+    cause: error.cause,
+  };
+};
 
 export const importSystem = async () => {
   for (const file of jsonFiles) {
@@ -124,7 +134,7 @@ const importPlanetDb = async (
 ) => {
   let radiusGravityInfluenceKm = 0;
   const planetMassKg = planet.mass_Me * MASS_EARTH;
-  const semiMajorAxeM = planet.semi_major_AU * AU;
+  const semiMajorAxeM = (planet.semi_major_AU * AU) / DISTANCE_FACTOR;
   if (semiMajorAxeM > 0 && star.massKg > 0) {
     radiusGravityInfluenceKm =
       semiMajorAxeM * Math.pow(planetMassKg / star.massKg, 2 / 5);
@@ -137,13 +147,13 @@ const importPlanetDb = async (
     internalName,
     massKg: planetMassKg,
     systemId: star.systemId,
-    apoapsisAu: planet.apoapsis_AU,
-    periapsisAu: planet.periapsis_AU,
+    apoapsisAu: planet.apoapsis_AU / DISTANCE_FACTOR,
+    periapsisAu: planet.periapsis_AU / DISTANCE_FACTOR,
     argPeriDeg: planet.arg_peri_deg,
     incDeg: planet.inclination_deg,
     meanAnomalyDeg: planet.M0_deg,
     nodeDeg: planet.ascending_node_deg,
-    radiusKm: planet.radius_km,
+    radiusKm: planet.radius_km / DISTANCE_FACTOR,
     radiusGravityInfluenceKm: radiusGravityInfluenceKm / 1000, // Convert to km
   };
   return await createPlanet(newPlanet);
@@ -167,7 +177,7 @@ const importMoonDb = async (
 
   let radiusGravityInfluenceKm = 0;
   const moonMassKg = moon.mass_Me * MASS_EARTH;
-  const semiMajorAxeM = moon.semi_major_km * AU;
+  const semiMajorAxeM = (moon.semi_major_km * AU) / DISTANCE_FACTOR;
   if (semiMajorAxeM > 0 && planet.massKg > 0) {
     radiusGravityInfluenceKm =
       semiMajorAxeM * Math.pow(moonMassKg / planet.massKg, 2 / 5);
@@ -175,15 +185,15 @@ const importMoonDb = async (
 
   const newMoon: NewMoon = {
     name: moon.name,
-    apoapsisAu: (moon.apoapsis_km * 1000) / AU,
-    periapsisAu: (moon.periapsis_km * 1000) / AU,
+    apoapsisAu: (moon.apoapsis_km * 1000) / AU / DISTANCE_FACTOR,
+    periapsisAu: (moon.periapsis_km * 1000) / AU / DISTANCE_FACTOR,
     argPeriDeg: 0, // TODO fix
     incDeg: moon.inclination_deg,
     internalName: `${planet.internalName.toLowerCase()}.${moonNumber}`,
     massKg: moonMassKg,
     meanAnomalyDeg: 0, // TODO fix
     nodeDeg: 0, // TODO fix
-    radiusKm: moon.radius_km,
+    radiusKm: moon.radius_km / DISTANCE_FACTOR,
     planetId: planet.id,
     radiusGravityInfluenceKm,
   };
@@ -193,6 +203,10 @@ const importMoonDb = async (
 try {
   await importSystem();
 } catch (error) {
+  if (error instanceof DrizzleQueryError) {
+    console.error(formatDrizzleQueryError(error));
+    process.exit(1);
+  }
   console.error(error);
   process.exit(1);
 }
