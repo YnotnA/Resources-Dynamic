@@ -714,8 +714,11 @@
         "mass_Me": 0.788,
         "moons": [
           {
+            "M0_deg": 24.3,
             "albedo": 0.18,
             "apoapsis_km": 111100,
+            "arg_peri_deg": 60.0,
+            "ascending_node_deg": 111.2,
             "atmosphere": {
               "gases_pct": {},
               "meta": {
@@ -830,8 +833,11 @@
             }
           },
           {
+            "M0_deg": 210.5,
             "albedo": 0.28,
             "apoapsis_km": 326400,
+            "arg_peri_deg": 120.0,
+            "ascending_node_deg": 107.8,
             "atmosphere": {
               "meta": {
                 "pressure_bar": 0,
@@ -1085,12 +1091,16 @@
         "mass_Me": 133.781995370392,
         "moons": [
           {
+            "M0_deg": 140.0,
             "albedo": null,
             "apoapsis_km": 554327.0,
+            "arg_peri_deg": 0.0,
+            "ascending_node_deg": 275.09,
             "atmosphere": {
               "gases_pct": {
+                "Ar": 1.0,
                 "CO2": 43.0,
-                "N2": 57.0
+                "N2": 56.0
               },
               "meta": {
                 "pressure_bar": 0.017,
@@ -1196,7 +1206,7 @@
             },
             "semi_major_km": 554327.0,
             "spin_locked": true,
-            "spin_period_h": 98.6,
+            "spin_period_h": 98.4,
             "temperatures": {
               "T_day_K": 199.5,
               "T_night_K": 164.2,
@@ -1204,17 +1214,21 @@
             }
           },
           {
+            "M0_deg": 100.0,
             "albedo": null,
             "apoapsis_km": 843272.0,
+            "arg_peri_deg": 205.0,
+            "ascending_node_deg": 329.55,
             "atmosphere": {
               "gases_pct": {
-                "CO2": 65.7,
-                "N2": 34.3
+                "Ar": 1.0,
+                "CH4": 7.0,
+                "N2": 92.0
               },
               "meta": {
-                "pressure_bar": 1.129,
-                "scale_height_km": 7.3,
-                "thickness_km": 51.2
+                "pressure_bar": 1.3,
+                "scale_height_km": 7.6,
+                "thickness_km": 55.0
               }
             },
             "composition_bulk_pct": {},
@@ -1313,41 +1327,45 @@
                 }
               }
             },
-            "semi_major_km": null,
+            "semi_major_km": 843272.0,
             "spin_locked": true,
-            "spin_period_h": null,
+            "spin_period_h": 184.8,
             "temperatures": {
-              "T_day_K": null,
-              "T_night_K": null,
-              "Teq_K": null
+              "T_day_K": 184.0,
+              "T_night_K": 183.2,
+              "Teq_K": 183.6
             }
           },
           {
+            "M0_deg": 45.0,
             "albedo": null,
-            "apoapsis_km": null,
+            "apoapsis_km": 1604945.0,
+            "arg_peri_deg": 10.0,
+            "ascending_node_deg": 268.0,
             "atmosphere": {
               "gases_pct": {
-                "CO2": null,
-                "N2": null
+                "CO2": 70.8,
+                "N2": 28.9,
+                "SO2": 0.3
               },
               "meta": {
-                "pressure_bar": null,
-                "scale_height_km": null,
-                "thickness_km": null
+                "pressure_bar": 1.86,
+                "scale_height_km": 4.9,
+                "thickness_km": 34.3
               }
             },
             "composition_bulk_pct": {},
-            "density_kg_m3": null,
-            "eccentricity": null,
-            "inclination_deg": null,
-            "index": null,
-            "mass_Me": null,
-            "mass_kg": null,
+            "density_kg_m3": 2520,
+            "eccentricity": 0.0,
+            "inclination_deg": 2.73,
+            "index": 3,
+            "mass_Me": 0.118,
+            "mass_kg": 7.04696e23,
             "name": "P5_M3",
-            "periapsis_km": null,
-            "period_days": null,
-            "radius_Re": null,
-            "radius_km": null,
+            "periapsis_km": 1604945.0,
+            "period_days": 20.2,
+            "radius_Re": 0.5701,
+            "radius_km": 3632,
             "resources": {
               "Aluminium": null,
               "Argent": null,
@@ -1432,41 +1450,44 @@
                 }
               }
             },
-            "semi_major_km": null,
+            "semi_major_km": 1604945.0,
             "spin_locked": true,
-            "spin_period_h": null,
+            "spin_period_h": 486.0,
             "temperatures": {
-              "T_day_K": null,
-              "T_night_K": null,
-              "Teq_K": null
+              "T_day_K": 183.4,
+              "T_night_K": 190.3,
+              "Teq_K": 190.1
             }
           },
           {
+            "M0_deg": 240.0,
             "albedo": null,
-            "apoapsis_km": null,
+            "apoapsis_km": 2247097.0,
+            "arg_peri_deg": 135.0,
+            "ascending_node_deg": 279.2,
             "atmosphere": {
               "gases_pct": {
-                "CO2": null,
-                "N2": null
+                "CO2": 71.1,
+                "N2": 28.9
               },
               "meta": {
-                "pressure_bar": null,
-                "scale_height_km": null,
-                "thickness_km": null
+                "pressure_bar": 1.858,
+                "scale_height_km": 4.9,
+                "thickness_km": 34.3
               }
             },
             "composition_bulk_pct": {},
-            "density_kg_m3": null,
-            "eccentricity": null,
-            "inclination_deg": null,
-            "index": null,
-            "mass_Me": null,
-            "mass_kg": null,
+            "density_kg_m3": 1930,
+            "eccentricity": 0.0,
+            "inclination_deg": 3.7,
+            "index": 4,
+            "mass_Me": 0.383,
+            "mass_kg": 3.714584e24,
             "name": "P5_M4",
-            "periapsis_km": null,
-            "period_days": null,
-            "radius_Re": null,
-            "radius_km": null,
+            "periapsis_km": 2247097.0,
+            "period_days": 33.5,
+            "radius_Re": 1.2175,
+            "radius_km": 7757,
             "resources": {
               "Aluminium": null,
               "Argent": null,
@@ -1551,41 +1572,41 @@
                 }
               }
             },
-            "semi_major_km": null,
+            "semi_major_km": 2247097.0,
             "spin_locked": true,
-            "spin_period_h": null,
+            "spin_period_h": 805.1,
             "temperatures": {
-              "T_day_K": null,
-              "T_night_K": null,
-              "Teq_K": null
+              "T_day_K": 183.4,
+              "T_night_K": 182.3,
+              "Teq_K": 181.8
             }
           },
           {
+            "M0_deg": 100.0,
             "albedo": null,
-            "apoapsis_km": null,
+            "apoapsis_km": 3204491.0,
+            "arg_peri_deg": 205.0,
+            "ascending_node_deg": 262.5,
             "atmosphere": {
-              "gases_pct": {
-                "CO2": null,
-                "N2": null
-              },
+              "gases_pct": {},
               "meta": {
-                "pressure_bar": null,
-                "scale_height_km": null,
-                "thickness_km": null
+                "pressure_bar": 0,
+                "scale_height_km": 0,
+                "thickness_km": 0
               }
             },
             "composition_bulk_pct": {},
-            "density_kg_m3": null,
-            "eccentricity": null,
-            "inclination_deg": null,
-            "index": null,
-            "mass_Me": null,
-            "mass_kg": null,
+            "density_kg_m3": 2200,
+            "eccentricity": 0.0,
+            "inclination_deg": 1.7,
+            "index": 5,
+            "mass_Me": 0.001,
+            "mass_kg": 5.972e21,
             "name": "P5_M5",
-            "periapsis_km": null,
-            "period_days": null,
-            "radius_Re": null,
-            "radius_km": null,
+            "periapsis_km": 3204491.0,
+            "period_days": 57.1,
+            "radius_Re": 0.127,
+            "radius_km": 809,
             "resources": {
               "Aluminium": null,
               "Argent": null,
@@ -1670,41 +1691,44 @@
                 }
               }
             },
-            "semi_major_km": null,
-            "spin_locked": true,
-            "spin_period_h": null,
+            "semi_major_km": 3204491.0,
+            "spin_locked": false,
+            "spin_period_h": 116.2,
             "temperatures": {
-              "T_day_K": null,
-              "T_night_K": null,
-              "Teq_K": null
+              "T_day_K": 183.4,
+              "T_night_K": 232.3,
+              "Teq_K": 24.2
             }
           },
           {
+            "M0_deg": 300.0,
             "albedo": null,
-            "apoapsis_km": null,
+            "apoapsis_km": 3412311.0,
+            "arg_peri_deg": 320.0,
+            "ascending_node_deg": 285.0,
             "atmosphere": {
               "gases_pct": {
-                "CO2": null,
-                "N2": null
+                "CO2": 69.5,
+                "N2": 30.5
               },
               "meta": {
-                "pressure_bar": null,
-                "scale_height_km": null,
-                "thickness_km": null
+                "pressure_bar": 1.132,
+                "scale_height_km": 3.5,
+                "thickness_km": 24.3
               }
             },
             "composition_bulk_pct": {},
-            "density_kg_m3": null,
-            "eccentricity": null,
-            "inclination_deg": null,
-            "index": null,
-            "mass_Me": null,
-            "mass_kg": null,
+            "density_kg_m3": 2550,
+            "eccentricity": 0.0,
+            "inclination_deg": 1.92,
+            "index": 6,
+            "mass_Me": 1.342,
+            "mass_kg": 8.014424e24,
             "name": "P5_M6",
-            "periapsis_km": null,
-            "period_days": null,
-            "radius_Re": null,
-            "radius_km": null,
+            "periapsis_km": 3412311.0,
+            "period_days": 62.8,
+            "radius_Re": 1.5732,
+            "radius_km": 10023,
             "resources": {
               "Aluminium": null,
               "Argent": null,
@@ -1789,13 +1813,13 @@
                 }
               }
             },
-            "semi_major_km": null,
+            "semi_major_km": 3412311.0,
             "spin_locked": true,
-            "spin_period_h": null,
+            "spin_period_h": 1506.6,
             "temperatures": {
-              "T_day_K": null,
-              "T_night_K": null,
-              "Teq_K": null
+              "T_day_K": 183.4,
+              "T_night_K": 189.0,
+              "Teq_K": 185.9
             }
           }
         ],
@@ -1886,31 +1910,35 @@
         "mass_Me": 38.4506521934531,
         "moons": [
           {
+            "M0_deg": 75.0,
             "albedo": null,
-            "apoapsis_km": null,
+            "apoapsis_km": 3820451.0,
+            "arg_peri_deg": 30.0,
+            "ascending_node_deg": 261.0,
             "atmosphere": {
               "gases_pct": {
-                "CO2": null,
-                "N2": null
+                "C2H6": 1.0,
+                "CH4": 11.0,
+                "N2": 88.0
               },
               "meta": {
-                "pressure_bar": null,
-                "scale_height_km": null,
-                "thickness_km": null
+                "pressure_bar": 0.4,
+                "scale_height_km": 20.6,
+                "thickness_km": 140.2
               }
             },
             "composition_bulk_pct": {},
-            "density_kg_m3": null,
-            "eccentricity": null,
-            "inclination_deg": null,
-            "index": null,
-            "mass_Me": null,
-            "mass_kg": null,
+            "density_kg_m3": 2630,
+            "eccentricity": 0.0,
+            "inclination_deg": -3.03,
+            "index": 1,
+            "mass_Me": 0.257,
+            "mass_kg": 1.534804e24,
             "name": "P6_M1",
-            "periapsis_km": null,
-            "period_days": null,
-            "radius_Re": null,
-            "radius_km": null,
+            "periapsis_km": 3820451.0,
+            "period_days": 138.7,
+            "radius_Re": 0.9065,
+            "radius_km": 5775,
             "resources": {
               "Aluminium": null,
               "Argent": null,
@@ -1995,41 +2023,44 @@
                 }
               }
             },
-            "semi_major_km": null,
-            "spin_locked": true,
-            "spin_period_h": null,
+            "semi_major_km": 3820451.0,
+            "spin_locked": false,
+            "spin_period_h": 36.8,
             "temperatures": {
-              "T_day_K": null,
-              "T_night_K": null,
-              "Teq_K": null
+              "T_day_K": 81.4,
+              "T_night_K": 80.1,
+              "Teq_K": 75.9
             }
           },
           {
+            "M0_deg": 260.0,
             "albedo": null,
-            "apoapsis_km": null,
+            "apoapsis_km": 9556588.0,
+            "arg_peri_deg": 200.0,
+            "ascending_node_deg": 258.5,
             "atmosphere": {
               "gases_pct": {
-                "CO2": null,
-                "N2": null
+                "CH4": 49.8,
+                "N2": 50.2
               },
               "meta": {
-                "pressure_bar": null,
-                "scale_height_km": null,
-                "thickness_km": null
+                "pressure_bar": 0.457,
+                "scale_height_km": 19.7,
+                "thickness_km": 138.9
               }
             },
             "composition_bulk_pct": {},
-            "density_kg_m3": null,
-            "eccentricity": null,
-            "inclination_deg": null,
-            "index": null,
-            "mass_Me": null,
-            "mass_kg": null,
+            "density_kg_m3": 2930,
+            "eccentricity": 0.0,
+            "inclination_deg": 2.77,
+            "index": 2,
+            "mass_Me": 0.111,
+            "mass_kg": 6.62892e23,
             "name": "P6_M2",
-            "periapsis_km": null,
-            "period_days": null,
-            "radius_Re": null,
-            "radius_km": null,
+            "periapsis_km": 9556588.0,
+            "period_days": 548.8,
+            "radius_Re": 0.56,
+            "radius_km": 3568,
             "resources": {
               "Aluminium": null,
               "Argent": null,
@@ -2114,13 +2145,13 @@
                 }
               }
             },
-            "semi_major_km": null,
-            "spin_locked": true,
-            "spin_period_h": null,
+            "semi_major_km": 9556588.0,
+            "spin_locked": false,
+            "spin_period_h": 72.7,
             "temperatures": {
-              "T_day_K": null,
-              "T_night_K": null,
-              "Teq_K": null
+              "T_day_K": 81.6,
+              "T_night_K": 77.9,
+              "Teq_K": 75.9
             }
           }
         ],

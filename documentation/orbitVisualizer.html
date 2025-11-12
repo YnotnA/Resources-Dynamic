@@ -143,24 +143,45 @@
         "88f3a0af-28c7-42f6-8228-551a98fc55cd": 500.0,
         "a1a66614-21d5-4541-8a3e-d4ae350b669c": 233.33333333333334,
         "77ec9ee3-6e9b-47b5-af82-8f72a57cb4ac": 850.6666666666666,
+        "7eaac45f-2961-4148-9bd0-4e779472a32b": 1966.6666666666667,
+        "bffd7a92-d780-47bb-8aaa-bffe324fe3a9": 1210.6666666666667,
+        "83f14393-7832-4932-8c84-6d2a3f0a2074": 2585.6666666666665,
+        "7be37140-3855-40db-8994-e172be6f7b9f": 269.6666666666667,
+        "1f766843-4283-42f4-9c4f-38e83b3cb97d": 3341.0,
+        "129fdd20-78bf-40f7-98d1-3665692f4106": 1925.0,
+        "8e3330fe-2fb0-4d0e-ab51-d9d1bc7b16e7": 1189.3333333333333,
       };
       const MOON_PARENT = {
         "88f3a0af-28c7-42f6-8228-551a98fc55cd":
-          "3f99e498-31cd-450f-8c72-d7ae2362d27c", // ex : Jupiter
+          "3f99e498-31cd-450f-8c72-d7ae2362d27c",
         "a1a66614-21d5-4541-8a3e-d4ae350b669c":
-          "3f99e498-31cd-450f-8c72-d7ae2362d27c", // ex : Terre
+          "3f99e498-31cd-450f-8c72-d7ae2362d27c",
         "77ec9ee3-6e9b-47b5-af82-8f72a57cb4ac":
           "87720dfc-0699-4cf2-bacb-7e867e272c62",
+        "7eaac45f-2961-4148-9bd0-4e779472a32b":
+          "87720dfc-0699-4cf2-bacb-7e867e272c62",
+        "bffd7a92-d780-47bb-8aaa-bffe324fe3a9":
+          "87720dfc-0699-4cf2-bacb-7e867e272c62",
+        "83f14393-7832-4932-8c84-6d2a3f0a2074":
+          "87720dfc-0699-4cf2-bacb-7e867e272c62",
+        "7be37140-3855-40db-8994-e172be6f7b9f":
+          "87720dfc-0699-4cf2-bacb-7e867e272c62",
+        "1f766843-4283-42f4-9c4f-38e83b3cb97d":
+          "87720dfc-0699-4cf2-bacb-7e867e272c62",
+        "129fdd20-78bf-40f7-98d1-3665692f4106":
+          "8a15cc8a-98c0-4c72-b5d5-f8ec34169d6b",
+        "8e3330fe-2fb0-4d0e-ab51-d9d1bc7b16e7":
+          "8a15cc8a-98c0-4c72-b5d5-f8ec34169d6b",
       };
 
       // ÉCHELLES
       const AU = 149597870700; // 1 AU en mètres
       const SCALE_POSITION = (1 / AU) * 40;
       const SCALE_RADIUS = 1 / 10000;
-      const PLANET_RENDER_SCALE = 2.0; // facteur taille mesh planète (affichage)
-      const MOON_RENDER_SCALE = 4.0; // facteur taille mesh lune (affichage)
-      const DURATION = 172800;
-      const TIME_STEP = 900;
+      const PLANET_RENDER_SCALE = 1.0; // facteur taille mesh planète (affichage)
+      const MOON_RENDER_SCALE = 2; // facteur taille mesh lune (affichage)
+      const DURATION = 43200;
+      const TIME_STEP = 225;
 
       let ws = null;
       let isConnected = false;
@@ -316,13 +337,13 @@
           const shortUuid = uuid.substring(0, 8);
           const color = `#${obj.color.toString(16).padStart(6, "0")}`;
           list.innerHTML += `
-          <div style="margin: 5px 0;">
-            <span style="color: ${color}">⬤</span> ${obj.name || shortUuid}
-            <span style="color: #888; font-size: 10px;">(${
-              obj.positions.length
-            } pts)</span>
-          </div>
-        `;
+                <div style="margin: 5px 0;">
+                  <span style="color: ${color}">⬤</span> ${obj.name || shortUuid}
+                  <span style="color: #888; font-size: 10px;">(${
+                    obj.positions.length
+                  } pts)</span>
+                </div>
+              `;
         });
       }
 
@@ -631,17 +652,17 @@
               const distanceAU = distance / 10;
 
               document.getElementById("stats").innerHTML = `
-              <strong>Time:</strong> ${(pos.time / 86400).toFixed(2)} days<br>
-              <strong>Buffer:</strong> ${obj.positions.length} positions<br>
-              <strong>Index:</strong> ${idx}/${obj.positions.length}<br>
-              <strong>Position (EXACT):</strong><br>
-              X: ${pos.x.toFixed(2)}<br>
-              Y: ${pos.y.toFixed(2)}<br>
-              Z: ${pos.z.toFixed(2)}<br>
-              <strong>Distance:</strong> ${distanceAU.toFixed(3)} AU<br>
-              <strong>Speed:</strong> ${animationSpeed}x<br>
-              <strong>Objects:</strong> ${orbitalObjects.size}
-            `;
+                    <strong>Time:</strong> ${(pos.time / 86400).toFixed(2)} days<br>
+                    <strong>Buffer:</strong> ${obj.positions.length} positions<br>
+                    <strong>Index:</strong> ${idx}/${obj.positions.length}<br>
+                    <strong>Position (EXACT):</strong><br>
+                    X: ${pos.x.toFixed(2)}<br>
+                    Y: ${pos.y.toFixed(2)}<br>
+                    Z: ${pos.z.toFixed(2)}<br>
+                    <strong>Distance:</strong> ${distanceAU.toFixed(3)} AU<br>
+                    <strong>Speed:</strong> ${animationSpeed}x<br>
+                    <strong>Objects:</strong> ${orbitalObjects.size}
+                  `;
             }
           }
         }

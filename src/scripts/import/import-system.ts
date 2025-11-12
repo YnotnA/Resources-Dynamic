@@ -187,12 +187,12 @@ const importMoonDb = async (
     name: moon.name,
     apoapsisAu: (moon.apoapsis_km * 1000) / AU / DISTANCE_FACTOR,
     periapsisAu: (moon.periapsis_km * 1000) / AU / DISTANCE_FACTOR,
-    argPeriDeg: 0, // TODO fix
+    argPeriDeg: moon.arg_peri_deg,
     incDeg: moon.inclination_deg,
     internalName: `${planet.internalName.toLowerCase()}.${moonNumber}`,
     massKg: moonMassKg,
-    meanAnomalyDeg: 0, // TODO fix
-    nodeDeg: 0, // TODO fix
+    meanAnomalyDeg: moon.M0_deg,
+    nodeDeg: moon.ascending_node_deg,
     radiusKm: moon.radius_km / DISTANCE_FACTOR,
     planetId: planet.id,
     radiusGravityInfluenceKm,
