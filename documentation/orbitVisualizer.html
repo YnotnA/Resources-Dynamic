@@ -488,8 +488,6 @@
             timeStep: TIME_STEP,
           };
 
-          console.log(request);
-
           console.log(`📤 Request for ${uuid.substring(0, 8)}:`, request);
           ws.send(encode(request));
         });
@@ -545,9 +543,10 @@
       }
 
       // ===== ANIMATION =====
-      const FETCH_THRESHOLD = 500;
-      const TRAIL_LENGTH = 1000; // longueur de la traînée visible
-      const EXTRA_BUFFER = 200; // marge de sécurité en plus, pour stabilité
+      const FETCH_THRESHOLD = 0.6;
+      const TRAIL_LENGTH = 500;
+      // const TRAIL_LENGTH = 1000; // longueur de la traînée visible
+      // const EXTRA_BUFFER = 200; // marge de sécurité en plus, pour stabilité
 
       function updatePlanets() {
         if (!isPlaying) return;
@@ -556,8 +555,8 @@
           if (obj.positions.length === 0) return;
           const idx = Math.floor(obj.currentIndex);
 
-          if (obj.positions.length > TRAIL_LENGTH + EXTRA_BUFFER) {
-            const oldestToKeep = Math.max(0, idx - TRAIL_LENGTH - EXTRA_BUFFER);
+          if (obj.positions.length > TRAIL_LENGTH) {
+            const oldestToKeep = Math.max(0, idx - TRAIL_LENGTH);
             if (oldestToKeep > 0) {
               obj.positions.splice(0, oldestToKeep);
               obj.currentIndex -= oldestToKeep;
@@ -568,7 +567,7 @@
           if (
             ws &&
             ws.readyState === WebSocket.OPEN &&
-            obj.positions.length - obj.currentIndex < FETCH_THRESHOLD &&
+            obj.currentIndex / obj.positions.length > FETCH_THRESHOLD &&
             !obj.isFetching // Ajoute un flag pour éviter de spammer
           ) {
             obj.isFetching = true; // marque comme fetch en cours
