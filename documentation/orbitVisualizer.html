@@ -181,7 +181,7 @@
       const PLANET_RENDER_SCALE = 1.0; // facteur taille mesh planète (affichage)
       const MOON_RENDER_SCALE = 2; // facteur taille mesh lune (affichage)
       const DURATION = 43200;
-      const TIME_STEP = 225;
+      const FREQUENCY = 0.002;
 
       let ws = null;
       let isConnected = false;
@@ -382,7 +382,17 @@
           document.getElementById("disconnect-btn").disabled = false;
           console.log("✅ WebSocket connected");
 
-          ws.send(encode({ action: "init" }));
+          ws.send(
+            encode({
+              event_type: "init",
+              data: {
+                duration_s: DURATION,
+                frequency: FREQUENCY,
+                from_timestamp: 0,
+                system_internal_name: "tarsis",
+              },
+            }),
+          );
           console.log("📤 Requesting init...");
         };
 
@@ -393,18 +403,16 @@
 
             console.log(
               "📦 Received:",
-              decoded.type,
+              decoded.event,
               "with",
-              decoded.data?.length || 0,
-              "items",
+              decoded.data?.object_data?.positions?.length || 0,
+              "transforms",
             );
 
-            if (decoded.type === "init") {
-              handleInit(decoded.data);
-            } else if (decoded.type === "next-ticks") {
-              handleNextTicks(decoded.data);
-            } else if (decoded.type === "connected") {
-              console.log("🔗 Connected with clientId:", decoded.clientId);
+            if (decoded.event === "create_object") {
+              handleCreateObject(decoded.data);
+            } else if (decoded.event === "update_object") {
+              handleUpdateObject(decoded.data);
             }
           } catch (error) {
             console.error("❌ Error decoding message:", error);
@@ -439,7 +447,7 @@
       }
 
       // ===== GESTION INIT =====
-      function handleInit(data) {
+      function handleCreateObject(data) {
         console.log("🎯 Init received:", data);
 
         if (!Array.isArray(data) || data.length === 0) {
@@ -447,20 +455,26 @@
           return;
         }
 
-        allPlanetUuids = data.map((planet) => planet.uuid);
+        const celestialBodies = data.filter((data) =>
+          ["moon", "planet"].includes(data.object_type),
+        );
 
-        data.forEach((planet) => {
-          if (!orbitalObjects.has(planet.uuid)) {
-            createPlanet(planet.uuid, planet.name);
+        allPlanetUuids = celestialBodies.map((object) => object.object_uuid);
+
+        celestialBodies.forEach((object) => {
+          const objectUuid = object.object_uuid;
+          const objectData = object.object_data;
+          if (!orbitalObjects.has(objectUuid)) {
+            createPlanet(objectUuid, objectData.name);
           }
           // Position initiale (absolue, ne pas toucher à l'échelle pour lune)
-          const x = planet.position.x * SCALE_POSITION;
-          const y = planet.position.z * SCALE_POSITION;
-          const z = planet.position.y * SCALE_POSITION;
-          orbitalObjects.get(planet.uuid).mesh.position.set(x, y, z);
+          const x = objectData.positions[0].x * SCALE_POSITION;
+          const y = objectData.positions[0].z * SCALE_POSITION;
+          const z = objectData.positions[0].y * SCALE_POSITION;
+          orbitalObjects.get(objectUuid).mesh.position.set(x, y, z);
         });
 
-        console.log(`✅ Created ${allPlanetUuids.length} planets`);
+        console.log(`✅ Created ${allPlanetUuids.length} celestial bodies`);
         updateObjectsList();
 
         requestMoreData();
@@ -481,14 +495,14 @@
               : 0;
 
           const request = {
-            action: "next-ticks",
-            duration: DURATION,
-            fromTime: lastTime,
-            target: uuid,
-            timeStep: TIME_STEP,
+            event_type: "transform",
+            data: {
+              duration_s: DURATION,
+              frequency: FREQUENCY,
+              from_timestamp: lastTime,
+              uuid: uuid,
+            },
           };
-
-          console.log(request);
 
           console.log(`📤 Request for ${uuid.substring(0, 8)}:`, request);
           ws.send(encode(request));
@@ -496,32 +510,36 @@
       }
 
       // ===== RÉCEPTION DES POSITIONS =====
-      function handleNextTicks(data) {
-        if (!Array.isArray(data) || data.length === 0) {
+      function handleUpdateObject(updateObject) {
+        const objectUuid = updateObject.object_uuid;
+        const objectData = updateObject.object_data;
+        const positions = objectData.positions;
+
+        if (!Array.isArray(positions) || positions.length === 0) {
           console.warn("⚠️ Empty tick data");
           return;
         }
 
         console.log(
-          `📥 Received ${data.length} positions for ${data[0]?.uuid?.substring(
+          `📥 Received ${positions.length} positions for ${objectUuid.substring(
             0,
             8,
           )}`,
         );
 
-        data.forEach((tick) => {
-          let obj = orbitalObjects.get(tick.uuid);
+        let obj = orbitalObjects.get(objectUuid);
 
-          if (!obj) {
-            createPlanet(tick.uuid);
-            obj = orbitalObjects.get(tick.uuid);
-          }
+        if (!obj) {
+          createPlanet(objectUuid);
+          obj = orbitalObjects.get(objectUuid);
+        }
 
-          const newTime = tick.time;
+        positions.forEach((position, index) => {
+          const newTime = objectData.from_timestamp + index * (1 / FREQUENCY);
           const newPos = {
-            x: tick.position.x * SCALE_POSITION,
-            y: tick.position.z * SCALE_POSITION,
-            z: tick.position.y * SCALE_POSITION,
+            x: position.x * SCALE_POSITION,
+            y: position.z * SCALE_POSITION,
+            z: position.y * SCALE_POSITION,
             time: newTime,
           };
 
@@ -556,6 +574,12 @@
           if (obj.positions.length === 0) return;
           const idx = Math.floor(obj.currentIndex);
 
+          if (idx >= obj.positions.length - 1) {
+            obj.currentIndex = obj.positions.length - 1;
+            // Tu peux aussi afficher un message "Fin du buffer"
+            return;
+          }
+
           if (obj.positions.length > TRAIL_LENGTH + EXTRA_BUFFER) {
             const oldestToKeep = Math.max(0, idx - TRAIL_LENGTH - EXTRA_BUFFER);
             if (oldestToKeep > 0) {
@@ -573,21 +597,22 @@
           ) {
             obj.isFetching = true; // marque comme fetch en cours
             const lastTime = obj.positions[obj.positions.length - 1].time;
-            ws.send(
-              encode({
-                action: "next-ticks",
-                duration: DURATION,
-                fromTime: lastTime,
-                target: uuid,
-                timeStep: TIME_STEP,
-              }),
-            );
+            const request = {
+              event_type: "transform",
+              data: {
+                duration_s: DURATION,
+                frequency: FREQUENCY,
+                from_timestamp: lastTime,
+                uuid: uuid,
+              },
+            };
+            ws.send(encode(request));
           }
 
-          if (idx >= obj.positions.length) {
-            obj.currentIndex = obj.positions.length - 1;
-            return;
-          }
+          // if (idx >= obj.positions.length) {
+          //   obj.currentIndex = obj.positions.length - 1;
+          //   return;
+          // }
 
           const pos = obj.positions[idx];
 
@@ -632,12 +657,6 @@
           if (showTrails) updateTrail(obj);
 
           obj.currentIndex += animationSpeed;
-
-          if (obj.positions.length > 2000 && obj.currentIndex > 1000) {
-            const toRemove = Math.floor(obj.currentIndex) - 500;
-            obj.positions.splice(0, toRemove);
-            obj.currentIndex -= toRemove;
-          }
         });
 
         // Stats

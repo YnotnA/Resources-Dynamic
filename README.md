@@ -67,29 +67,6 @@ Message received after connection
 
 ---
 
-### Message "Ping"
-
-Used to ping the server
-
-#### Request :
-
-```json
-{
-  "action": "ping"
-}
-```
-
-#### Response :
-
-```json
-{
-  "timestamp": "<number>",
-  "type": "pong"
-}
-```
-
----
-
 ### Message "Init"
 
 Used to retrieve all information concerning stellar objects, including their position and rotation at T0.
@@ -98,86 +75,107 @@ Used to retrieve all information concerning stellar objects, including their pos
 
 ```json
 {
-  "action": "init"
+  "event_type": "init",
+  "data": {
+    "system_internal_name": "<string>",
+    "duration_s": "<number>",
+    "frequency": "<number>",
+    "from_timestamp": "<number>"
+  }
 }
 ```
+
+- **system_internal_name** : Internal name of system (ex: tarsis)
 
 #### Response :
 
 ```json
 {
-  "data": [
-    {
-      "internalName": "<string>",
+  "namespace": "genericprops",
+  "event": "create_object",
+  "data": [{
+    "object_type": "planet | moon | system | star",
+    "object_uuid": "<uuid>",
+    "object_data": {
       "name": "<string>",
-      "position": {
-        "x": "<number>",
-        "y": "<number>",
-        "z": "<number>"
-      },
-      "rotation": {
-        "x": "<number>",
-        "y": "<number>",
-        "z": "<number>"
-      },
-      "uuid": "<string>"
+      "scenename": "<string>",
+      "parent_id": "<uuid>",
+      "from_timestamp": "<number>",
+      "positions": [
+        {
+          "x": "<number>",
+          "y": "<number>",
+          "z": "<number>"
+        }
+      ],
+      "rotations": [
+        {
+          "x": "<number>",
+          "y": "<number>",
+          "z": "<number>"
+        }
+      ],
     }
-  ],
-  "type": "init"
+  }]
 }
 ```
 
+- **parent_id** : Empty for "system"
+- **positions** : Missing for "system" and "star"
+- **rotations** : Missing for "system" and "star"
+
 ---
 
-### Message "Next-ticks"
+### Message "transform"
 
-Used to retrieve the position of a stellar object by UUID, specifying the start time and the number of ticks.
+Used to retrieve the transforms of a stellar object by UUID, specifying the start time and the frequency.
 
 #### Request :
 
 ```json
 {
-  "action": "next-ticks",
-  "duration": "<number>",
-  "fromTime": "<number>",
-  "target": "<string>",
-  "timeStep": "<number>"
+  "event_type": "transform",
+  "data": {
+    "uuid": "<uuid>",
+    "duration_s": "<number>",
+    "frequency": "<number>",
+    "from_timestamp": "<number>",
+  }
 }
 ```
 
-- **target**: uuid
-- **fromTime**: time
-- **duration** : duration
-- **timeStep** : Frequency (optionnal) default 0.01666667 => 60Hz
-
-**Example**
-
-duration: 60
-timeStep: 0.01666667
-
-**Result:** duration (60) / timeStep (0.01666667) = 3600 positions
+- **uuid**: Object uuid
+- **duration_s** : Duration (in seconds)
+- **Frequency** : Frequency (Hz)
+- **from_timestamp**: Start from timestamp
 
 #### Response :
 
 ```json
 {
-  "data": [
-    {
-      "position": {
-        "x": "<number>",
-        "y": "<number>",
-        "z": "<number>"
-      },
-      "rotation": {
-        "x": "<number>",
-        "y": "<number>",
-        "z": "<number>"
-      },
-      "time": "<number>",
-      "uuid": "<string>"
+  "namespace": "genericprops",
+  "event": "update_object",
+  "data": {
+    "object_type": "planet | moon",
+    "object_uuid": "<uuid>",
+    "object_data": {
+      "from_timestamp": "<number>",
+      "positions": [
+        {
+          "x": "<number>",
+          "y": "<number>",
+          "z": "<number>"
+        }
+      ],
+      "rotations": [
+        {
+          "x": "<number>",
+          "y": "<number>",
+          "z": "<number>"
+        }
+      ]
     }
-  ],
-  "type": "next-ticks"
+  }
 }
 ```
 

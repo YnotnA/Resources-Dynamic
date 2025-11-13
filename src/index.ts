@@ -1,5 +1,4 @@
 import { serve } from "@hono/node-server";
-import { getInit } from "@lib/celestial-bodies/transforms";
 import * as dotenv from "dotenv";
 
 import app from "./app";
@@ -22,9 +21,6 @@ const start = async () => {
     logger.error("❌ Failed to connect to database. Exiting...");
     process.exit(1);
   }
-
-  // Load T0 positions
-  await getInit();
 
   // WebSocket standalone
   createStandaloneWebSocket(WS_PORT);

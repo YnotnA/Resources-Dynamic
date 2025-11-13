@@ -3,9 +3,10 @@
 // import { keplerOrbitService } from "@lib/kepler-orbit/kepler-orbit-service";
 // import { OrbitDataHelper } from "@lib/kepler-orbit/orbit-data-helper";
 import { decode, encode } from "@msgpack/msgpack";
-import type { NextTicksType } from "@websocket/schema/Request/nextTicks.model";
+import type { RequestInitWsType } from "@websocket/schema/Request/init.ws.model";
+import type { RequestTransformWsType } from "@websocket/schema/Request/transform.ws.model";
 // import { NextTicksMessageType } from "@websocket/schema/Response/nextTick.model";
-import type { ResponseWsType } from "@websocket/schema/Response/response.model";
+import type { ResponseWsType } from "@websocket/schema/Response/response.ws.model";
 // import type { Vector3Type } from "@websocket/schema/vector3.model";
 import WebSocket from "ws";
 
@@ -593,24 +594,32 @@ const ws = new WebSocket("ws://localhost:9200");
 ws.on("open", () => {
   console.log("✅ Connected to WebSocket server");
 
-  ws.send(
-    encode({
-      action: "init",
-    }),
-  );
+  const requestInit: RequestInitWsType = {
+    event_type: "init",
+    data: {
+      duration_s: 3,
+      frequency: 60,
+      from_timestamp: 0,
+      system_internal_name: "tarsis",
+    },
+  };
+
+  ws.send(encode(requestInit));
 
   let fromTime = 0;
   setInterval(() => {
-    const nextTicksRequest: NextTicksType = {
-      action: "next-ticks",
-      duration: 60,
-      // fromTime: Math.floor(Math.random() * 86400) + 1,
-      fromTime,
-      target: "88f3a0af-28c7-42f6-8228-551a98fc55cd",
+    const nextTicksRequest: RequestTransformWsType = {
+      event_type: "transform",
+      data: {
+        duration_s: 3,
+        frequency: 60,
+        from_timestamp: fromTime,
+        uuid: "88f3a0af-28c7-42f6-8228-551a98fc55cd",
+      },
     };
     ws.send(encode(nextTicksRequest));
-    fromTime += 60;
-  }, 5000);
+    fromTime += 3;
+  }, 1000);
 });
 
 ws.on("message", (data) => {
@@ -618,6 +627,16 @@ ws.on("message", (data) => {
 
   if ("data" in decoded) {
     console.log("🎯 Received:", decoded.data);
+    // if ("object_data" in decoded.data) {
+    //   const positions = decoded.data.object_data.positions;
+    //   if (positions) {
+    //     positions.map((position) => console.log(position));
+    //   }
+    //   const rotations = decoded.data.object_data.rotations;
+    //   if (rotations) {
+    //     rotations.map((rotation) => console.log(rotation));
+    //   }
+    // }
   } else {
     console.log("🎯 Received:", decoded);
   }

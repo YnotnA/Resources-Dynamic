@@ -1,15 +1,16 @@
-import { getInit, getNextTicks } from "@lib/celestial-bodies/transforms";
+import { getInit, getUpdateObject } from "@lib/celestial-bodies/transforms";
 import { createTimer, logError, wsLogger } from "@lib/logger";
 import { decode, encode } from "@msgpack/msgpack";
 import type { WebSocket } from "ws";
 import { ZodError } from "zod";
 
-import type { NextTicksType } from "./schema/Request/nextTicks.model";
-import type { RequestWsType } from "./schema/Request/request.model";
-import { RequestWsSchema } from "./schema/Request/request.model";
-import type { InitMessageType } from "./schema/Response/init.model";
-import type { NextTicksMessageType } from "./schema/Response/nextTick.model";
-import type { ResponseWsType } from "./schema/Response/response.model";
+import type { RequestInitWsType } from "./schema/Request/init.ws.model";
+import type { RequestWsType } from "./schema/Request/request.ws.model";
+import { requestWsSchema } from "./schema/Request/request.ws.model";
+import type { RequestTransformWsType } from "./schema/Request/transform.ws.model";
+import type { ResponseInitDataWsType } from "./schema/Response/init.ws.model";
+import type { ResponseWsType } from "./schema/Response/response.ws.model";
+import type { ResponseUpdateObjectDataWsType } from "./schema/Response/updateObject.ws.model";
 
 // Store connected clients with metadata
 const clients = new Map<WebSocket, { id: string; connectedAt: Date }>();
@@ -48,12 +49,12 @@ const handleMessage = async (ws: WebSocket, data: unknown) => {
     const decoded = decode(new Uint8Array(data as ArrayBuffer));
 
     // Validate with Zod
-    const msg: RequestWsType = RequestWsSchema.parse(decoded);
+    const msg: RequestWsType = requestWsSchema.parse(decoded);
 
     wsLogger.debug(
       {
         clientId: client?.id,
-        action: msg.action,
+        event_type: msg.event_type,
       },
       "Message received",
     );
@@ -65,58 +66,71 @@ const handleMessage = async (ws: WebSocket, data: unknown) => {
 };
 
 const routeMessage = async (ws: WebSocket, msg: RequestWsType) => {
-  switch (msg.action) {
+  switch (msg.event_type) {
     case "init":
-      await handleInit(ws);
+      await handleInit(ws, msg);
       break;
 
-    case "next-ticks":
-      await handleNextTicks(ws, msg);
-      break;
-
-    case "ping":
-      sendMessage(ws, { type: "pong", timestamp: Date.now() });
+    case "transform":
+      handleTransform(ws, msg);
       break;
   }
 };
 
-const handleInit = async (ws: WebSocket) => {
+const handleInit = async (ws: WebSocket, msg: RequestInitWsType) => {
   const timer = createTimer();
   const clientId = clients.get(ws)?.id;
 
+  wsLogger.debug(
+    {
+      clientId,
+      request: msg,
+    },
+    "Processing init request",
+  );
+
   try {
-    const objects = await getInit();
+    const objects = await getInit(msg.data);
 
     wsLogger.debug(
       {
         clientId,
         duration: timer.end(),
       },
-      `✅ Sent init ${objects.length} positions`,
+      `✅ Sent init ${objects.length} objects`,
     );
 
-    const init: InitMessageType["data"] = objects.map((object) => {
+    const initData: ResponseInitDataWsType[] = objects.map((object) => {
       return {
-        systemUuid: object.system.uuid,
-        uuid: object.target.uuid as string,
-        name: object.target.name,
-        internalName: object.target.internalName,
-        rotation: {
-          x: 0, // TODO: define
-          y: 0, // TODO: define
-          z: 0, // TODO: define
+        object_type: object.objectType,
+        object_uuid: object.target.uuid as string,
+        object_data: {
+          parent_id: object.parentId,
+          from_timestamp: msg.data.from_timestamp,
+          name: object.target.name,
+          scenename:
+            object.objectType !== "system"
+              ? `scenes/${object.objectType}/${object.target.internalName}.tscn`
+              : "",
+          ...(object.transforms && {
+            positions: object.transforms.map((transform) => transform.position),
+            rotations: object.transforms.map((transform) => transform.rotation),
+          }),
         },
-        position: object.transform.position,
       };
     });
 
-    sendMessage(ws, { type: "init", data: init });
+    sendMessage(ws, {
+      namespace: "genericprops",
+      event: "create_object",
+      data: initData,
+    });
   } catch (error) {
     logError(wsLogger, error, { context: "handleInit" });
     sendError(
       ws,
       "Processing error",
-      `${error instanceof Error ? error.message : "Failed to get init"}`,
+      `${error instanceof Error ? error.message : "Failed to handle init"}`,
     );
   }
 
@@ -128,60 +142,54 @@ const handleInit = async (ws: WebSocket) => {
   );
 };
 
-const handleNextTicks = async (ws: WebSocket, msg: NextTicksType) => {
+const handleTransform = (ws: WebSocket, msg: RequestTransformWsType) => {
   const timer = createTimer();
   const clientId = clients.get(ws)?.id;
 
   wsLogger.debug(
     {
       clientId,
-      target: msg.target,
-      fromTime: msg.fromTime,
-      duration: msg.duration,
+      request: msg,
     },
-    "Processing next-ticks request",
+    "Processing transform request",
   );
 
   try {
-    const coords = await getNextTicks(
-      msg.target,
-      msg.fromTime,
-      msg.duration,
-      msg.timeStep,
-    );
+    const object = getUpdateObject(msg.data);
 
     wsLogger.debug(
       {
         clientId,
-        target: coords.target.name,
-        count: coords.count,
+        target: object.target.name,
+        count: object.transforms?.length,
         duration: timer.end(),
       },
-      `✅ Sent ${coords.count} positions`,
+      `✅ Sent ${object.transforms?.length} positions`,
     );
 
-    const nextTicks: NextTicksMessageType["data"] = coords.positions.map(
-      (position) => {
-        return {
-          uuid: msg.target,
-          time: position.timeS,
-          rotation: {
-            x: 0, // TODO: define
-            y: 0, // TODO: define
-            z: 0, // TODO: define
-          },
-          position: position.position,
-        };
+    const responseUpdateObjectData: ResponseUpdateObjectDataWsType = {
+      object_type: object.objectType,
+      object_uuid: object.target.uuid as string,
+      object_data: {
+        from_timestamp: msg.data.from_timestamp,
+        ...(object.transforms && {
+          positions: object.transforms.map((transform) => transform.position),
+          rotations: object.transforms.map((transform) => transform.rotation),
+        }),
       },
-    );
+    };
 
-    sendMessage(ws, { type: "next-ticks", data: nextTicks });
+    sendMessage(ws, {
+      namespace: "genericprops",
+      event: "update_object",
+      data: responseUpdateObjectData,
+    });
   } catch (error) {
-    logError(wsLogger, error, { context: "handleNextTicks" });
+    logError(wsLogger, error, { context: "handleTransform" });
     sendError(
       ws,
       "Processing error",
-      `${error instanceof Error ? error.message : "Failed to get next ticks"}`,
+      `${error instanceof Error ? error.message : "Failed to handle tranform"}`,
     );
   }
 };

@@ -1,4 +1,4 @@
-import type { Vector3Type } from "@websocket/schema/vector3.model";
+import type { Vector3Type } from "@lib/vector3/schema/vector3.model";
 
 import { Vector3Math } from "./vector3Math";
 

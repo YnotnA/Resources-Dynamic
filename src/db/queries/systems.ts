@@ -38,6 +38,22 @@ export const getSystemWithDetails = async (systemId: number) => {
   });
 };
 
+export const getSystemWithDetailsByInternalName = async (
+  internalName: string,
+) => {
+  return await db.query.systems.findFirst({
+    where: eq(systems.internalName, internalName),
+    with: {
+      planets: {
+        with: {
+          moons: true,
+        },
+      },
+      stars: true,
+    },
+  });
+};
+
 export const createSystem = async (system: NewSystem): Promise<System> => {
   const result = await db.insert(systems).values(system).returning();
   return result[0];

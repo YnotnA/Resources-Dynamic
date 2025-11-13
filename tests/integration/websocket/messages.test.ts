@@ -1,8 +1,11 @@
+import { aSystem } from "@builder/builders";
+import { RequestInitWsType } from "@websocket/schema/Request/init.ws.model";
 import { createStandaloneWebSocket } from "@websocket/server";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Server } from "ws";
 
 import { TestWebSocketClient } from "../../helpers/websocket-client";
+import { mockSystemsWithDetails } from "../../setup";
 
 describe("WebSocket Message Format", () => {
   let wss: Server;
@@ -43,23 +46,25 @@ describe("WebSocket Message Format", () => {
     expect(response.error).toBeDefined();
   });
 
-  it("should accept valid message format", async () => {
-    client.send({
-      action: "ping",
-    });
-
-    const response = await client.waitForPong();
-
-    expect(response.type).toBe("pong");
-  });
-
   it("should accept init message", async () => {
-    client.send({
-      action: "init",
-    });
+    const system = aSystem().build();
+    mockSystemsWithDetails.push(system);
+
+    const requestInit: RequestInitWsType = {
+      event_type: "init",
+      data: {
+        duration_s: 3,
+        frequency: 60,
+        from_timestamp: 0,
+        system_internal_name: system.name,
+      },
+    };
+
+    client.send(requestInit);
 
     const response = await client.waitForInit();
 
-    expect(response.type).toBe("init");
+    expect(response.event).toBe("create_object");
+    expect(response.namespace).toBe("genericprops");
   });
 });

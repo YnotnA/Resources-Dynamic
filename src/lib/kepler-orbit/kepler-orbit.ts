@@ -1,7 +1,7 @@
 import { keplerOrbitLogger } from "@lib/logger";
 import { Basis3D } from "@lib/vector3/basis3d";
+import type { Vector3Type } from "@lib/vector3/schema/vector3.model";
 import { Vector3Math } from "@lib/vector3/vector3Math";
-import type { Vector3Type } from "@websocket/schema/vector3.model";
 
 export interface OrbitalObject {
   primaryMassKg: number;

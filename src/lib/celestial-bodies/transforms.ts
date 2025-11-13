@@ -1,10 +1,13 @@
-import { getAllSystemsWithDetails } from "@db/queries";
+import { getSystemWithDetailsByInternalName } from "@db/queries";
 import type { Moon, Planet, Star, System } from "@db/schema";
 import type { Transform } from "@lib/cache-transform";
 import { keplerOrbitService } from "@lib/kepler-orbit/kepler-orbit-service";
 import { OrbitDataHelper } from "@lib/kepler-orbit/orbit-data-helper";
 import { createTimer, logError, logPerformance, logger } from "@lib/logger";
 import { Vector3Math } from "@lib/vector3/vector3Math";
+import type { RequestInitWsType } from "@websocket/schema/Request/init.ws.model";
+import type { RequestTransformType } from "@websocket/schema/Request/requestTransform.model";
+import type { RequestTransformWsType } from "@websocket/schema/Request/transform.ws.model";
 
 let hasInitData: boolean = false;
 let systems: System[] = [];
@@ -12,36 +15,59 @@ let planets: Planet[] = [];
 let stars: Star[] = [];
 let moons: Moon[] = [];
 
-type NextTicksResultType<T extends Planet | Moon> = {
-  system: System;
+type ObjectTypeFrom<T extends Planet | Moon | System | Star> = T extends Planet
+  ? "planet"
+  : T extends Moon
+    ? "moon"
+    : T extends Star
+      ? "star"
+      : "system";
+
+type TransformsResultType<T extends Planet | Moon | System | Star> = {
   object: T;
   transforms: Transform[];
-} | null;
+};
 
-type NextTicksObjectType =
-  | NextTicksResultType<Planet>
-  | NextTicksResultType<Moon>;
+type ObjectDataType<T extends Planet | Moon | System | Star> = {
+  target: T;
+  parentId: string;
+  objectType: ObjectTypeFrom<T>;
+  transforms?: Transform[];
+};
 
-export const getInit = async () => {
+export const getInit = async (requestInitData: RequestInitWsType["data"]) => {
   const timer = createTimer();
-  await loadData();
 
   try {
-    const planetsData = getInitData<Planet>(
-      planets,
-      (target, fromTime, duration, timesteps) =>
-        getPlanetNextTicks(target, fromTime, duration, timesteps),
+    await loadData(requestInitData.system_internal_name);
+
+    const systemsData = getAllObjectsData<System>(
+      systems,
+      requestInitData,
+      "system",
     );
 
-    const moonsData = getInitData<Moon>(
-      moons,
+    const starsData = getAllObjectsData<Star>(stars, requestInitData, "star");
+
+    const planetsData = getAllObjectsData<Planet>(
+      planets,
+      requestInitData,
+      "planet",
       (target, fromTime, duration, timesteps) =>
-        getMoonNextTicks(target, fromTime, duration, timesteps),
+        getPlanetUpdateTransforms(target, fromTime, duration, timesteps),
+    );
+
+    const moonsData = getAllObjectsData<Moon>(
+      moons,
+      requestInitData,
+      "moon",
+      (target, fromTime, duration, timesteps) =>
+        getMoonUpdateTransforms(target, fromTime, duration, timesteps),
     );
 
     logPerformance(logger, `Queries for init`, timer.end());
 
-    return [...planetsData, ...moonsData];
+    return [...systemsData, ...starsData, ...planetsData, ...moonsData];
   } catch (error) {
     logError(logger, error, {
       context: "getInit",
@@ -50,89 +76,123 @@ export const getInit = async () => {
   }
 };
 
-const getInitData = <T extends Moon | Planet>(
+const getAllObjectsData = <T extends Planet | Moon | System | Star>(
   dataDb: T[],
-  nextTicksCn: (
+  requestTransform: RequestTransformType,
+  objectType: ObjectTypeFrom<T>,
+  nextTicksCn?: (
     target: string,
     fromTime: number,
     duration: number,
     timesteps: number,
-  ) => NextTicksResultType<T>,
-) => {
+  ) => TransformsResultType<T>,
+): ObjectDataType<T>[] => {
   const allData = dataDb.map((data) => {
-    const objectNextTicks = nextTicksCn(
-      data.uuid as string,
-      0,
-      0.01666667,
-      0.01666667,
-    ); // Only one position from T0
-
-    if (!objectNextTicks || objectNextTicks.transforms.length === 0) {
-      return null;
-    }
-
-    return {
-      system: objectNextTicks.system,
-      target: data,
-      transform: objectNextTicks.transforms[0] ?? null,
-    };
+    return getObjectData<T>(data, requestTransform, objectType, nextTicksCn);
   });
 
   return allData.filter((item) => item !== null);
 };
 
-export const getNextTicks = async (
-  target: string,
-  fromTime: number,
-  duration: number,
-  timesteps: number = 0.01666667,
+const getObjectData = <T extends Planet | Moon | System | Star>(
+  data: T,
+  requestTransform: RequestTransformType,
+  objectType: ObjectTypeFrom<T>,
+  nextTicksCn?: (
+    target: string,
+    fromTime: number,
+    duration: number,
+    timesteps: number,
+  ) => TransformsResultType<T>,
+): ObjectDataType<T> => {
+  let transforms: Transform[] | undefined;
+  if (nextTicksCn) {
+    const objectNextTicks = nextTicksCn(
+      data.uuid as string,
+      requestTransform.from_timestamp,
+      requestTransform.duration_s,
+      requestTransform.frequency,
+    );
+
+    transforms = objectNextTicks.transforms;
+  }
+
+  let parentId = "";
+  if ("systemId" in data && data.systemId) {
+    parentId = getSystem(data.systemId).uuid as string;
+  } else if ("planetId" in data && data.planetId) {
+    parentId = getPlanet(data.planetId).uuid as string;
+  }
+
+  return {
+    target: data,
+    parentId,
+    objectType,
+    ...(transforms && { transforms }),
+  };
+};
+
+export const getUpdateObject = (
+  requestTransformData: RequestTransformWsType["data"],
 ) => {
   const timer = createTimer();
-  let nextTicks: NextTicksObjectType;
-  await loadData();
+  let objectData: ObjectDataType<Planet | Moon>;
+
+  const target = requestTransformData.uuid;
+  const planet = getPlanetByUuid(target);
+  const moon = getMoonByUuid(target);
 
   try {
-    if (isPlanet(target)) {
-      nextTicks = getPlanetNextTicks(target, fromTime, duration, timesteps);
-    } else if (isMoon(target)) {
-      nextTicks = getMoonNextTicks(target, fromTime, duration, timesteps);
+    if (planet) {
+      objectData = getObjectData<Planet>(
+        planet,
+        requestTransformData,
+        "planet",
+        (target, fromTime, duration, timesteps) =>
+          getPlanetUpdateTransforms(target, fromTime, duration, timesteps),
+      );
+    } else if (moon) {
+      objectData = getObjectData<Moon>(
+        moon,
+        requestTransformData,
+        "moon",
+        (target, fromTime, duration, timesteps) =>
+          getMoonUpdateTransforms(target, fromTime, duration, timesteps),
+      );
     } else {
       logger.error({ target }, `Object not found: ${target}`);
       throw new Error(`Object not found not found: ${target}`);
     }
 
-    if (!nextTicks) {
-      logger.error({ target }, `Next ticks not found for target: ${target}`);
-      throw new Error(`Next ticks not found for target: ${target}`);
+    if (!objectData) {
+      logger.error({ target }, `Update object not found for target: ${target}`);
+      throw new Error(`Update object not found for target: ${target}`);
     }
 
-    logPerformance(logger, `Query for ${nextTicks.object.name}`, timer.end(), {
-      positionCount: nextTicks.transforms.length,
-      target: nextTicks.object,
+    logPerformance(logger, `Query for ${objectData.target.name}`, timer.end(), {
+      ...(objectData.transforms && {
+        transformCount: objectData.transforms.length,
+      }),
+      target: objectData.target,
     });
 
-    return {
-      target: nextTicks.object,
-      timeStart: fromTime,
-      count: nextTicks.transforms.length,
-      positions: nextTicks.transforms,
-    };
+    return objectData;
   } catch (error) {
     logError(logger, error, {
-      context: "getNextTicks",
+      context: "getUpdateObject",
       target,
-      fromTime,
+      fromTime: requestTransformData.from_timestamp,
     });
     throw error;
   }
 };
 
-const getSystem = (target: string, systemId: number): System => {
+const getSystem = (systemId: number): System => {
   const system = systems.find((system) => system.id === systemId);
 
   if (!system) {
-    logger.error(`System not found: ${target}`);
-    throw new Error(`System not found: ${target}`);
+    logger.error(`Star not found: ${systemId}`);
+    throw new Error(`Star not found: ${systemId}`);
   }
 
   return system;
@@ -149,31 +209,45 @@ const getStar = (target: string, systemId: number): Star => {
   return star;
 };
 
-const isPlanet = (target: string): boolean => {
-  return !!planets.find((planet) => planet.uuid === target);
+const getPlanet = (planetId: number): Planet => {
+  const planet = planets.find((planet) => planet.id === planetId);
+
+  if (!planet) {
+    logger.error(`Planet not found: ${planetId}`);
+    throw new Error(`Star not found: ${planetId}`);
+  }
+
+  return planet;
 };
 
-const getPlanetNextTicks = (
+const getPlanetByUuid = (uuid: string): Planet | undefined => {
+  return planets.find((planet) => planet.uuid === uuid);
+};
+
+const getPlanetUpdateTransforms = (
   target: string,
   fromTime: number,
   duration: number,
-  timesteps: number = 0.01666667,
-): NextTicksResultType<Planet> => {
+  frequency: number,
+): TransformsResultType<Planet> => {
   const planet = planets.find((planet) => planet.uuid === target);
 
-  if (!planet || !planet.systemId) {
-    return null;
+  if (!planet || !planet.systemId || !systems) {
+    logger.error(
+      { context: "getPlanetNextTicks" },
+      `Planet not found: ${target}`,
+    );
+    throw new Error(`Planet not found: ${target}`);
   }
 
   const star = getStar(target, planet.systemId);
-  const system = getSystem(target, planet.systemId);
 
   const orbitalCalculation = OrbitDataHelper.createPlanetParamsFromDB(
     planet,
     star,
     fromTime,
     duration,
-    timesteps,
+    frequency,
   );
 
   logger.debug(
@@ -190,31 +264,31 @@ const getPlanetNextTicks = (
   );
 
   return {
-    system,
     object: planet,
     transforms: keplerOrbitService.getTransforms(orbitalCalculation),
   };
 };
 
-const isMoon = (target: string): boolean => {
-  return !!moons.find((moon) => moon.uuid === target);
+const getMoonByUuid = (uuid: string): Moon | undefined => {
+  return moons.find((moon) => moon.uuid === uuid);
 };
 
-const getMoonNextTicks = (
+const getMoonUpdateTransforms = (
   target: string,
   fromTime: number,
   duration: number,
   timesteps: number = 0.01666667,
-): NextTicksResultType<Moon> => {
+): TransformsResultType<Moon> => {
   const moon = moons.find((moon) => moon.uuid === target);
 
-  if (!moon) {
-    return null;
+  if (!moon || !moon.planetId) {
+    logger.error({ context: "getMoonNextTicks" }, `Moon not found: ${target}`);
+    throw new Error(`Moon not found: ${target}`);
   }
 
-  const moonPlanet = planets.find((planet) => planet.id === moon.planetId);
+  const moonPlanet = getPlanet(moon.planetId);
 
-  if (!moonPlanet) {
+  if (!moonPlanet || !moonPlanet.systemId) {
     logger.error(
       { moon },
       `Planet for moon "${moon.name}" not found: ${target}`,
@@ -222,9 +296,7 @@ const getMoonNextTicks = (
     throw new Error(`Planet for moon "${moon.name}" not found: ${target}`);
   }
 
-  const system = getSystem(target, moonPlanet.systemId as number);
-
-  const moonPlanetPositions = getPlanetNextTicks(
+  const moonPlanetPositions = getPlanetUpdateTransforms(
     moonPlanet.uuid as string,
     fromTime,
     duration,
@@ -267,29 +339,38 @@ const getMoonNextTicks = (
 
       return { ...transform, position: newPosition };
     });
-  return { system, object: moon, transforms };
+  return { object: moon, transforms };
 };
 
-const loadData = async () => {
-  if (!hasInitData) {
-    const systemsWithDetails = await getAllSystemsWithDetails();
+const loadData = async (systemInternalName?: string) => {
+  if (!hasInitData && systemInternalName) {
+    const systemsWithDetails =
+      await getSystemWithDetailsByInternalName(systemInternalName);
 
-    planets = systemsWithDetails.flatMap((system) =>
-      system.planets.map(
-        ({ moons: _moons, ...planetWithoutMoons }) => planetWithoutMoons,
-      ),
+    if (!systemsWithDetails) {
+      logger.error(
+        { systemInternalName },
+        `System not found ${systemInternalName}`,
+      );
+      throw new Error(`System not found ${systemInternalName}`);
+    }
+
+    planets = systemsWithDetails.planets.map(
+      ({ moons: _moons, ...planetWithoutMoons }) => planetWithoutMoons,
     );
 
-    moons = systemsWithDetails.flatMap((system) =>
-      system.planets.flatMap((planet) => planet.moons),
-    );
+    moons = systemsWithDetails.planets.flatMap((planet) => planet.moons);
 
-    stars = systemsWithDetails.flatMap((system) => system.stars);
+    stars = systemsWithDetails.stars;
 
-    systems = systemsWithDetails.map(
-      ({ planets: _planets, stars: _stars, ...systemWithoutChildren }) =>
-        systemWithoutChildren,
-    );
+    systems = [
+      (({ id, uuid, name, internalName }) => ({
+        id,
+        uuid,
+        name,
+        internalName,
+      }))(systemsWithDetails),
+    ];
 
     hasInitData = true;
   }

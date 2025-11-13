@@ -26,6 +26,7 @@ export class KeplerOrbitService {
   private calculateInternal = (params: OrbitCalculationParams): Transform[] => {
     const startTime = performance.now();
 
+    const timeStep = 1 / params.frequency;
     const orbitalObject = params.orbitalObject;
 
     if (!orbitalObject) {
@@ -35,27 +36,28 @@ export class KeplerOrbitService {
     keplerOrbitServiceLogger.debug(
       {
         objectId: params.objectId,
-        startTime: params.startTimeS,
+        startTime: params.startTime,
       },
-      `🕐 Calculating orbit starting at T=${params.startTimeS}s`,
+      `🕐 Calculating orbit starting at T=${params.startTime}s`,
     );
 
-    const orbit = new KeplerOrbit(orbitalObject, params.startTimeS);
-    const steps = Math.max(1, Math.ceil(params.durationS / params.timestepS));
+    const orbit = new KeplerOrbit(orbitalObject, params.startTime);
+    const steps = Math.max(1, Math.ceil(params.duration / timeStep));
     const transforms: Transform[] = new Array(steps) as Transform[];
 
-    let currentTime = params.startTimeS;
+    let currentTime = params.startTime;
 
     for (let i = 0; i < steps; i++) {
-      const dt = i === 0 ? 0 : params.timestepS;
+      const dt = i === 0 ? 0 : timeStep;
       const position = orbit.advance(dt);
 
       transforms[i] = {
         timeS: Math.round(currentTime * 1000) / 1000,
         position,
+        rotation: { x: 0, y: 0, z: 0 },
       };
 
-      currentTime += params.timestepS;
+      currentTime += timeStep;
     }
 
     const duration = performance.now() - startTime;
