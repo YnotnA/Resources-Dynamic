@@ -2,7 +2,6 @@ import { decode, encode } from "@msgpack/msgpack";
 import { ConnectedMessageType } from "@websocket/schema/Response/connected.model";
 import { ErrorMessageType } from "@websocket/schema/Response/error.model";
 import { ResponseInitType } from "@websocket/schema/Response/init.ws.model";
-import { PongMessageType } from "@websocket/schema/Response/pong.model";
 import { ResponseWsType } from "@websocket/schema/Response/response.model";
 import WebSocket from "ws";
 
@@ -74,20 +73,10 @@ export class TestWebSocketClient {
     throw new Error(`Expected connected message, got: ${JSON.stringify(msg)}`);
   }
 
-  async waitForPong(timeout: number = 5000): Promise<PongMessageType> {
-    const msg = await this.waitForMessage(timeout);
-
-    if ("type" in msg && msg.type === "pong") {
-      return msg;
-    }
-
-    throw new Error(`Expected pong message, got: ${JSON.stringify(msg)}`);
-  }
-
   async waitForInit(timeout: number = 5000): Promise<ResponseInitType> {
     const msg = await this.waitForMessage(timeout);
 
-    if ("type" in msg && msg.type === "init") {
+    if ("event" in msg && msg.event === "create_object") {
       return msg;
     }
 

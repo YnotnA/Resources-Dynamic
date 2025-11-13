@@ -47,6 +47,14 @@ vi.mock("@db/queries/systems.ts", () => {
   };
 });
 
+vi.mock("@db/queries/systems.ts", () => {
+  return {
+    getSystemWithDetailsByInternalName: vi.fn(() =>
+      Promise.resolve(mockSystemsWithDetails[0] ?? undefined),
+    ),
+  };
+});
+
 beforeAll(() => {
   console.log("🧪 Setting up tests...");
 });
