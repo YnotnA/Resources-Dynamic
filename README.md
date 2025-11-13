@@ -12,17 +12,6 @@
 
 Copy `.env.example` to `.env` and fill in the required environment variables
 
-### Change DuckDB file
-
-The default folder containing the duckDb database is `data` at root. Path is define in .env file `DUCKDB_PATH`.
-
-**You must leave the `/app` because it's the docker volume**.
-
-```shell
-// Example for data folder at root
-DUCKDB_PATH=/app/data/my-db.duckdb
-```
-
 ### Development
 
 1. Run `make up` This will start containers Postgres + Node (use for `make pnpm` command).
