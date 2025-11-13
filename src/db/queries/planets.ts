@@ -6,6 +6,7 @@ import {
   type NewPlanet,
   type Planet,
   type UpdatePlanet,
+  moons,
   planets,
 } from "../schema";
 
@@ -31,6 +32,13 @@ export const getPlanetsBySystemId = async (systemId: number) => {
       moons: true,
     },
   });
+};
+
+export const getPlanetsByMoonUuId = async (moonUuid: string) => {
+  const result = await db.query.planets.findMany({
+    where: eq(moons.uuid, moonUuid),
+  });
+  return result[0];
 };
 
 export const createPlanet = async (planet: NewPlanet): Promise<Planet> => {

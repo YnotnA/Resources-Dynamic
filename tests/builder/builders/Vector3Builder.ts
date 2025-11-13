@@ -1,17 +1,15 @@
 import { Faker } from "@faker-js/faker";
-import { Vector3Type, vector3Schema } from "@websocket/schema/vector3.model";
+import { Vector3Type, vector3Schema } from "@lib/vector3/schema/vector3.model";
 
 import { BuilderBase } from "./BuilderBase";
 
 export class Vector3Builder extends BuilderBase<typeof vector3Schema> {
   constructor(faker: Faker) {
-     
     super(vector3Schema, {
       x: faker.number.int(),
       y: faker.number.int(),
       z: faker.number.int(),
     });
-     
   }
 
   withX(x: number): this {

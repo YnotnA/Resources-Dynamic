@@ -11,13 +11,13 @@ import {
   createSelectSchema,
   createUpdateSchema,
 } from "drizzle-zod";
-import type { z } from "zod";
+import { z } from "zod";
 
-import { moons } from "./moons";
+import { moonSchema, moons } from "./moons";
 import { systems } from "./systems";
 
 export const planets = pgTable("planets", {
-  id: integer("id").primaryKey(),
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   uuid: uuid("uuid").defaultRandom().unique(),
   systemId: integer("system_id").references(() => systems.id),
   name: text("name").notNull().unique(),
@@ -45,15 +45,13 @@ export const planetsRelations = relations(planets, ({ one, many }) => ({
 }));
 
 export const planetSchema = createSelectSchema(planets);
-export const createPlanetSchema = createInsertSchema(planets).omit({
-  id: true,
-  uuid: true,
-});
-export const updatePlanetSchema = createUpdateSchema(planets).omit({
-  id: true,
-  uuid: true,
+export const createPlanetSchema = createInsertSchema(planets);
+export const updatePlanetSchema = createUpdateSchema(planets);
+export const planetWithMoonsSchema = createSelectSchema(planets).extend({
+  moons: z.array(moonSchema),
 });
 
 export type Planet = z.infer<typeof planetSchema>;
 export type NewPlanet = z.infer<typeof createPlanetSchema>;
 export type UpdatePlanet = z.infer<typeof updatePlanetSchema>;
+export type PlanetWithMoon = z.infer<typeof planetWithMoonsSchema>;

@@ -113,6 +113,10 @@ db-status: check-env ## Check database connection status
 	@echo "$(CYAN)🔍 Checking database status...$(RESET)"
 	@$(COMPOSE) exec postgres pg_isready -U $(shell grep POSTGRES_USER .env | cut -d '=' -f2)
 
+.PHONY: db-import-system
+db-import-system: check-env ## Import JSON data from data/system/ folder
+	@echo "$(CYAN)📥 Importing JSON data from data/system/ folder...$(RESET)"
+	@$(COMPOSE) exec $(DEV_SERVICE) sh -c "corepack enable && corepack install && pnpm import-system"
 
 # =============================================================================
 # Utility commands
@@ -177,7 +181,7 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(CYAN)%-15s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST) | grep -E "(up|down|pnpm)"
 	@echo ""
 	@echo "$(YELLOW)Utilities:$(RESET)"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(CYAN)%-15s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST) | grep -E "(logs|shell|status|clean-volumes)"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(CYAN)%-15s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST) | grep -E "(logs|shell|status|clean-volumes|db)"
 	@echo ""
 	@echo "$(YELLOW)Examples:$(RESET)"
 	@echo "  $(CYAN)make start$(RESET)          # Start app for testing (CP/PO/Others)"

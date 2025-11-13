@@ -1,7 +1,10 @@
+import { SystemWithDetails } from "@db/schema";
 import * as dotenv from "dotenv";
 import { afterAll, beforeAll, vi } from "vitest";
 
 dotenv.config({ path: ".env.test", override: false });
+
+export const mockSystemsWithDetails: SystemWithDetails[] = [];
 
 vi.mock("@lib/logger", () => {
   const createMockLogger = () => ({
@@ -23,6 +26,9 @@ vi.mock("@lib/logger", () => {
     pgDbLogger: createMockLogger(),
     apiLogger: createMockLogger(),
     cacheLogger: createMockLogger(),
+    cacheTransformLogger: createMockLogger(),
+    keplerOrbitServiceLogger: createMockLogger(),
+    keplerOrbitLogger: createMockLogger(),
     logError: vi.fn(),
     logPerformance: vi.fn(),
     createTimer: vi.fn(() => ({
@@ -30,6 +36,22 @@ vi.mock("@lib/logger", () => {
     })),
     isDev: true,
     isProd: false,
+  };
+});
+
+vi.mock("@db/queries/systems.ts", () => {
+  return {
+    getAllSystemsWithDetails: vi.fn(() =>
+      Promise.resolve(mockSystemsWithDetails),
+    ),
+  };
+});
+
+vi.mock("@db/queries/systems.ts", () => {
+  return {
+    getSystemWithDetailsByInternalName: vi.fn(() =>
+      Promise.resolve(mockSystemsWithDetails[0] ?? undefined),
+    ),
   };
 });
 

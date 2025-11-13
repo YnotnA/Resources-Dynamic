@@ -1,11 +1,24 @@
 import { eq } from "drizzle-orm";
 
 import { db } from "../connection";
-import type { UpdateSystem} from "../schema";
+import type { UpdateSystem } from "../schema";
 import { type NewSystem, type System, systems } from "../schema";
 
 export const getAllSystems = async (): Promise<System[]> => {
   return await db.select().from(systems);
+};
+
+export const getAllSystemsWithDetails = async () => {
+  return await db.query.systems.findMany({
+    with: {
+      planets: {
+        with: {
+          moons: true,
+        },
+      },
+      stars: true,
+    },
+  });
 };
 
 /**
@@ -14,6 +27,22 @@ export const getAllSystems = async (): Promise<System[]> => {
 export const getSystemWithDetails = async (systemId: number) => {
   return await db.query.systems.findFirst({
     where: eq(systems.id, systemId),
+    with: {
+      planets: {
+        with: {
+          moons: true,
+        },
+      },
+      stars: true,
+    },
+  });
+};
+
+export const getSystemWithDetailsByInternalName = async (
+  internalName: string,
+) => {
+  return await db.query.systems.findFirst({
+    where: eq(systems.internalName, internalName),
     with: {
       planets: {
         with: {

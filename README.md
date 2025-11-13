@@ -28,13 +28,21 @@ DUCKDB_PATH=/app/data/my-db.duckdb
 1. Run `make up` This will start containers Postgres + Node (use for `make pnpm` command).
 2. Run `make pnpm i` to install dependencies.
 3. Run `make db-migrate` to execute migration scripts.
-4. Run `make pnpm dev` to start development server.
-5. To stop the server, stop the Docker container with `make down`.
+4. Run `make db-import-system` to import systems from `data/system/` folder
+5. Run `make pnpm dev` to start development server.
+6. To stop the server, stop the Docker container with `make down`.
 
 ### Testing
 
 1. Run `make start` to start the server. This will install dependencies, start containers and execute migration scripts.
-2. To stop the server, stop the Docker container with `Ctrl+C` in the terminal where `make start` was run.
+2. Run `make db-import-system` to import systems from `data/system/` folder
+3. To stop the server, stop the Docker container with `Ctrl+C` in the terminal where `make start` was run.
+
+## Database
+
+A clean SQL is available in `documentation/sql/cleanBdd.sql`. It must be executed with an SQL client (e.g., [DBeaver](https://dbeaver.io/)).
+
+**Info**: All UUID updates are used for the [Orbit Visualizer](#bonus) because the radius of elements (e.g., planets, stars) are hard-coded into the code.
 
 ## WebSocket
 
@@ -59,29 +67,6 @@ Message received after connection
 
 ---
 
-### Message "Ping"
-
-Used to ping the server
-
-#### Request :
-
-```json
-{
-  "action": "ping"
-}
-```
-
-#### Response :
-
-```json
-{
-  "timestamp": "<number>",
-  "type": "pong"
-}
-```
-
----
-
 ### Message "Init"
 
 Used to retrieve all information concerning stellar objects, including their position and rotation at T0.
@@ -90,77 +75,107 @@ Used to retrieve all information concerning stellar objects, including their pos
 
 ```json
 {
-  "action": "init"
+  "event_type": "init",
+  "data": {
+    "system_internal_name": "<string>",
+    "duration_s": "<number>",
+    "frequency": "<number>",
+    "from_timestamp": "<number>"
+  }
 }
 ```
+
+- **system_internal_name** : Internal name of system (ex: tarsis)
 
 #### Response :
 
 ```json
 {
-  "data": [
-    {
-      "internalName": "<string>",
+  "namespace": "genericprops",
+  "event": "create_object",
+  "data": [{
+    "object_type": "planet | moon | system | star",
+    "object_uuid": "<uuid>",
+    "object_data": {
       "name": "<string>",
-      "position": {
-        "x": "<number>",
-        "y": "<number>",
-        "z": "<number>"
-      },
-      "rotation": {
-        "x": "<number>",
-        "y": "<number>",
-        "z": "<number>"
-      },
-      "uuid": "<string>"
+      "scenename": "<string>",
+      "parent_id": "<uuid>",
+      "from_timestamp": "<number>",
+      "positions": [
+        {
+          "x": "<number>",
+          "y": "<number>",
+          "z": "<number>"
+        }
+      ],
+      "rotations": [
+        {
+          "x": "<number>",
+          "y": "<number>",
+          "z": "<number>"
+        }
+      ],
     }
-  ],
-  "type": "init"
+  }]
 }
 ```
 
+- **parent_id** : Empty for "system"
+- **positions** : Missing for "system" and "star"
+- **rotations** : Missing for "system" and "star"
+
 ---
 
-### Message "Next-ticks"
+### Message "transform"
 
-Used to retrieve the position of a stellar object by UUID, specifying the start time and the number of ticks.
+Used to retrieve the transforms of a stellar object by UUID, specifying the start time and the frequency.
 
 #### Request :
 
 ```json
 {
-  "action": "next-ticks",
-  "count": "<number>",
-  "fromTime": "<number>",
-  "target": "<string>"
+  "event_type": "transform",
+  "data": {
+    "uuid": "<uuid>",
+    "duration_s": "<number>",
+    "frequency": "<number>",
+    "from_timestamp": "<number>",
+  }
 }
 ```
 
-- **count** : number of ticks
-- **fromTime**: time
-- **target**: uuid
+- **uuid**: Object uuid
+- **duration_s** : Duration (in seconds)
+- **Frequency** : Frequency (Hz)
+- **from_timestamp**: Start from timestamp
 
 #### Response :
 
 ```json
 {
-  "data": [
-    {
-      "position": {
-        "x": "<number>",
-        "y": "<number>",
-        "z": "<number>"
-      },
-      "rotation": {
-        "x": "<number>",
-        "y": "<number>",
-        "z": "<number>"
-      },
-      "time": "<number>",
-      "uuid": "<string>"
+  "namespace": "genericprops",
+  "event": "update_object",
+  "data": {
+    "object_type": "planet | moon",
+    "object_uuid": "<uuid>",
+    "object_data": {
+      "from_timestamp": "<number>",
+      "positions": [
+        {
+          "x": "<number>",
+          "y": "<number>",
+          "z": "<number>"
+        }
+      ],
+      "rotations": [
+        {
+          "x": "<number>",
+          "y": "<number>",
+          "z": "<number>"
+        }
+      ]
     }
-  ],
-  "type": "next-ticks"
+  }
 }
 ```
 
@@ -179,6 +194,15 @@ To make API calls, a collection for [Bruno](https://www.usebruno.com/) software 
 All endpoints contain an example :
 
 ![api_rest_endpoints_example](documentation/assets/api_rest_endpoints_example.png)
+
+## BONUS
+
+Test Websocket with [Orbit Visualizer 🔮](documentation/orbitVisualizer.html) (no need server, just open file)
+
+1. Start server with `make pnpm dev` or `make pnpm build && make pnpm start`
+2. Click `Connect`
+
+![orbit-visualizer](documentation/assets/orbit-visualizer.png)
 
 ---
 

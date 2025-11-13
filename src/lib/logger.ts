@@ -95,6 +95,16 @@ export const apiLogger = baseLogger.child({ component: "🌐 API" });
 
 export const cacheLogger = baseLogger.child({ component: "💾 Cache" });
 
+export const cacheTransformLogger = baseLogger.child({ component: "💾 Cache" });
+
+export const keplerOrbitLogger = baseLogger.child({
+  component: "🪐 KeplerOrbit",
+});
+
+export const keplerOrbitServiceLogger = baseLogger.child({
+  component: "🚀 KeplerOrbitService",
+});
+
 // ===================================
 // Helpers pour logs structurés
 // ===================================
@@ -183,8 +193,6 @@ export const logError = (
   error: unknown,
   context?: Record<string, unknown>,
 ) => {
-  console.log(error);
-
   if (error instanceof ZodError) {
     const formattedError = formatZodError(error);
 
@@ -255,7 +263,7 @@ export const logPerformance = (
       duration,
       ...metadata,
     },
-    `⏱️  ${operation} took ${duration}ms`,
+    `⏱️  ${operation} took ${duration.toFixed(3)}ms`,
   );
 };
 

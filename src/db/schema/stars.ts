@@ -16,7 +16,7 @@ import type { z } from "zod";
 import { systems } from "./systems";
 
 export const stars = pgTable("stars", {
-  id: integer("id").primaryKey(),
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   uuid: uuid("uuid").defaultRandom().unique(),
   systemId: integer("system_id").references(() => systems.id),
   name: text("name").notNull().unique(),
@@ -33,14 +33,8 @@ export const starsRelations = relations(stars, ({ one }) => ({
 }));
 
 export const starSchema = createSelectSchema(stars);
-export const createStarSchema = createInsertSchema(stars).omit({
-  id: true,
-  uuid: true,
-});
-export const updateStarSchema = createUpdateSchema(stars).omit({
-  id: true,
-  uuid: true,
-});
+export const createStarSchema = createInsertSchema(stars);
+export const updateStarSchema = createUpdateSchema(stars);
 
 export type Star = z.infer<typeof starSchema>;
 export type NewStar = z.infer<typeof createStarSchema>;
