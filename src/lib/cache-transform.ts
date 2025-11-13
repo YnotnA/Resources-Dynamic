@@ -127,18 +127,13 @@ export class CacheTransform {
     const requestedStart = params.startTime;
     const requestedEnd = params.startTime + params.duration;
 
-    const tolerance = 1 / params.frequency;
-
-    if (
-      requestedStart >= cachedStart - tolerance &&
-      requestedEnd <= cachedEnd + tolerance
-    ) {
+    if (requestedStart >= cachedStart && requestedEnd <= cachedEnd) {
       this.incrementAccessCount(cacheKey);
       this.updateLastAccessAt(cacheKey);
       cacheTransformLogger.debug(
         {
           objectId: params.objectId,
-          cached: `${cachedStart.toFixed(0)}-${cachedEnd.toFixed(0)}s (${cached.transforms.length} samples)`,
+          cached: `${cachedStart.toFixed(0)}-${cachedEnd.toFixed(0)}s (${cached.transforms.length} transforms)`,
           request: `${requestedStart.toFixed(0)}-${requestedEnd.toFixed(0)}s`,
         },
         `✅ Cache HIT for ${params.objectId}`,
@@ -149,7 +144,7 @@ export class CacheTransform {
     cacheTransformLogger.debug(
       {
         objectId: params.objectId,
-        cached: `${cachedStart.toFixed(0)}-${cachedEnd.toFixed(0)}s (${cached.transforms.length} samples)`,
+        cached: `${cachedStart.toFixed(0)}-${cachedEnd.toFixed(0)}s (${cached.transforms.length} transforms)`,
         request: `${requestedStart.toFixed(0)}-${requestedEnd.toFixed(0)}s`,
       },
       `⚠️  Cache PARTIAL for ${params.objectId}`,
@@ -241,7 +236,7 @@ export class CacheTransform {
         count: subset.length,
         cacheSize: cached.transforms.length,
       },
-      `✂️  Extracted ${subset.length} samples [${startIndex}-${endIndex}] from cache of ${cached.transforms.length}`,
+      `✂️  Extracted ${subset.length} transforms [${startIndex}-${endIndex}] from cache of ${cached.transforms.length}`,
     );
 
     return subset;
@@ -269,9 +264,10 @@ export class CacheTransform {
     const bufferDuration = requestedDuration * this.prefetchConfig.multiplier;
     const totalDuration = requestedDuration + bufferDuration;
 
-    const maxDurationSamples = this.prefetchConfig.maxTransformCount * timeStep;
+    const maxDurationTransforms =
+      this.prefetchConfig.maxTransformCount * timeStep;
 
-    const finalDuration = Math.min(totalDuration, maxDurationSamples);
+    const finalDuration = Math.min(totalDuration, maxDurationTransforms);
 
     cacheTransformLogger.debug(
       {
@@ -289,7 +285,7 @@ export class CacheTransform {
   }
 
   private normalizeCache(transforms: Transform[]): Float64Array {
-    const arr = new Float64Array(transforms.length * 4);
+    const arr = new Float64Array(transforms.length * 7);
     transforms.forEach((transform, i) => {
       const idx = i * 7;
       arr[idx] = transform.timeS;

@@ -54,7 +54,7 @@ export const getInit = async (requestInitData: RequestInitWsType["data"]) => {
       requestInitData,
       "planet",
       (target, fromTime, duration, timesteps) =>
-        getPlanetNextTicks(target, fromTime, duration, timesteps),
+        getPlanetUpdateTransforms(target, fromTime, duration, timesteps),
     );
 
     const moonsData = getAllObjectsData<Moon>(
@@ -62,7 +62,7 @@ export const getInit = async (requestInitData: RequestInitWsType["data"]) => {
       requestInitData,
       "moon",
       (target, fromTime, duration, timesteps) =>
-        getMoonNextTicks(target, fromTime, duration, timesteps),
+        getMoonUpdateTransforms(target, fromTime, duration, timesteps),
     );
 
     logPerformance(logger, `Queries for init`, timer.end());
@@ -149,7 +149,7 @@ export const getUpdateObject = (
         requestTransformData,
         "planet",
         (target, fromTime, duration, timesteps) =>
-          getPlanetNextTicks(target, fromTime, duration, timesteps),
+          getPlanetUpdateTransforms(target, fromTime, duration, timesteps),
       );
     } else if (moon) {
       objectData = getObjectData<Moon>(
@@ -157,7 +157,7 @@ export const getUpdateObject = (
         requestTransformData,
         "moon",
         (target, fromTime, duration, timesteps) =>
-          getMoonNextTicks(target, fromTime, duration, timesteps),
+          getMoonUpdateTransforms(target, fromTime, duration, timesteps),
       );
     } else {
       logger.error({ target }, `Object not found: ${target}`);
@@ -179,7 +179,7 @@ export const getUpdateObject = (
     return objectData;
   } catch (error) {
     logError(logger, error, {
-      context: "getNextTicks",
+      context: "getUpdateObject",
       target,
       fromTime: requestTransformData.from_timestamp,
     });
@@ -224,7 +224,7 @@ const getPlanetByUuid = (uuid: string): Planet | undefined => {
   return planets.find((planet) => planet.uuid === uuid);
 };
 
-const getPlanetNextTicks = (
+const getPlanetUpdateTransforms = (
   target: string,
   fromTime: number,
   duration: number,
@@ -273,7 +273,7 @@ const getMoonByUuid = (uuid: string): Moon | undefined => {
   return moons.find((moon) => moon.uuid === uuid);
 };
 
-const getMoonNextTicks = (
+const getMoonUpdateTransforms = (
   target: string,
   fromTime: number,
   duration: number,
@@ -296,7 +296,7 @@ const getMoonNextTicks = (
     throw new Error(`Planet for moon "${moon.name}" not found: ${target}`);
   }
 
-  const moonPlanetPositions = getPlanetNextTicks(
+  const moonPlanetPositions = getPlanetUpdateTransforms(
     moonPlanet.uuid as string,
     fromTime,
     duration,
