@@ -1,8 +1,8 @@
 import { decode, encode } from "@msgpack/msgpack";
-import { ConnectedMessageType } from "@websocket/schema/Response/connected.model";
-import { ErrorMessageType } from "@websocket/schema/Response/error.model";
-import { ResponseInitType } from "@websocket/schema/Response/init.ws.model";
-import { ResponseWsType } from "@websocket/schema/Response/response.model";
+import { ConnectedMessageWsType } from "@websocket/schema/Response/connected.ws.model";
+import { ErrorMessageWsType } from "@websocket/schema/Response/error.ws.model";
+import { ResponseInitWsType } from "@websocket/schema/Response/init.ws.model";
+import { ResponseWsType } from "@websocket/schema/Response/response.ws.model";
 import WebSocket from "ws";
 
 export class TestWebSocketClient {
@@ -63,7 +63,7 @@ export class TestWebSocketClient {
 
   async waitForConnected(
     timeout: number = 5000,
-  ): Promise<ConnectedMessageType> {
+  ): Promise<ConnectedMessageWsType> {
     const msg = await this.waitForMessage(timeout);
 
     if ("type" in msg && msg.type === "connected") {
@@ -73,7 +73,7 @@ export class TestWebSocketClient {
     throw new Error(`Expected connected message, got: ${JSON.stringify(msg)}`);
   }
 
-  async waitForInit(timeout: number = 5000): Promise<ResponseInitType> {
+  async waitForInit(timeout: number = 5000): Promise<ResponseInitWsType> {
     const msg = await this.waitForMessage(timeout);
 
     if ("event" in msg && msg.event === "create_object") {
@@ -83,7 +83,7 @@ export class TestWebSocketClient {
     throw new Error(`Expected init message, got: ${JSON.stringify(msg)}`);
   }
 
-  async waitForError(timeout: number = 5000): Promise<ErrorMessageType> {
+  async waitForError(timeout: number = 5000): Promise<ErrorMessageWsType> {
     const msg = await this.waitForMessage(timeout);
 
     if ("error" in msg) {

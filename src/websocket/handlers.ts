@@ -8,9 +8,9 @@ import type { RequestInitWsType } from "./schema/Request/init.ws.model";
 import type { RequestWsType } from "./schema/Request/request.ws.model";
 import { requestWsSchema } from "./schema/Request/request.ws.model";
 import type { RequestTransformWsType } from "./schema/Request/transform.ws.model";
-import type { ResponseInitDataType } from "./schema/Response/init.ws.model";
-import type { ResponseWsType } from "./schema/Response/response.model";
-import type { ResponseUpdateObjectDataType } from "./schema/Response/updateObject.ws.model";
+import type { ResponseInitDataWsType } from "./schema/Response/init.ws.model";
+import type { ResponseWsType } from "./schema/Response/response.ws.model";
+import type { ResponseUpdateObjectDataWsType } from "./schema/Response/updateObject.ws.model";
 
 // Store connected clients with metadata
 const clients = new Map<WebSocket, { id: string; connectedAt: Date }>();
@@ -100,7 +100,7 @@ const handleInit = async (ws: WebSocket, msg: RequestInitWsType) => {
       `✅ Sent init ${objects.length} objects`,
     );
 
-    const initData: ResponseInitDataType[] = objects.map((object) => {
+    const initData: ResponseInitDataWsType[] = objects.map((object) => {
       return {
         object_type: object.objectType,
         object_uuid: object.target.uuid as string,
@@ -167,7 +167,7 @@ const handleTransform = (ws: WebSocket, msg: RequestTransformWsType) => {
       `✅ Sent ${object.transforms?.length} positions`,
     );
 
-    const responseUpdateObjectData: ResponseUpdateObjectDataType = {
+    const responseUpdateObjectData: ResponseUpdateObjectDataWsType = {
       object_type: object.objectType,
       object_uuid: object.target.uuid as string,
       object_data: {

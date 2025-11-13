@@ -6,7 +6,7 @@ import { decode, encode } from "@msgpack/msgpack";
 import type { RequestInitWsType } from "@websocket/schema/Request/init.ws.model";
 import type { RequestTransformWsType } from "@websocket/schema/Request/transform.ws.model";
 // import { NextTicksMessageType } from "@websocket/schema/Response/nextTick.model";
-import type { ResponseWsType } from "@websocket/schema/Response/response.model";
+import type { ResponseWsType } from "@websocket/schema/Response/response.ws.model";
 // import type { Vector3Type } from "@websocket/schema/vector3.model";
 import WebSocket from "ws";
 

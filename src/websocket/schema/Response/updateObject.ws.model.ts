@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { vector3Schema } from "../vector3.model";
 
-const responseUpdateObjectDataSchema = z.object({
+const responseUpdateObjectDataWsSchema = z.object({
   object_type: z.enum(["planet", "moon", "system", "star"]),
   object_uuid: z.uuidv4(),
   object_data: z.object({
@@ -12,15 +12,15 @@ const responseUpdateObjectDataSchema = z.object({
   }),
 });
 
-export const responseUpdateObjectSchema = z.object({
+export const responseUpdateObjectWsSchema = z.object({
   namespace: z.literal("genericprops"),
   event: z.literal("update_object"),
-  data: responseUpdateObjectDataSchema,
+  data: responseUpdateObjectDataWsSchema,
 });
 
-export type ResponseUpdateObjectType = z.infer<
-  typeof responseUpdateObjectSchema
+export type ResponseUpdateObjectWsType = z.infer<
+  typeof responseUpdateObjectWsSchema
 >;
-export type ResponseUpdateObjectDataType = z.infer<
-  typeof responseUpdateObjectDataSchema
+export type ResponseUpdateObjectDataWsType = z.infer<
+  typeof responseUpdateObjectDataWsSchema
 >;
