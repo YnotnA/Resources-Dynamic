@@ -5,3 +5,4 @@ drizzle
 *.log
 .env
 .env.*
+*.md

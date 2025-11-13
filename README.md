@@ -74,55 +74,55 @@ Used to retrieve all information concerning stellar objects, including their pos
 #### Request :
 
 ```json
-
 {
-    "event_type": "init",
-    "data": {
-        "duration_s": "<number>";
-        "frequency": "<number>";
-        "from_timestamp": "<number>";
-        "system_internal_name": "<string>";
-    };
+  "event_type": "init",
+  "data": {
+    "system_internal_name": "<string>",
+    "duration_s": "<number>",
+    "frequency": "<number>",
+    "from_timestamp": "<number>"
+  }
 }
-
 ```
+
+- **system_internal_name** : Internal name of system (ex: tarsis)
 
 #### Response :
 
 ```json
 {
-  "data": [
-    {
-      "object_data": {
-        "from_timestamp": "<number>",
-        "name": "<string>",
-        "parent_id": "<uuid>", // Empty for "system"
-        // Missing for "system" and "star"
-        "positions": [
-          {
-            "x": "<number>",
-            "y": "<number>",
-            "z": "<number>"
-          }
-        ],
-        // Missing for "system" and "star"
-        "rotations": [
-          {
-            "x": "<number>",
-            "y": "<number>",
-            "z": "<number>"
-          }
-        ],
-        "scenename": "<string>"
-      },
-      "object_type": "planet | moon | system | star",
-      "object_uuid": "<uuid>"
-    }
-  ],
+  "namespace": "genericprops",
   "event": "create_object",
-  "namespace": "genericprops"
+  "data": [{
+    "object_type": "planet | moon | system | star",
+    "object_uuid": "<uuid>",
+    "object_data": {
+      "name": "<string>",
+      "scenename": "<string>",
+      "parent_id": "<uuid>",
+      "from_timestamp": "<number>",
+      "positions": [
+        {
+          "x": "<number>",
+          "y": "<number>",
+          "z": "<number>"
+        }
+      ],
+      "rotations": [
+        {
+          "x": "<number>",
+          "y": "<number>",
+          "z": "<number>"
+        }
+      ],
+    }
+  }]
 }
 ```
+
+- **parent_id** : Empty for "system"
+- **positions** : Missing for "system" and "star"
+- **rotations** : Missing for "system" and "star"
 
 ---
 
@@ -134,26 +134,30 @@ Used to retrieve the transforms of a stellar object by UUID, specifying the star
 
 ```json
 {
+  "event_type": "transform",
   "data": {
+    "uuid": "<uuid>",
     "duration_s": "<number>",
     "frequency": "<number>",
     "from_timestamp": "<number>",
-    "uuid": "<uuid>"
-  },
-  "event_type": "transform"
+  }
 }
 ```
 
 - **uuid**: Object uuid
-- **from_timestamp**: Start from timestamp
 - **duration_s** : Duration (in seconds)
 - **Frequency** : Frequency (Hz)
+- **from_timestamp**: Start from timestamp
 
 #### Response :
 
 ```json
 {
+  "namespace": "genericprops",
+  "event": "update_object",
   "data": {
+    "object_type": "planet | moon",
+    "object_uuid": "<uuid>",
     "object_data": {
       "from_timestamp": "<number>",
       "positions": [
@@ -170,12 +174,8 @@ Used to retrieve the transforms of a stellar object by UUID, specifying the star
           "z": "<number>"
         }
       ]
-    },
-    "object_type": "planet | moon",
-    "object_uuid": "<uuid>"
-  },
-  "event": "update_object",
-  "namespace": "genericprops"
+    }
+  }
 }
 ```
 
