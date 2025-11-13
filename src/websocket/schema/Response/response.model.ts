@@ -2,11 +2,11 @@ import { z } from "zod";
 
 import { connectedMessageSchema } from "./connected.model";
 import { errorMessageSchema } from "./error.model";
-import { initMessageSchema } from "./init.model";
+import { responseInitSchema } from "./init.model";
 import { nextTicksMessageSchema } from "./nextTick.model";
 
 export const ResponseWsSchema = z.union([
-  initMessageSchema,
+  responseInitSchema,
   connectedMessageSchema,
   errorMessageSchema,
   nextTicksMessageSchema,

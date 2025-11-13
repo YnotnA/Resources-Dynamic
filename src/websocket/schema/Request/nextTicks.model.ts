@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-import { requestTransform } from "./requestTransform.model";
+import { requestTransformBase } from "./requestTransform.model";
 
 export const nextTicksSchema = z.object({
   event_type: z.literal("transform"),
-  data: requestTransform.extend({
+  data: requestTransformBase.extend({
     uuid: z.uuid(),
   }),
 });

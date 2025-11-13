@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-import { requestTransform } from "./requestTransform.model";
+import { requestTransformBase } from "./requestTransform.model";
 
 export const requestInitSchema = z.object({
   event_type: z.literal("init"),
-  data: requestTransform.extend({
+  data: requestTransformBase.extend({
     system_internal_name: z.string(),
   }),
 });

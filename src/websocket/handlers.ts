@@ -1,4 +1,4 @@
-import { getInit, getNextTicks } from "@lib/celestial-bodies/transforms";
+import { getInit, getUpdateObject } from "@lib/celestial-bodies/transforms";
 import { createTimer, logError, wsLogger } from "@lib/logger";
 import { decode, encode } from "@msgpack/msgpack";
 import type { WebSocket } from "ws";
@@ -8,7 +8,7 @@ import type { RequestInitType } from "./schema/Request/init.model";
 import type { NextTicksType } from "./schema/Request/nextTicks.model";
 import type { RequestWsType } from "./schema/Request/request.model";
 import { requestWsSchema } from "./schema/Request/request.model";
-import type { InitMessageType } from "./schema/Response/init.model";
+import type { ResponseInitDataType } from "./schema/Response/init.model";
 import type { NextTicksMessageType } from "./schema/Response/nextTick.model";
 import type { ResponseWsType } from "./schema/Response/response.model";
 
@@ -92,7 +92,7 @@ const handleInit = async (ws: WebSocket, msg: RequestInitType) => {
       `✅ Sent init ${objects.length} positions`,
     );
 
-    const init: InitMessageType["data"] = objects.map((object) => {
+    const initData: ResponseInitDataType[] = objects.map((object) => {
       return {
         object_type: object.objectType,
         object_uuid: object.target.uuid as string,
@@ -100,15 +100,20 @@ const handleInit = async (ws: WebSocket, msg: RequestInitType) => {
           parent_id: object.parentId,
           from_timestamp: msg.data.from_timestamp,
           name: object.target.name,
-          scenename: `scenes/planet/${object.target.internalName}.tscn`,
-          positions: object.transforms.map((transform) => transform.position),
-          rotations: [
-            {
-              x: 0, // TODO: define
-              y: 0, // TODO: define
-              z: 0, // TODO: define
-            },
-          ],
+          scenename:
+            object.objectType !== "system"
+              ? `scenes/${object.objectType}/${object.target.internalName}.tscn`
+              : "",
+          ...(object.transforms && {
+            positions: object.transforms.map((transform) => transform.position),
+            rotations: [
+              {
+                x: 0, // TODO: define
+                y: 0, // TODO: define
+                z: 0, // TODO: define
+              },
+            ],
+          }),
         },
       };
     });
@@ -116,14 +121,14 @@ const handleInit = async (ws: WebSocket, msg: RequestInitType) => {
     sendMessage(ws, {
       namespace: "genericprops",
       event: "create_object",
-      data: init,
+      data: initData,
     });
   } catch (error) {
     logError(wsLogger, error, { context: "handleInit" });
     sendError(
       ws,
       "Processing error",
-      `${error instanceof Error ? error.message : "Failed to get init"}`,
+      `${error instanceof Error ? error.message : "Failed to handle init"}`,
     );
   }
 
@@ -156,7 +161,12 @@ const handleTransform = async (ws: WebSocket, msg: NextTicksType) => {
   );
 
   try {
-    const coords = await getNextTicks(uuid, fromTimestamp, duration, frequency);
+    const coords = await getUpdateObject(
+      uuid,
+      fromTimestamp,
+      duration,
+      frequency,
+    );
 
     wsLogger.debug(
       {
