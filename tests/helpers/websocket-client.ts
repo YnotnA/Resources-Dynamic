@@ -1,7 +1,7 @@
 import { decode, encode } from "@msgpack/msgpack";
 import { ConnectedMessageType } from "@websocket/schema/Response/connected.model";
 import { ErrorMessageType } from "@websocket/schema/Response/error.model";
-import { ResponseInitType } from "@websocket/schema/Response/init.model";
+import { ResponseInitType } from "@websocket/schema/Response/init.ws.model";
 import { PongMessageType } from "@websocket/schema/Response/pong.model";
 import { ResponseWsType } from "@websocket/schema/Response/response.model";
 import WebSocket from "ws";

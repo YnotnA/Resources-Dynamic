@@ -3,8 +3,8 @@
 // import { keplerOrbitService } from "@lib/kepler-orbit/kepler-orbit-service";
 // import { OrbitDataHelper } from "@lib/kepler-orbit/orbit-data-helper";
 import { decode, encode } from "@msgpack/msgpack";
-import type { RequestInitType } from "@websocket/schema/Request/init.model";
-import type { NextTicksType } from "@websocket/schema/Request/nextTicks.model";
+import type { RequestInitWsType } from "@websocket/schema/Request/init.ws.model";
+import type { RequestTransformWsType } from "@websocket/schema/Request/transform.ws.model";
 // import { NextTicksMessageType } from "@websocket/schema/Response/nextTick.model";
 import type { ResponseWsType } from "@websocket/schema/Response/response.model";
 // import type { Vector3Type } from "@websocket/schema/vector3.model";
@@ -594,7 +594,7 @@ const ws = new WebSocket("ws://localhost:9200");
 ws.on("open", () => {
   console.log("✅ Connected to WebSocket server");
 
-  const requestInit: RequestInitType = {
+  const requestInit: RequestInitWsType = {
     event_type: "init",
     data: {
       duration_s: 3,
@@ -608,7 +608,7 @@ ws.on("open", () => {
 
   let fromTime = 0;
   setInterval(() => {
-    const nextTicksRequest: NextTicksType = {
+    const nextTicksRequest: RequestTransformWsType = {
       event_type: "transform",
       data: {
         duration_s: 3,
@@ -626,10 +626,7 @@ ws.on("message", (data) => {
   const decoded = decode(data as Buffer) as ResponseWsType;
 
   if ("data" in decoded) {
-    console.log(
-      "🎯 Received:",
-      decoded.data
-    );
+    console.log("🎯 Received:", decoded.data);
   } else {
     console.log("🎯 Received:", decoded);
   }
