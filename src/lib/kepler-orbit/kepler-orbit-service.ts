@@ -54,6 +54,7 @@ export class KeplerOrbitService {
       transforms[i] = {
         timeS: Math.round(currentTime * 1000) / 1000,
         position,
+        rotation: { x: 0, y: 0, z: 0 },
       };
 
       currentTime += timeStep;

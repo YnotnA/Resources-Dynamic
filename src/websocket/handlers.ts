@@ -114,13 +114,7 @@ const handleInit = async (ws: WebSocket, msg: RequestInitWsType) => {
               : "",
           ...(object.transforms && {
             positions: object.transforms.map((transform) => transform.position),
-            rotations: [
-              {
-                x: 0, // TODO: define
-                y: 0, // TODO: define
-                z: 0, // TODO: define
-              },
-            ],
+            rotations: object.transforms.map((transform) => transform.rotation),
           }),
         },
       };
@@ -180,13 +174,7 @@ const handleTransform = (ws: WebSocket, msg: RequestTransformWsType) => {
         from_timestamp: msg.data.from_timestamp,
         ...(object.transforms && {
           positions: object.transforms.map((transform) => transform.position),
-          rotations: [
-            {
-              x: 0, // TODO: define
-              y: 0, // TODO: define
-              z: 0, // TODO: define
-            },
-          ],
+          rotations: object.transforms.map((transform) => transform.rotation),
         }),
       },
     };

@@ -627,6 +627,16 @@ ws.on("message", (data) => {
 
   if ("data" in decoded) {
     console.log("🎯 Received:", decoded.data);
+    if ("object_data" in decoded.data) {
+      const positions = decoded.data.object_data.positions;
+      if (positions) {
+        positions.map((position) => console.log(position));
+      }
+      const rotations = decoded.data.object_data.rotations;
+      if (rotations) {
+        rotations.map((rotation) => console.log(rotation));
+      }
+    }
   } else {
     console.log("🎯 Received:", decoded);
   }
