@@ -1,6 +1,5 @@
+import { vector3Schema } from "@lib/vector3/schema/vector3.model";
 import { z } from "zod";
-
-import { vector3Schema } from "../vector3.model";
 
 const responseUpdateObjectDataWsSchema = z.object({
   object_type: z.enum(["planet", "moon", "system", "star"]),
