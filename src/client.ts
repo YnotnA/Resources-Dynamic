@@ -2,6 +2,7 @@
 // import type { OrbitCalculationParams } from "@lib/kepler-orbit/kepler-orbit-service";
 // import { keplerOrbitService } from "@lib/kepler-orbit/kepler-orbit-service";
 // import { OrbitDataHelper } from "@lib/kepler-orbit/orbit-data-helper";
+import type { Vector3Type } from "@lib/vector3/schema/vector3.model";
 import { decode, encode } from "@msgpack/msgpack";
 import type { RequestInitWsType } from "@websocket/schema/Request/init.ws.model";
 import type { RequestTransformWsType } from "@websocket/schema/Request/transform.ws.model";
@@ -591,14 +592,17 @@ import WebSocket from "ws";
 
 const ws = new WebSocket("ws://localhost:9200");
 
+const DURATION = 43000;
+const FREQUENCY = 0.002;
+
 ws.on("open", () => {
   console.log("✅ Connected to WebSocket server");
 
   const requestInit: RequestInitWsType = {
     event_type: "init",
     data: {
-      duration_s: 3,
-      frequency: 60,
+      duration_s: DURATION,
+      frequency: FREQUENCY,
       from_timestamp: 0,
       system_internal_name: "tarsis",
     },
@@ -611,14 +615,15 @@ ws.on("open", () => {
     const nextTicksRequest: RequestTransformWsType = {
       event_type: "transform",
       data: {
-        duration_s: 3,
-        frequency: 60,
+        duration_s: DURATION,
+        frequency: FREQUENCY,
         from_timestamp: fromTime,
-        uuid: "88f3a0af-28c7-42f6-8228-551a98fc55cd",
+        uuid: "88f3a0af-28c7-42f6-8228-551a98fc55cd", // Lune
+        // uuid: "844221a5-e2be-432c-94c2-947462c1c310", // Planet Tarsis 1
       },
     };
     ws.send(encode(nextTicksRequest));
-    fromTime += 3;
+    fromTime += DURATION;
   }, 1000);
 });
 
@@ -626,17 +631,31 @@ ws.on("message", (data) => {
   const decoded = decode(data as Buffer) as ResponseWsType;
 
   if ("data" in decoded) {
-    console.log("🎯 Received:", decoded.data);
-    // if ("object_data" in decoded.data) {
-    //   const positions = decoded.data.object_data.positions;
-    //   if (positions) {
-    //     positions.map((position) => console.log(position));
-    //   }
-    //   const rotations = decoded.data.object_data.rotations;
-    //   if (rotations) {
-    //     rotations.map((rotation) => console.log(rotation));
-    //   }
-    // }
+    // console.log(decoded.data[2]);
+    // console.log("🎯 Received:", decoded.data[2].object_data.rotations);
+    if ("object_data" in decoded.data) {
+      // const positions = decoded.data.object_data.positions;
+      // if (positions) {
+      //   positions.map((position) => console.log(position));
+      // }
+      const timeS = decoded.data.object_data.from_timestamp;
+      const rotations = decoded.data.object_data.rotations as Vector3Type[];
+      const positions = decoded.data.object_data.positions as Vector3Type[];
+      testRotationContinuity(rotations);
+      detectAngleFlip(rotations);
+
+      const transforms: Transform[] = rotations.map((rotation, index) => {
+        return {
+          timeS: timeS + index * (1 / FREQUENCY),
+          rotation,
+          position: positions[index],
+        };
+      });
+      checkTransforms(transforms);
+      // if (rotations) {
+      //   rotations.map((rotation) => console.log(rotation));
+      // }
+    }
   } else {
     console.log("🎯 Received:", decoded);
   }
@@ -644,3 +663,153 @@ ws.on("message", (data) => {
 
 ws.on("close", () => console.log("🔴 Disconnected"));
 ws.on("error", (err) => console.error("❌ WebSocket error:", err));
+
+function testRotationContinuity(
+  rotations: { x: number; y: number; z: number }[],
+  maxJump = 0.1,
+) {
+  for (let i = 1; i < rotations.length; i++) {
+    const dy = Math.abs(rotations[i].y - rotations[i - 1].y);
+    if (dy > maxJump) {
+      console.log(
+        `❌ Saut détecté entre rotation ${i - 1} et ${i} : Δy = ${dy}`,
+      );
+    } else {
+      // Optionnel, pour suivi
+      console.log(`✔️ Step ${i}: Δy = ${dy}`);
+    }
+  }
+}
+
+function detectAngleFlip(
+  rotations: { x: number; y: number; z: number }[],
+  minJump = Math.PI,
+) {
+  for (let i = 1; i < rotations.length; i++) {
+    // On prend l'angle Y (mais tu peux faire pour X ou Z aussi)
+    const prev = rotations[i - 1].y;
+    const curr = rotations[i].y;
+    const delta = curr - prev;
+
+    // On ramène dans [-π, π] si besoin
+    const normalizedDelta = Math.atan2(Math.sin(delta), Math.cos(delta));
+
+    // Si le changement d'angle est brusque (par exemple plus de pi radians), c'est probablement un flip
+    if (Math.abs(normalizedDelta) > minJump) {
+      console.log(
+        `⚠️ Inversion brutale Y entre ${i - 1} et ${i} : Δy = ${normalizedDelta.toFixed(2)} rad (${((normalizedDelta * 180) / Math.PI).toFixed(1)}°)`,
+      );
+    }
+  }
+  for (let i = 1; i < rotations.length; i++) {
+    // On prend l'angle X (mais tu peux faire pour X ou Z aussi)
+    const prev = rotations[i - 1].x;
+    const curr = rotations[i].x;
+    const delta = curr - prev;
+
+    // On ramène dans [-π, π] si besoin
+    const normalizedDelta = Math.atan2(Math.sin(delta), Math.cos(delta));
+
+    // Si le changement d'angle est brusque (par exemple plus de pi radians), c'est probablement un flip
+    if (Math.abs(normalizedDelta) > minJump) {
+      console.log(
+        `⚠️ Inversion brutale X entre ${i - 1} et ${i} : Δx = ${normalizedDelta.toFixed(2)} rad (${((normalizedDelta * 180) / Math.PI).toFixed(1)}°)`,
+      );
+    }
+  }
+  for (let i = 1; i < rotations.length; i++) {
+    // On prend l'angle Z (mais tu peux faire pour X ou Z aussi)
+    const prev = rotations[i - 1].z;
+    const curr = rotations[i].z;
+    const delta = curr - prev;
+
+    // On ramène dans [-π, π] si besoin
+    const normalizedDelta = Math.atan2(Math.sin(delta), Math.cos(delta));
+
+    // Si le changement d'angle est brusque (par exemple plus de pi radians), c'est probablement un flip
+    if (Math.abs(normalizedDelta) > minJump) {
+      console.log(
+        `⚠️ Inversion brutale Z entre ${i - 1} et ${i} : Δz = ${normalizedDelta.toFixed(2)} rad (${((normalizedDelta * 180) / Math.PI).toFixed(1)}°)`,
+      );
+    }
+  }
+}
+
+interface Transform {
+  timeS: number;
+  position: { x: number; y: number; z: number };
+  rotation: { x: number; y: number; z: number };
+}
+
+function vectorNorm(v: { x: number; y: number; z: number }) {
+  return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+}
+function dot(a, b) {
+  return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+function deg(value: number): number {
+  return (value * 180) / Math.PI;
+}
+
+// On vérifie que l'axe Z local (calculé via la rotation) pointe bien vers la planète
+function checkTransforms(transforms: Transform[]) {
+  console.log(transforms);
+  for (let i = 0; i < transforms.length; ++i) {
+    console.log(transforms[i]);
+    const { position, rotation, timeS } = transforms[i];
+
+    // Reconstruit la matrice de rotation Euler XYZ
+    const cx = Math.cos(rotation.x),
+      sx = Math.sin(rotation.x);
+    const cy = Math.cos(rotation.y),
+      sy = Math.sin(rotation.y);
+    const cz = Math.cos(rotation.z),
+      sz = Math.sin(rotation.z);
+
+    // Matrice de rotation Euler - ordre XYZ (Godot)
+    // Local axes: colonne 0 = X local, colonne 1 = Y local, colonne 2 = Z local
+    const basis = [
+      // X local
+      {
+        x: cy * cz,
+        y: sx * sy * cz + cx * sz,
+        z: -cx * sy * cz + sx * sz,
+      },
+      // Y local
+      {
+        x: -cy * sz,
+        y: -sx * sy * sz + cx * cz,
+        z: cx * sy * sz + sx * cz,
+      },
+      // Z local (avant)
+      {
+        x: sy,
+        y: -sx * cy,
+        z: cx * cy,
+      },
+    ];
+
+    // Direction réelle vers la planète:
+    const towardPlanet = { x: -position.x, y: -position.y, z: -position.z };
+    const normDir = vectorNorm(towardPlanet);
+    const normZ = vectorNorm(basis[2]);
+
+    // cos(angle) entre le Z local et la direction planète
+    const dotZCenter = dot(
+      { x: basis[2].x, y: basis[2].y, z: basis[2].z },
+      {
+        x: towardPlanet.x / normDir,
+        y: towardPlanet.y / normDir,
+        z: towardPlanet.z / normDir,
+      },
+    );
+    const angle = Math.acos(dotZCenter / normZ);
+
+    if (deg(angle) > 2) {
+      console.warn(
+        `⚠️Mauvaise orientation à step ${i}, time ${timeS}, delta angle: ${deg(angle).toFixed(2)}°`,
+      );
+    }
+  }
+  console.log("Vérification d'orientation terminée.");
+}

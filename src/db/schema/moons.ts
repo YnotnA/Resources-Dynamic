@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  boolean,
   doublePrecision,
   integer,
   pgTable,
@@ -32,6 +33,9 @@ export const moons = pgTable("planet_moons", {
   radiusGravityInfluenceKm: doublePrecision(
     "radius_gravity_influence_km",
   ).notNull(),
+  tidalLocked: boolean("tidal_locked").notNull(),
+  tiltDeg: doublePrecision("tilt_deg").notNull(),
+  rotationH: doublePrecision("rotation_h").notNull(),
 });
 
 // Relations

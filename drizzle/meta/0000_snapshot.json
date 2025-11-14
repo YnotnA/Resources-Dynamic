@@ -1,5 +1,5 @@
 {
-  "id": "ed2e8ec2-23ff-4fd5-a996-5b3deab52faf",
+  "id": "b3581ab4-2441-4d84-847a-514abfadaae6",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -271,6 +271,24 @@
           "type": "double precision",
           "primaryKey": false,
           "notNull": true
+        },
+        "tidal_locked": {
+          "name": "tidal_locked",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tilt_deg": {
+          "name": "tilt_deg",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rotation_h": {
+          "name": "rotation_h",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {},
@@ -413,6 +431,24 @@
         },
         "radius_gravity_influence_km": {
           "name": "radius_gravity_influence_km",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tidal_locked": {
+          "name": "tidal_locked",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tilt_deg": {
+          "name": "tilt_deg",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rotation_h": {
+          "name": "rotation_h",
           "type": "double precision",
           "primaryKey": false,
           "notNull": true

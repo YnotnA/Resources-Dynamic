@@ -155,6 +155,9 @@ const importPlanetDb = async (
     nodeDeg: planet.ascending_node_deg,
     radiusKm: planet.radius_km / DISTANCE_FACTOR,
     radiusGravityInfluenceKm: radiusGravityInfluenceKm / 1000, // Convert to km
+    rotationH: planet.rotation_h,
+    tidalLocked: planet.tidal_locked,
+    tiltDeg: planet.tilt_deg,
   };
   return await createPlanet(newPlanet);
 };
@@ -196,6 +199,9 @@ const importMoonDb = async (
     radiusKm: moon.radius_km / DISTANCE_FACTOR,
     planetId: planet.id,
     radiusGravityInfluenceKm,
+    rotationH: moon.spin_period_h,
+    tidalLocked: moon.spin_locked,
+    tiltDeg: 0, // TODO: Missing data
   };
   return await createMoon(newMoon);
 };

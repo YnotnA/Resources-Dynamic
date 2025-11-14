@@ -1,45 +1,48 @@
-import type { Vector3Type } from "@lib/vector3/schema/vector3.model";
-
+import type { Vector3Type } from "./schema/vector3.model";
 import { Vector3Math } from "./vector3Math";
 
 export class Basis3D {
   constructor(
-    public x: Vector3Type = { x: 1, y: 0, z: 0 },
-    public y: Vector3Type = { x: 0, y: 1, z: 0 },
-    public z: Vector3Type = { x: 0, y: 0, z: 1 },
+    public x: Vector3Type = { x: 1, y: 0, z: 0 }, // Colonne X (right)
+    public y: Vector3Type = { x: 0, y: 1, z: 0 }, // Colonne Y (up)
+    public z: Vector3Type = { x: 0, y: 0, z: 1 }, // Colonne Z (forward)
   ) {}
 
   transform(v: Vector3Type): Vector3Type {
+    // Multiplication matrice-vecteur : M * v
     return {
-      x: this.x.x * v.x + this.x.y * v.y + this.x.z * v.z,
-      y: this.y.x * v.x + this.y.y * v.y + this.y.z * v.z,
-      z: this.z.x * v.x + this.z.y * v.y + this.z.z * v.z,
+      x: this.x.x * v.x + this.y.x * v.y + this.z.x * v.z,
+      y: this.x.y * v.x + this.y.y * v.y + this.z.y * v.z,
+      z: this.x.z * v.x + this.y.z * v.y + this.z.z * v.z,
     };
   }
 
   rotated(axis: Vector3Type, angleRad: number): Basis3D {
-    const cosA = Math.cos(angleRad);
-    const sinA = Math.sin(angleRad);
-    const axisNorm = Vector3Math.normalize(axis);
-
-    if (Vector3Math.magnitude(axis) === 0) {
+    const magnitude = Vector3Math.magnitude(axis);
+    if (magnitude === 0) {
       return this;
     }
 
+    const axisNorm = Vector3Math.normalize(axis);
+    const cosA = Math.cos(angleRad);
+    const sinA = Math.sin(angleRad);
     const { x: ux, y: uy, z: uz } = axisNorm;
+    const oneMinusCos = 1 - cosA;
 
-    const m00 = cosA + ux * ux * (1 - cosA);
-    const m01 = ux * uy * (1 - cosA) - uz * sinA;
-    const m02 = ux * uz * (1 - cosA) + uy * sinA;
+    // Matrice de rotation de Rodrigues
+    const m00 = cosA + ux * ux * oneMinusCos;
+    const m01 = ux * uy * oneMinusCos - uz * sinA;
+    const m02 = ux * uz * oneMinusCos + uy * sinA;
 
-    const m10 = uy * ux * (1 - cosA) + uz * sinA;
-    const m11 = cosA + uy * uy * (1 - cosA);
-    const m12 = uy * uz * (1 - cosA) - ux * sinA;
+    const m10 = uy * ux * oneMinusCos + uz * sinA;
+    const m11 = cosA + uy * uy * oneMinusCos;
+    const m12 = uy * uz * oneMinusCos - ux * sinA;
 
-    const m20 = uz * ux * (1 - cosA) - uy * sinA;
-    const m21 = uz * uy * (1 - cosA) + ux * sinA;
-    const m22 = cosA + uz * uz * (1 - cosA);
+    const m20 = uz * ux * oneMinusCos - uy * sinA;
+    const m21 = uz * uy * oneMinusCos + ux * sinA;
+    const m22 = cosA + uz * uz * oneMinusCos;
 
+    // Applique la rotation à chaque colonne de la base
     const rotVec = (v: Vector3Type): Vector3Type => ({
       x: m00 * v.x + m01 * v.y + m02 * v.z,
       y: m10 * v.x + m11 * v.y + m12 * v.z,
@@ -50,6 +53,7 @@ export class Basis3D {
   }
 
   inverse(): Basis3D {
+    // Pour une matrice orthonormale, l'inverse = la transposée
     return new Basis3D(
       { x: this.x.x, y: this.y.x, z: this.z.x },
       { x: this.x.y, y: this.y.y, z: this.z.y },
@@ -57,7 +61,31 @@ export class Basis3D {
     );
   }
 
+  get matrix(): number[][] {
+    // Retourne la matrice en format ligne-colonne standard
+    // matrix[row][col]
+    return [
+      [this.x.x, this.y.x, this.z.x], // Ligne 0
+      [this.x.y, this.y.y, this.z.y], // Ligne 1
+      [this.x.z, this.y.z, this.z.z], // Ligne 2
+    ];
+  }
+
   static identity(): Basis3D {
     return new Basis3D();
+  }
+
+  static fromForwardUp(forward: Vector3Type, upHint: Vector3Type): Basis3D {
+    // Normalise le vecteur forward
+    const f = Vector3Math.normalize(forward);
+
+    // Calcule le vecteur right (perpendiculaire à up et forward)
+    const r = Vector3Math.normalize(Vector3Math.cross(upHint, f));
+
+    // Recalcule up pour avoir une base orthonormée
+    const u = Vector3Math.cross(f, r);
+
+    // Retourne la base : x=right, y=up, z=forward
+    return new Basis3D(r, u, f);
   }
 }

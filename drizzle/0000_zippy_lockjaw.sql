@@ -35,6 +35,9 @@ CREATE TABLE "planets" (
 	"mean_anomaly_deg" double precision NOT NULL,
 	"radius_km" double precision NOT NULL,
 	"radius_gravity_influence_km" double precision NOT NULL,
+	"tidal_locked" boolean NOT NULL,
+	"tilt_deg" double precision NOT NULL,
+	"rotation_h" double precision NOT NULL,
 	CONSTRAINT "planets_uuid_unique" UNIQUE("uuid"),
 	CONSTRAINT "planets_name_unique" UNIQUE("name"),
 	CONSTRAINT "planets_internal_name_unique" UNIQUE("internal_name")
@@ -55,6 +58,9 @@ CREATE TABLE "planet_moons" (
 	"mean_anomaly_deg" double precision NOT NULL,
 	"radius_km" double precision NOT NULL,
 	"radius_gravity_influence_km" double precision NOT NULL,
+	"tidal_locked" boolean NOT NULL,
+	"tilt_deg" double precision NOT NULL,
+	"rotation_h" double precision NOT NULL,
 	CONSTRAINT "planet_moons_uuid_unique" UNIQUE("uuid"),
 	CONSTRAINT "planet_moons_name_unique" UNIQUE("name"),
 	CONSTRAINT "planet_moons_internal_name_unique" UNIQUE("internal_name")
