@@ -1,5 +1,4 @@
-import type { Vector3Type } from "@lib/vector3/schema/vector3.model";
-
+import type { Vector3Type } from "./schema/vector3.model";
 import { Vector3Math } from "./vector3Math";
 
 export class Basis3D {
@@ -10,35 +9,38 @@ export class Basis3D {
   ) {}
 
   transform(v: Vector3Type): Vector3Type {
+    // Multiplication matrice-vecteur : M * v
     return {
-      x: this.x.x * v.x + this.x.y * v.y + this.x.z * v.z,
-      y: this.y.x * v.x + this.y.y * v.y + this.y.z * v.z,
-      z: this.z.x * v.x + this.z.y * v.y + this.z.z * v.z,
+      x: this.x.x * v.x + this.y.x * v.y + this.z.x * v.z,
+      y: this.x.y * v.x + this.y.y * v.y + this.z.y * v.z,
+      z: this.x.z * v.x + this.y.z * v.y + this.z.z * v.z,
     };
   }
 
   rotated(axis: Vector3Type, angleRad: number): Basis3D {
-    const cosA = Math.cos(angleRad);
-    const sinA = Math.sin(angleRad);
-    const axisNorm = Vector3Math.normalize(axis);
-
-    if (Vector3Math.magnitude(axis) === 0) {
+    const magnitude = Vector3Math.magnitude(axis);
+    if (magnitude === 0) {
       return this;
     }
 
+    const axisNorm = Vector3Math.normalize(axis);
+    const cosA = Math.cos(angleRad);
+    const sinA = Math.sin(angleRad);
     const { x: ux, y: uy, z: uz } = axisNorm;
+    const oneMinusCos = 1 - cosA;
 
-    const m00 = cosA + ux * ux * (1 - cosA);
-    const m01 = ux * uy * (1 - cosA) - uz * sinA;
-    const m02 = ux * uz * (1 - cosA) + uy * sinA;
+    // Matrice de rotation de Rodrigues
+    const m00 = cosA + ux * ux * oneMinusCos;
+    const m01 = ux * uy * oneMinusCos - uz * sinA;
+    const m02 = ux * uz * oneMinusCos + uy * sinA;
 
-    const m10 = uy * ux * (1 - cosA) + uz * sinA;
-    const m11 = cosA + uy * uy * (1 - cosA);
-    const m12 = uy * uz * (1 - cosA) - ux * sinA;
+    const m10 = uy * ux * oneMinusCos + uz * sinA;
+    const m11 = cosA + uy * uy * oneMinusCos;
+    const m12 = uy * uz * oneMinusCos - ux * sinA;
 
-    const m20 = uz * ux * (1 - cosA) - uy * sinA;
-    const m21 = uz * uy * (1 - cosA) + ux * sinA;
-    const m22 = cosA + uz * uz * (1 - cosA);
+    const m20 = uz * ux * oneMinusCos - uy * sinA;
+    const m21 = uz * uy * oneMinusCos + ux * sinA;
+    const m22 = cosA + uz * uz * oneMinusCos;
 
     const rotVec = (v: Vector3Type): Vector3Type => ({
       x: m00 * v.x + m01 * v.y + m02 * v.z,
