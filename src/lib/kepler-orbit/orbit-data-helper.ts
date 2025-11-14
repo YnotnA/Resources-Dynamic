@@ -3,6 +3,7 @@ import type { Vector3Type } from "@lib/vector3/schema/vector3.model";
 
 import type { OrbitalObject } from "./kepler-orbit";
 import type { OrbitCalculationParams } from "./kepler-orbit-service";
+import type { RotationObject } from "./kepler-rotation";
 
 /**
  * Helper functions for database integration
@@ -159,7 +160,10 @@ export class OrbitDataHelper {
   /**
    * Convert PostgreSQL planet data to OrbitalElements
    */
-  static planetDBToOrbitalElements(object: Planet, star: Star): OrbitalObject {
+  static planetDBToOrbitalElements(
+    object: Planet,
+    star: Star,
+  ): OrbitalObject & RotationObject {
     return {
       primaryMassKg: star.massKg,
       objectMassKg: object.massKg,
@@ -169,10 +173,17 @@ export class OrbitDataHelper {
       longitudeOfAscendingNodeDeg: object.nodeDeg,
       argumentOfPeriapsisDeg: object.argPeriDeg,
       meanAnomalyDeg: object.meanAnomalyDeg,
+      rotationPeriodH: object.rotationH,
+      spinLongitudeDeg: 0, // TODO : no data in JSON
+      tidalLocked: object.tidalLocked,
+      tiltDeg: object.tiltDeg,
     };
   }
 
-  static moonDBToOrbitalElements(object: Moon, planet: Planet): OrbitalObject {
+  static moonDBToOrbitalElements(
+    object: Moon,
+    planet: Planet,
+  ): OrbitalObject & RotationObject {
     return {
       primaryMassKg: planet.massKg,
       objectMassKg: object.massKg,
@@ -182,6 +193,10 @@ export class OrbitDataHelper {
       longitudeOfAscendingNodeDeg: object.nodeDeg,
       argumentOfPeriapsisDeg: object.argPeriDeg,
       meanAnomalyDeg: object.meanAnomalyDeg,
+      rotationPeriodH: object.rotationH,
+      spinLongitudeDeg: 0, // TODO : no data in JSON
+      tidalLocked: object.tidalLocked,
+      tiltDeg: object.tiltDeg,
     };
   }
 }

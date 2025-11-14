@@ -8,9 +8,11 @@ import { CacheTransform } from "@lib/cache-transform";
 import { keplerOrbitServiceLogger, logPerformance } from "@lib/logger";
 
 import { KeplerOrbit, type OrbitalObject } from "./kepler-orbit";
+import type { RotationObject } from "./kepler-rotation";
+import { KeplerRotation } from "./kepler-rotation";
 
 export interface OrbitCalculationParams extends CacheCalculationParams {
-  orbitalObject: OrbitalObject;
+  orbitalObject: OrbitalObject & RotationObject;
 }
 
 export class KeplerOrbitService {
@@ -42,6 +44,7 @@ export class KeplerOrbitService {
     );
 
     const orbit = new KeplerOrbit(orbitalObject, params.startTime);
+    const orbitRotation = new KeplerRotation(orbitalObject, params.startTime);
     const steps = Math.max(1, Math.ceil(params.duration / timeStep));
     const transforms: Transform[] = new Array(steps) as Transform[];
 
@@ -50,11 +53,12 @@ export class KeplerOrbitService {
     for (let i = 0; i < steps; i++) {
       const dt = i === 0 ? 0 : timeStep;
       const position = orbit.advance(dt);
+      const rotation = orbitRotation.toEuler(dt, position);
 
       transforms[i] = {
         timeS: Math.round(currentTime * 1000) / 1000,
         position,
-        rotation: { x: 0, y: 0, z: 0 },
+        rotation,
       };
 
       currentTime += timeStep;

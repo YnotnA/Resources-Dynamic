@@ -21,7 +21,7 @@ export const moonSchema = z.object({
   inclination_deg: z.number(),
   arg_peri_deg: z.number(),
   ascending_node_deg: z.number(),
-  spin_locked: z.boolean().optional(),
+  spin_locked: z.boolean(),
   spin_period_h: z.number(),
   period_days: z.number(),
   atmosphere: atmosphereSchema,
