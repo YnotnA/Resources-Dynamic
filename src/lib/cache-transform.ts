@@ -1,11 +1,14 @@
-import type { Vector3Type } from "@lib/vector3/schema/vector3.model";
+import type {
+  QuaternionType,
+  Vector3Type,
+} from "@lib/vector3/schema/vector3.model";
 
 import { cacheTransformLogger, logError } from "./logger";
 
 export interface Transform {
   timeS: number;
   position: Vector3Type;
-  rotation: Vector3Type;
+  rotation: QuaternionType;
 }
 
 export interface CacheCalculationParams {
@@ -285,9 +288,9 @@ export class CacheTransform {
   }
 
   private normalizeCache(transforms: Transform[]): Float64Array {
-    const arr = new Float64Array(transforms.length * 7);
+    const arr = new Float64Array(transforms.length * 8);
     transforms.forEach((transform, i) => {
-      const idx = i * 7;
+      const idx = i * 8;
       arr[idx] = transform.timeS;
       arr[idx + 1] = transform.position.x;
       arr[idx + 2] = transform.position.y;
@@ -295,17 +298,23 @@ export class CacheTransform {
       arr[idx + 4] = transform.rotation.x;
       arr[idx + 5] = transform.rotation.y;
       arr[idx + 6] = transform.rotation.z;
+      arr[idx + 7] = transform.rotation.w;
     });
     return arr;
   }
 
   private denormalizeCache(arr: Float64Array): Transform[] {
     const transforms: Transform[] = [];
-    for (let i = 0; i < arr.length; i += 7) {
+    for (let i = 0; i < arr.length; i += 8) {
       transforms.push({
         timeS: arr[i],
         position: { x: arr[i + 1], y: arr[i + 2], z: arr[i + 3] },
-        rotation: { x: arr[i + 4], y: arr[i + 5], z: arr[i + 6] },
+        rotation: {
+          x: arr[i + 4],
+          y: arr[i + 5],
+          z: arr[i + 6],
+          w: arr[i + 7],
+        },
       });
     }
     return transforms;

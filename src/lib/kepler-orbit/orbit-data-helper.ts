@@ -3,7 +3,7 @@ import type { Vector3Type } from "@lib/vector3/schema/vector3.model";
 
 import type { OrbitalObject } from "./kepler-orbit";
 import type { OrbitCalculationParams } from "./kepler-orbit-service";
-import type { RotationObject } from "./kepler-rotation";
+import type { RotationObject } from "./keplerRotationQuaternion";
 
 /**
  * Helper functions for database integration

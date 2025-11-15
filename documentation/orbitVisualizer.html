@@ -181,7 +181,7 @@
       const PLANET_RENDER_SCALE = 1.0; // facteur taille mesh planète (affichage)
       const MOON_RENDER_SCALE = 2; // facteur taille mesh lune (affichage)
       const DURATION = 43000;
-      const FREQUENCY = 0.002;
+      const FREQUENCY = 0.004;
 
       let ws = null;
       let isConnected = false;
@@ -477,25 +477,19 @@
           if (!orbitalObjects.has(objectUuid)) {
             createPlanet(objectUuid, objectData.name);
           }
-          console.log(objectData);
           // Position initiale (absolue, ne pas toucher à l'échelle pour lune)
           const x = objectData.positions[0].x * SCALE_POSITION;
-          const y = objectData.positions[0].z * SCALE_POSITION;
-          const z = objectData.positions[0].y * SCALE_POSITION;
+          const y = objectData.positions[0].y * SCALE_POSITION;
+          const z = objectData.positions[0].z * SCALE_POSITION;
           orbitalObjects.get(objectUuid).mesh.position.set(x, y, z);
 
-          // const xr = objectData.rotations[0].z;
-          // const yr = objectData.rotations[0].x;
-          // const zr = objectData.rotations[0].y;
           const xr = objectData.rotations[0].x;
           const yr = objectData.rotations[0].y;
           const zr = objectData.rotations[0].z;
-          // const euler = new THREE.Euler(xr, yr, zr, "XYZ");
-          // const wr = objectData.rotations[0].w;
-          // orbitalObjects.get(objectUuid).mesh.rotation.set(xr, yr, zr);
+          const wr = objectData.rotations[0].w;
 
-          orbitalObjects.get(objectUuid).mesh.rotation.set(xr, yr, zr);
-          orbitalObjects.get(objectUuid).mesh.rotation.order = "YXZ";
+          orbitalObjects.get(objectUuid).mesh.quaternion.set(xr, yr, zr, wr);
+          // orbitalObjects.get(objectUuid).mesh.rotation.set(xr, yr, zr, "XYZ");
         });
 
         console.log(`✅ Created ${allPlanetUuids.length} celestial bodies`);
@@ -564,30 +558,16 @@
           const position = positions[index];
           const rotation = rotations[index];
 
-          console.log(rotation);
-
           const newTime = objectData.from_timestamp + index * (1 / FREQUENCY);
           const newTransform = {
             position: {
               x: position.x * SCALE_POSITION,
-              y: position.z * SCALE_POSITION,
-              z: position.y * SCALE_POSITION,
+              y: position.y * SCALE_POSITION,
+              z: position.z * SCALE_POSITION,
             },
-            rotation: {
-              // x: rotation.z,
-              // y: rotation.x,
-              // z: rotation.y,
-              x: rotation.x,
-              y: rotation.y,
-              z: rotation.z,
-              // w: rotation.w,
-            },
+            rotation,
             time: newTime,
           };
-
-          // const xr = objectData.rotations[0].z;
-          // const yr = objectData.rotations[0].x;
-          // const zr = objectData.rotations[0].y;
 
           // Cherche si time existe déjà
           const existingIdx = obj.transforms.findIndex(
@@ -604,31 +584,6 @@
 
           obj.isFetching = false;
         }
-
-        // positions.forEach((position, index) => {
-        //   const newTime = objectData.from_timestamp + index * (1 / FREQUENCY);
-        //   const newTransform = {
-        //     x: position.x * SCALE_POSITION,
-        //     y: position.z * SCALE_POSITION,
-        //     z: position.y * SCALE_POSITION,
-        //     time: newTime,
-        //   };
-
-        //   // Cherche si time existe déjà
-        //   const existingIdx = obj.transforms.findIndex(
-        //     (p) => p.time === newTime,
-        //   );
-
-        //   if (existingIdx >= 0) {
-        //     // Remplace la position existante
-        //     obj.transforms[existingIdx] = newTransform;
-        //   } else {
-        //     // Ajoute à la fin
-        //     obj.transforms.push(newTransform);
-        //   }
-
-        //   obj.isFetching = false;
-        // });
 
         updateObjectsList();
       }
@@ -680,11 +635,6 @@
             ws.send(encode(request));
           }
 
-          // if (idx >= obj.transforms.length) {
-          //   obj.currentIndex = obj.transforms.length - 1;
-          //   return;
-          // }
-
           const position = obj.transforms[idx].position;
           const rotation = obj.transforms[idx].rotation;
 
@@ -730,11 +680,14 @@
           }
           // ----------------------------------------
 
-          obj.mesh.rotation.set(rotation.x, rotation.y, rotation.z);
+          obj.mesh.quaternion.set(
+            rotation.x,
+            rotation.y,
+            rotation.z,
+            rotation.w,
+          );
 
-          if (!obj.mesh.rotation.order) {
-            obj.mesh.rotation.order = "YXZ";
-          }
+          // obj.mesh.rotation.set(rotation.x, rotation.y, rotation.z, "XYZ");
 
           if (showTrails) updateTrail(obj);
 
