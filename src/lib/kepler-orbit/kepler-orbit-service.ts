@@ -6,10 +6,12 @@ import type {
 } from "@lib/cache-transform";
 import { CacheTransform } from "@lib/cache-transform";
 import { keplerOrbitServiceLogger, logPerformance } from "@lib/logger";
+import { Vector3Type } from "@lib/vector3/schema/vector3.model";
 
 import { KeplerOrbit, type OrbitalObject } from "./kepler-orbit";
 import type { RotationObject } from "./keplerRotationQuaternion";
 import { KeplerRotationQuaternion } from "./keplerRotationQuaternion";
+import { Quaternion } from "./quaternion";
 
 export interface OrbitCalculationParams extends CacheCalculationParams {
   orbitalObject: OrbitalObject & RotationObject;
@@ -52,11 +54,17 @@ export class KeplerOrbitService {
     const transforms: Transform[] = new Array(steps) as Transform[];
 
     let currentTime = params.startTime;
+    let posPrev: Vector3Type | undefined;
 
     for (let i = 0; i < steps; i++) {
       const dt = i === 0 ? 0 : timeStep;
+
       const position = orbit.advance(dt);
-      const rotation = orbitRotation.getRotation(currentTime, position);
+      const rotation = orbitRotation.getRotation(
+        currentTime,
+        position,
+        posPrev,
+      );
 
       transforms[i] = {
         timeS: Math.round(currentTime * 1000) / 1000,
@@ -65,6 +73,7 @@ export class KeplerOrbitService {
       };
 
       currentTime += timeStep;
+      posPrev = position;
     }
 
     const duration = performance.now() - startTime;

@@ -31,25 +31,24 @@ export class KeplerRotationQuaternion {
       KeplerRotationQuaternion.TAU / (rotationPeriodH * 3600);
   }
 
-  lookRotation(forward: Vector3Type, up: Vector3Type): Quaternion {
-    forward = Vector3Math.normalize(forward);
+  // Crée un quaternion qui aligne l'axe X local avec "right" et Y avec "up"
+  lookRotationX(right: Vector3Type, up: Vector3Type): Quaternion {
+    right = Vector3Math.normalize(right);
     up = Vector3Math.normalize(up);
 
-    // Si forward et up sont colinéaires, ajuster up
-    if (Math.abs(Vector3Math.dot(forward, up)) > 0.999) {
+    // Si right et up sont colinéaires, ajuster up
+    if (Math.abs(Vector3Math.dot(right, up)) > 0.999) {
       up =
-        Math.abs(forward.y) < 0.99
-          ? { x: 0, y: 1, z: 0 }
-          : { x: 1, y: 0, z: 0 };
+        Math.abs(right.y) < 0.99 ? { x: 0, y: 1, z: 0 } : { x: 0, y: 0, z: 1 };
     }
 
-    // Base orthonormée
-    const right = Vector3Math.normalize(Vector3Math.cross(up, forward));
+    // Base orthonormée : X = right, Y = up, Z = forward
+    const forward = Vector3Math.normalize(Vector3Math.cross(right, up));
     const correctedUp = Vector3Math.normalize(
       Vector3Math.cross(forward, right),
     );
 
-    // Conversion matrice -> quaternion
+    // Matrice de rotation : colonnes = axes locaux dans le repère monde
     const m00 = right.x,
       m01 = correctedUp.x,
       m02 = forward.x;
@@ -95,35 +94,38 @@ export class KeplerRotationQuaternion {
   getRotation(
     timeS: number,
     orbitPos?: Vector3Type,
-    deltaTime?: number,
+    orbitPrevPos?: Vector3Type,
   ): Quaternion {
     const { tidalLocked } = this.elements;
 
-    // ---- CASE 1 : TIDAL LOCK (pas de rotation propre) ----
+    // ---- CASE 1 : TIDAL LOCK (axe X aligné avec l'orbite) ----
     if (tidalLocked && orbitPos) {
-      const forward = Vector3Math.normalize({
+      // Direction vers le parent (ce sera l'axe X local)
+      const towardParent = Vector3Math.normalize({
         x: -orbitPos.x,
         y: -orbitPos.y,
         z: -orbitPos.z,
       });
 
-      const globalUp = { x: 0, y: 1, z: 0 };
-      let targetRotation = this.lookRotation(forward, globalUp);
+      // Axe vertical global (ce sera approximativement l'axe Y local)
+      // const globalUp = { x: 0, y: 1, z: 0 };
 
+      const globalUp = Vector3Math.cross(
+        orbitPos,
+        orbitPrevPos ?? { x: 0, y: 0, z: 0 },
+      );
+
+      // Créer la rotation de base : X pointe vers le parent, Y vers le haut
+      let targetRotation = this.lookRotationX(towardParent, globalUp);
+
+      // Appliquer les rotations supplémentaires (tilt et spin longitude)
+      // Note : l'ordre peut nécessiter des ajustements selon votre convention
       targetRotation = targetRotation.mul(
-        Quaternion.fromAxisAngle({ x: 1, y: 0, z: 0 }, this.tiltRad),
+        Quaternion.fromAxisAngle({ x: 0, y: 0, z: 1 }, this.tiltRad),
       );
       targetRotation = targetRotation.mul(
         Quaternion.fromAxisAngle({ x: 0, y: 1, z: 0 }, this.spinLongRad),
       );
-
-      // Interpolation douce pour éviter les sauts
-      if (this.lastRotation && deltaTime) {
-        const t = Math.min(this.slerpSpeed * deltaTime * 60, 1);
-        const interpolated = this.lastRotation.slerp(targetRotation, t);
-        this.lastRotation = interpolated;
-        return interpolated;
-      }
 
       this.lastRotation = targetRotation;
       return targetRotation;
@@ -134,7 +136,7 @@ export class KeplerRotationQuaternion {
     const spinAngle = this.rotationRateRadS * dt;
 
     let q = Quaternion.identity();
-    q = q.mul(Quaternion.fromAxisAngle({ x: 1, y: 0, z: 0 }, this.tiltRad));
+    q = q.mul(Quaternion.fromAxisAngle({ x: 0, y: 0, z: 1 }, this.tiltRad));
     q = q.mul(Quaternion.fromAxisAngle({ x: 0, y: 1, z: 0 }, this.spinLongRad));
     q = q.mul(Quaternion.fromAxisAngle({ x: 0, y: 1, z: 0 }, spinAngle));
 
