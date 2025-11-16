@@ -608,7 +608,8 @@ ws.on("open", () => {
     },
   };
 
-  ws.send(encode(requestInit));
+  // ws.send(encode(requestInit));
+  ws.send(JSON.stringify(requestInit));
 
   let fromTime = 0;
   setInterval(() => {
@@ -622,13 +623,15 @@ ws.on("open", () => {
         // uuid: "844221a5-e2be-432c-94c2-947462c1c310", // Planet Tarsis 1
       },
     };
-    ws.send(encode(nextTicksRequest));
+    // ws.send(encode(nextTicksRequest));
+    ws.send(JSON.stringify(nextTicksRequest));
     fromTime += DURATION;
   }, 1000);
 });
 
 ws.on("message", (data) => {
-  const decoded = decode(data as Buffer) as ResponseWsType;
+  // const decoded = decode(data as Buffer) as ResponseWsType;
+  const decoded = JSON.parse((data as Buffer).toString()) as ResponseWsType;
 
   if ("data" in decoded) {
     console.log(decoded.data);

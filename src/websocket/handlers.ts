@@ -45,11 +45,12 @@ const handleMessage = async (ws: WebSocket, data: unknown) => {
   const client = clients.get(ws);
 
   try {
-    // Decode MessagePack
-    const decoded = decode(new Uint8Array(data as ArrayBuffer));
-
     // Validate with Zod
-    const msg: RequestWsType = requestWsSchema.parse(decoded);
+    const msg: RequestWsType = requestWsSchema.parse(
+      process.env.ENABLE_MSG_PACK === "true"
+        ? decode(new Uint8Array(data as ArrayBuffer))
+        : JSON.parse(data as string),
+    );
 
     wsLogger.debug(
       {
@@ -225,7 +226,11 @@ const handleError = (ws: WebSocket, error: Error) => {
 const sendMessage = (ws: WebSocket, data: ResponseWsType) => {
   if (ws.readyState === 1) {
     // OPEN
-    ws.send(encode(data));
+    ws.send(
+      process.env.ENABLE_MSG_PACK === "true"
+        ? encode(data)
+        : JSON.stringify(data),
+    );
   }
 };
 
