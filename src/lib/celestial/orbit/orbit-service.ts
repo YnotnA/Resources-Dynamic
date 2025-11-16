@@ -3,20 +3,20 @@ import type {
   CacheStrategy,
   PrefetchConfig,
   Transform,
-} from "@lib/cache-transform";
-import { CacheTransform } from "@lib/cache-transform";
+} from "@lib/cache/cache-transform";
+import { CacheTransform } from "@lib/cache/cache-transform";
 import { keplerOrbitServiceLogger, logPerformance } from "@lib/logger";
-import type { Vector3Type } from "@lib/vector3/schema/vector3.model";
+import type { Vector3Type } from "@lib/math/schema/vector3.model";
 
+import type { RotationObject } from "../rotation-quaternion";
+import { RotationQuaternion } from "../rotation-quaternion";
 import { KeplerOrbit, type OrbitalObject } from "./kepler-orbit";
-import type { RotationObject } from "./keplerRotationQuaternion";
-import { KeplerRotationQuaternion } from "./keplerRotationQuaternion";
 
 export interface OrbitCalculationParams extends CacheCalculationParams {
   orbitalObject: OrbitalObject & RotationObject;
 }
 
-export class KeplerOrbitService {
+export class OrbitService {
   private cacheTransform: CacheTransform;
 
   constructor(
@@ -45,7 +45,7 @@ export class KeplerOrbitService {
     );
 
     const orbit = new KeplerOrbit(orbitalObject, params.startTime);
-    const orbitRotation = new KeplerRotationQuaternion(
+    const orbitRotation = new RotationQuaternion(
       orbitalObject,
       params.startTime,
     );
@@ -102,4 +102,4 @@ export class KeplerOrbitService {
   }
 }
 
-export const keplerOrbitService = new KeplerOrbitService();
+export const keplerOrbitService = new OrbitService();

@@ -1,8 +1,8 @@
 import { getSystemWithDetailsByInternalName } from "@db/queries";
 import type { Moon, Planet, Star, System } from "@db/schema";
-import type { Transform } from "@lib/cache-transform";
-import { keplerOrbitService } from "@lib/kepler-orbit/kepler-orbit-service";
-import { OrbitDataHelper } from "@lib/kepler-orbit/orbit-data-helper";
+import type { Transform } from "@lib/cache/cache-transform";
+import { OrbitDataHelper } from "@lib/celestial/orbit/orbit-data-helper";
+import { keplerOrbitService } from "@lib/celestial/orbit/orbit-service";
 import { createTimer, logError, logPerformance, logger } from "@lib/logger";
 import type { RequestInitWsType } from "@websocket/schema/Request/init.ws.model";
 import type { RequestTransformType } from "@websocket/schema/Request/requestTransform.model";

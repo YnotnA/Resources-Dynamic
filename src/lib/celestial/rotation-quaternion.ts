@@ -1,7 +1,6 @@
-import type { Vector3Type } from "@lib/vector3/schema/vector3.model";
-import { Vector3Math } from "@lib/vector3/vector3Math";
-
-import { Quaternion } from "./quaternion";
+import { Quaternion } from "@lib/math/quaternion";
+import type { Vector3Type } from "@lib/math/schema/vector3.model";
+import { Vector3 } from "@lib/math/vector3";
 
 export interface RotationObject {
   tidalLocked: boolean;
@@ -10,7 +9,7 @@ export interface RotationObject {
   spinLongitudeDeg: number;
 }
 
-export class KeplerRotationQuaternion {
+export class RotationQuaternion {
   private static readonly TAU = 2 * Math.PI;
 
   private tiltRad: number;
@@ -24,20 +23,17 @@ export class KeplerRotationQuaternion {
     const { tiltDeg, spinLongitudeDeg, rotationPeriodH } = elements;
     this.tiltRad = (tiltDeg * Math.PI) / 180;
     this.spinLongRad = (spinLongitudeDeg * Math.PI) / 180;
-    this.rotationRateRadS =
-      KeplerRotationQuaternion.TAU / (rotationPeriodH * 3600);
+    this.rotationRateRadS = RotationQuaternion.TAU / (rotationPeriodH * 3600);
   }
 
   // Crée un quaternion qui aligne l'axe X local avec "right" et Y avec "up"
   lookRotationX(right: Vector3Type, up: Vector3Type): Quaternion {
-    right = Vector3Math.normalize(right);
-    up = Vector3Math.normalize(up);
+    right = Vector3.normalize(right);
+    up = Vector3.normalize(up);
 
     // Base orthonormée : X = right, Y = up, Z = forward
-    const forward = Vector3Math.normalize(Vector3Math.cross(right, up));
-    const correctedUp = Vector3Math.normalize(
-      Vector3Math.cross(forward, right),
-    );
+    const forward = Vector3.normalize(Vector3.cross(right, up));
+    const correctedUp = Vector3.normalize(Vector3.cross(forward, right));
 
     return Quaternion.fromBasis(right, correctedUp, forward);
   }
@@ -51,13 +47,13 @@ export class KeplerRotationQuaternion {
 
     if (tidalLocked && orbitPos) {
       // Direction vers le parent (ce sera l'axe X local)
-      const towardParent = Vector3Math.normalize({
+      const towardParent = Vector3.normalize({
         x: -orbitPos.x,
         y: -orbitPos.y,
         z: -orbitPos.z,
       });
 
-      const globalUp = Vector3Math.cross(
+      const globalUp = Vector3.cross(
         orbitPos,
         orbitPrevPos ?? { x: 0, y: 0, z: 0 },
       );

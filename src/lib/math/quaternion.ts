@@ -1,5 +1,6 @@
-import type { Vector3Type } from "@lib/vector3/schema/vector3.model";
-import { Vector3Math } from "@lib/vector3/vector3Math";
+import type { Vector3Type } from "@lib/math/schema/vector3.model";
+
+import { Vector3 } from "./vector3";
 
 export class Quaternion {
   constructor(
@@ -16,7 +17,7 @@ export class Quaternion {
   static fromAxisAngle(axis: Vector3Type, angleRad: number) {
     const half = angleRad / 2;
     const s = Math.sin(half);
-    const a = Vector3Math.normalize(axis);
+    const a = Vector3.normalize(axis);
     return new Quaternion(a.x * s, a.y * s, a.z * s, Math.cos(half));
   }
 

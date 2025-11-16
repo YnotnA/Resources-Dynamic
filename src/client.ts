@@ -2,7 +2,7 @@
 // import type { OrbitCalculationParams } from "@lib/kepler-orbit/kepler-orbit-service";
 // import { keplerOrbitService } from "@lib/kepler-orbit/kepler-orbit-service";
 // import { OrbitDataHelper } from "@lib/kepler-orbit/orbit-data-helper";
-import type { Vector3Type } from "@lib/vector3/schema/vector3.model";
+// import type { Vector3Type } from "@lib/math/schema/vector3.model";
 import { decode, encode } from "@msgpack/msgpack";
 import type { RequestInitWsType } from "@websocket/schema/Request/init.ws.model";
 import type { RequestTransformWsType } from "@websocket/schema/Request/transform.ws.model";

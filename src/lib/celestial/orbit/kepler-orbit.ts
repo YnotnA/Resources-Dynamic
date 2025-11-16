@@ -1,7 +1,7 @@
 import { keplerOrbitLogger } from "@lib/logger";
-import { Basis3D } from "@lib/vector3/basis3d";
-import type { Vector3Type } from "@lib/vector3/schema/vector3.model";
-import { Vector3Math } from "@lib/vector3/vector3Math";
+import { Basis3D } from "@lib/math/basis3d";
+import type { Vector3Type } from "@lib/math/schema/vector3.model";
+import { Vector3 } from "@lib/math/vector3";
 
 export interface OrbitalObject {
   primaryMassKg: number;
@@ -90,7 +90,7 @@ export class KeplerOrbit {
 
     // Check the calculated initial position
     const initialPos = this.getPosition();
-    const initialDistance = Vector3Math.magnitude(initialPos);
+    const initialDistance = Vector3.magnitude(initialPos);
     keplerOrbitLogger.debug(
       {
         elements,
@@ -169,7 +169,7 @@ export class KeplerOrbit {
       this.eccentricity,
       M,
     );
-    return Vector3Math.add(this.orbitCenter, this.basis.transform(posPlane));
+    return Vector3.add(this.orbitCenter, this.basis.transform(posPlane));
   }
 
   advance(dt: number): Vector3Type {

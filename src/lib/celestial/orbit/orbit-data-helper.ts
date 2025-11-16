@@ -1,9 +1,9 @@
 import type { Moon, Planet, Star } from "@db/schema";
-import type { Vector3Type } from "@lib/vector3/schema/vector3.model";
+import type { Vector3Type } from "@lib/math/schema/vector3.model";
 
+import type { RotationObject } from "../rotation-quaternion";
 import type { OrbitalObject } from "./kepler-orbit";
-import type { OrbitCalculationParams } from "./kepler-orbit-service";
-import type { RotationObject } from "./keplerRotationQuaternion";
+import type { OrbitCalculationParams } from "./orbit-service";
 
 /**
  * Helper functions for database integration

@@ -1,4 +1,4 @@
-import { getInit, getUpdateObject } from "@lib/celestial-bodies/transforms";
+import { getInit, getUpdateObject } from "@lib/celestial/transforms-service";
 import { createTimer, logError, wsLogger } from "@lib/logger";
 import { decode, encode } from "@msgpack/msgpack";
 import type { WebSocket } from "ws";

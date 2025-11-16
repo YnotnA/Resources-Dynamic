@@ -1,9 +1,6 @@
-import type {
-  QuaternionType,
-  Vector3Type,
-} from "@lib/vector3/schema/vector3.model";
-
-import { cacheTransformLogger, logError } from "./logger";
+import { cacheTransformLogger, logError } from "@lib/logger";
+import type { QuaternionType } from "@lib/math/schema/quaternion.model";
+import type { Vector3Type } from "@lib/math/schema/vector3.model";
 
 export interface Transform {
   timeS: number;

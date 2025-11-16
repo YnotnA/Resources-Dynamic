@@ -1,5 +1,6 @@
-import type { Vector3Type } from "./schema/vector3.model";
-import { Vector3Math } from "./vector3Math";
+import type { Vector3Type } from "@lib/math/schema/vector3.model";
+
+import { Vector3 } from "./vector3";
 
 export class Basis3D {
   constructor(
@@ -18,12 +19,12 @@ export class Basis3D {
   }
 
   rotated(axis: Vector3Type, angleRad: number): Basis3D {
-    const magnitude = Vector3Math.magnitude(axis);
+    const magnitude = Vector3.magnitude(axis);
     if (magnitude === 0) {
       return this;
     }
 
-    const axisNorm = Vector3Math.normalize(axis);
+    const axisNorm = Vector3.normalize(axis);
     const cosA = Math.cos(angleRad);
     const sinA = Math.sin(angleRad);
     const { x: ux, y: uy, z: uz } = axisNorm;
@@ -77,13 +78,13 @@ export class Basis3D {
 
   static fromForwardUp(forward: Vector3Type, upHint: Vector3Type): Basis3D {
     // Normalise le vecteur forward
-    const f = Vector3Math.normalize(forward);
+    const f = Vector3.normalize(forward);
 
     // Calcule le vecteur right (perpendiculaire à up et forward)
-    const r = Vector3Math.normalize(Vector3Math.cross(upHint, f));
+    const r = Vector3.normalize(Vector3.cross(upHint, f));
 
     // Recalcule up pour avoir une base orthonormée
-    const u = Vector3Math.cross(f, r);
+    const u = Vector3.cross(f, r);
 
     // Retourne la base : x=right, y=up, z=forward
     return new Basis3D(r, u, f);

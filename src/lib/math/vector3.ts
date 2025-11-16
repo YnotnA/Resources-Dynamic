@@ -1,6 +1,6 @@
-import type { Vector3Type } from "@lib/vector3/schema/vector3.model";
+import type { Vector3Type } from "@lib/math/schema/vector3.model";
 
-export class Vector3Math {
+export class Vector3 {
   static create(x: number = 0, y: number = 0, z: number = 0): Vector3Type {
     return { x, y, z };
   }

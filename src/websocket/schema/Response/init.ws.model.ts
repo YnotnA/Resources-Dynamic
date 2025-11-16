@@ -1,4 +1,4 @@
-import { vector3Schema } from "@lib/vector3/schema/vector3.model";
+import { vector3Schema } from "@lib/math/schema/vector3.model";
 import { z } from "zod";
 
 const responseInitDataWsSchema = z.object({
