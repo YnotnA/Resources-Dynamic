@@ -35,8 +35,8 @@ A clean SQL is available in `documentation/sql/cleanBdd.sql`. It must be execute
 
 ## WebSocket
 
-- All requests message **must be encoded** with [msgpack](https://msgpack.org/)
-- All responses message are encoded with [msgpack](https://msgpack.org/)
+- if `ENABLE_MSG_PACK=true` All requests message **must be encoded** with [msgpack](https://msgpack.org/)
+- if `ENABLE_MSG_PACK=true` All responses message are encoded with [msgpack](https://msgpack.org/)
 
 ### Message "Connected"
 
@@ -101,7 +101,8 @@ Used to retrieve all information concerning stellar objects, including their pos
         {
           "x": "<number>",
           "y": "<number>",
-          "z": "<number>"
+          "z": "<number>",
+          "w": "<number>"
         }
       ],
     }
@@ -110,8 +111,8 @@ Used to retrieve all information concerning stellar objects, including their pos
 ```
 
 - **parent_id** : Empty for "system"
-- **positions** : Missing for "system" and "star"
-- **rotations** : Missing for "system" and "star"
+- **positions** : Missing for "system" and "star" (Vector3)
+- **rotations** : Missing for "system" and "star" (Quaternion)
 
 ---
 
@@ -128,7 +129,7 @@ Used to retrieve the transforms of a stellar object by UUID, specifying the star
     "uuid": "<uuid>",
     "duration_s": "<number>",
     "frequency": "<number>",
-    "from_timestamp": "<number>",
+    "from_timestamp": "<number>"
   }
 }
 ```
@@ -160,7 +161,8 @@ Used to retrieve the transforms of a stellar object by UUID, specifying the star
         {
           "x": "<number>",
           "y": "<number>",
-          "z": "<number>"
+          "z": "<number>",
+          "w": "<number>"
         }
       ]
     }

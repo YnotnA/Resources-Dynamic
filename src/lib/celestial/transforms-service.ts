@@ -341,6 +341,20 @@ const getMoonUpdateTransforms = (
     "Querying moon transforms",
   );
 
+  // Si besoin d'une position globale.
+  //   const transforms = keplerOrbitService
+  //   .getTransforms(orbitalCalculation)
+  //   .map((transform, index) => {
+  //     const newPosition = Vector3Math.add(
+  //       moonPlanetPositions.transforms[index].position,
+  //       transform.position,
+  //     );
+
+  //     return { ...transform, position: newPosition };
+  //   });
+  // return { object: moon, transforms };
+
+  // Position relatif au parent
   return {
     object: moon,
     transforms: keplerOrbitService.getTransforms(orbitalCalculation),

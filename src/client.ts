@@ -608,8 +608,8 @@ ws.on("open", () => {
     },
   };
 
-  // ws.send(encode(requestInit));
-  ws.send(JSON.stringify(requestInit));
+  ws.send(encode(requestInit));
+  // ws.send(JSON.stringify(requestInit));
 
   let fromTime = 0;
   setInterval(() => {
@@ -630,8 +630,8 @@ ws.on("open", () => {
 });
 
 ws.on("message", (data) => {
-  // const decoded = decode(data as Buffer) as ResponseWsType;
-  const decoded = JSON.parse((data as Buffer).toString()) as ResponseWsType;
+  const decoded = decode(data as Buffer) as ResponseWsType;
+  // const decoded = JSON.parse((data as Buffer).toString()) as ResponseWsType;
 
   if ("data" in decoded) {
     console.log(decoded.data);
