@@ -1,6 +1,5 @@
 import type { Vector3Type } from "@lib/math/schema/vector3.model";
-
-import { Vector3 } from "./vector3";
+import { Vector3 } from "@lib/math/vector3";
 
 export class Quaternion {
   constructor(

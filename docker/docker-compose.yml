@@ -14,8 +14,8 @@ services:
         pnpm dev
       "
     ports:
-      - "${WS_PORT:-9200}:${WS_PORT:-3001}"
-      - "${API_PORT:-3001}:${API_PORT:-3001}"
+      - "${WS_PORT:-9200}:9200"
+      - "${API_PORT:-3001}:3001"
     volumes:
       - ..:/app
       - app_cache:/app/.cache
@@ -36,8 +36,8 @@ services:
     image: *node-image
     command: tail -f /dev/null # Keep container running for exec commands
     ports:
-      - "${WS_PORT:-9200}:${WS_PORT:-3001}"
-      - "${API_PORT:-3001}:${API_PORT:-3001}"
+      - "${WS_PORT:-9200}:9200"
+      - "${API_PORT:-3001}:3001"
     volumes:
       - ..:/app
       - app_cache:/app/.cache

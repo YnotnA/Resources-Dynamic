@@ -17,7 +17,9 @@ $(info ❗❗ Using podman for compose commands❗❗)
 EXECUTOR := podman compose
 endif
 
-COMPOSE := $(EXECUTOR) -f docker/docker-compose.yml --env-file .env
+# Get absolute path to project root
+ROOT_DIR := $(shell pwd)
+COMPOSE := $(EXECUTOR) -f $(ROOT_DIR)/docker/docker-compose.yml --env-file $(ROOT_DIR)/.env
 
 DEV_SERVICE := dev
 APP_SERVICE := app
