@@ -112,6 +112,7 @@ const handleInit = async (ws: WebSocket, msg: RequestInitWsType) => {
             object.objectType !== "system"
               ? `scenes/${object.objectType}/${object.target.internalName}.tscn`
               : "",
+          ...(object.soi && { soi: object.soi }),
           ...(object.transforms && {
             positions: object.transforms.map((transform) => transform.position),
             rotations: object.transforms.map((transform) => transform.rotation),

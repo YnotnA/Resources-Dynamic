@@ -198,7 +198,7 @@ const importMoonDb = async (
     nodeDeg: moon.ascending_node_deg,
     radiusKm: moon.radius_km / DISTANCE_FACTOR,
     planetId: planet.id,
-    radiusGravityInfluenceKm,
+    radiusGravityInfluenceKm: radiusGravityInfluenceKm / 1000,
     rotationH: moon.spin_period_h,
     tidalLocked: moon.spin_locked,
     tiltDeg: 0, // TODO: Missing data

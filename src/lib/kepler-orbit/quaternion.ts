@@ -135,19 +135,20 @@ export class Quaternion {
     return new Quaternion(-this.x, -this.y, -this.z, -this.w);
   }
 
-  static fromRotationMatrix(m: number[][]): Quaternion {
-    // Assumons que m est une matrice 3x3 sous forme m[row][col]
-    // (Voir adaptation si ta matrice a les axes en lignes/colonnes inversées !)
-
-    const m00 = m[0][0],
-      m01 = m[0][1],
-      m02 = m[0][2];
-    const m10 = m[1][0],
-      m11 = m[1][1],
-      m12 = m[1][2];
-    const m20 = m[2][0],
-      m21 = m[2][1],
-      m22 = m[2][2];
+  static fromBasis(
+    right: Vector3Type,
+    up: Vector3Type,
+    forward: Vector3Type,
+  ): Quaternion {
+    const m00 = right.x,
+      m01 = up.x,
+      m02 = forward.x;
+    const m10 = right.y,
+      m11 = up.y,
+      m12 = forward.y;
+    const m20 = right.z,
+      m21 = up.z,
+      m22 = forward.z;
 
     const trace = m00 + m11 + m22;
     let x, y, z, w;

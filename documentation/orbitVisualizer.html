@@ -336,7 +336,6 @@
         list.innerHTML = "<strong>Objects:</strong><br>";
 
         orbitalObjects.forEach((obj, uuid) => {
-          // console.log(obj);
           const shortUuid = uuid.substring(0, 8);
           const color = `#${obj.color.toString(16).padStart(6, "0")}`;
           list.innerHTML += `
@@ -643,27 +642,21 @@
             const planetUuid = MOON_PARENT[uuid];
             const planetObj = orbitalObjects.get(planetUuid);
             if (planetObj && planetObj.mesh) {
-              const planetPos = planetObj.mesh.position;
-              const moonPos = new THREE.Vector3(
+              const planetPos = planetObj.mesh.position; // GLOBAL
+              const moonLocal = new THREE.Vector3(
                 position.x,
                 position.y,
                 position.z,
-              );
-              const direction = moonPos.clone().sub(planetPos).normalize();
-
-              // Rayon graphique planète
+              ); // RELATIF À PLANÈTE
+              const direction = moonLocal.clone().normalize();
+              // Rayon graphique planète/lune
               const planetRadiusPhys = PLANET_RADII[planetUuid] * SCALE_RADIUS;
               const planetRadiusGraph = planetRadiusPhys * PLANET_RENDER_SCALE;
-
-              // Rayon graphique lune
               const moonRadiusPhys = MOON_RADII[uuid] * SCALE_RADIUS;
               const moonRadiusGraph = moonRadiusPhys * MOON_RENDER_SCALE;
-              // Espace supplémentaire (ajuste la valeur selon ton rendu souhaité)
-              // const space = moonRadiusGraph * 2; // ou une valeur personnalisée
               const space = moonRadiusGraph * 1.2 + planetRadiusGraph * 0.1;
-
-              // Décalage total
               const offset = planetRadiusGraph + space;
+              // Correction
               const correctedPos = planetPos
                 .clone()
                 .add(direction.multiplyScalar(offset));

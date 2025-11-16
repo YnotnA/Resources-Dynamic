@@ -6,12 +6,11 @@ import type {
 } from "@lib/cache-transform";
 import { CacheTransform } from "@lib/cache-transform";
 import { keplerOrbitServiceLogger, logPerformance } from "@lib/logger";
-import { Vector3Type } from "@lib/vector3/schema/vector3.model";
+import type { Vector3Type } from "@lib/vector3/schema/vector3.model";
 
 import { KeplerOrbit, type OrbitalObject } from "./kepler-orbit";
 import type { RotationObject } from "./keplerRotationQuaternion";
 import { KeplerRotationQuaternion } from "./keplerRotationQuaternion";
-import { Quaternion } from "./quaternion";
 
 export interface OrbitCalculationParams extends CacheCalculationParams {
   orbitalObject: OrbitalObject & RotationObject;

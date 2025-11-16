@@ -4,7 +4,6 @@ import type { Transform } from "@lib/cache-transform";
 import { keplerOrbitService } from "@lib/kepler-orbit/kepler-orbit-service";
 import { OrbitDataHelper } from "@lib/kepler-orbit/orbit-data-helper";
 import { createTimer, logError, logPerformance, logger } from "@lib/logger";
-import { Vector3Math } from "@lib/vector3/vector3Math";
 import type { RequestInitWsType } from "@websocket/schema/Request/init.ws.model";
 import type { RequestTransformType } from "@websocket/schema/Request/requestTransform.model";
 import type { RequestTransformWsType } from "@websocket/schema/Request/transform.ws.model";
@@ -32,6 +31,7 @@ type ObjectDataType<T extends Planet | Moon | System | Star> = {
   target: T;
   parentId: string;
   objectType: ObjectTypeFrom<T>;
+  soi?: number;
   transforms?: Transform[];
 };
 
@@ -124,11 +124,23 @@ const getObjectData = <T extends Planet | Moon | System | Star>(
     parentId = getPlanet(data.planetId).uuid as string;
   }
 
+  let soi: number | undefined;
+  if ("radiusGravityInfluenceKm" in data) {
+    soi = data.radiusGravityInfluenceKm;
+  }
+
+  if ("systemId" in data && data.systemId) {
+    parentId = getSystem(data.systemId).uuid as string;
+  } else if ("planetId" in data && data.planetId) {
+    parentId = getPlanet(data.planetId).uuid as string;
+  }
+
   return {
     target: data,
     parentId,
     objectType,
     ...(transforms && { transforms }),
+    ...(soi && { soi }),
   };
 };
 
@@ -277,7 +289,7 @@ const getMoonUpdateTransforms = (
   target: string,
   fromTime: number,
   duration: number,
-  timesteps: number = 0.01666667,
+  timesteps: number,
 ): TransformsResultType<Moon> => {
   const moon = moons.find((moon) => moon.uuid === target);
 
@@ -329,17 +341,10 @@ const getMoonUpdateTransforms = (
     "Querying moon transforms",
   );
 
-  const transforms = keplerOrbitService
-    .getTransforms(orbitalCalculation)
-    .map((transform, index) => {
-      const newPosition = Vector3Math.add(
-        moonPlanetPositions.transforms[index].position,
-        transform.position,
-      );
-
-      return { ...transform, position: newPosition };
-    });
-  return { object: moon, transforms };
+  return {
+    object: moon,
+    transforms: keplerOrbitService.getTransforms(orbitalCalculation),
+  };
 };
 
 const loadData = async (systemInternalName?: string) => {
