@@ -155,10 +155,10 @@
         const moonParentMap = {};
 
         for (const planet of data.data) {
-          planetRadiusMap[planet.uuid] = planet.radiusKm;
+          planetRadiusMap[planet.uuid] = planet.radiusM / 1000;
           if (planet.moons && planet.moons.length > 0) {
             for (const moon of planet.moons) {
-              moonRadiusMap[moon.uuid] = moon.radiusKm;
+              moonRadiusMap[moon.uuid] = moon.radiusM / 1000;
               moonParentMap[moon.uuid] = planet.uuid;
             }
           }
@@ -248,8 +248,8 @@
         const color = colors[colorIndex % colors.length];
         colorIndex++;
 
-        let radiusKm = data.PLANET_RADII[uuid] || data.MOON_RADII[uuid] || 6000;
-        let sphereRadius = radiusKm * SCALE_RADIUS;
+        let radiusM = data.PLANET_RADII[uuid] || data.MOON_RADII[uuid] || 6000;
+        let sphereRadius = radiusM * SCALE_RADIUS;
 
         if (data.PLANET_RADII[uuid]) sphereRadius *= PLANET_RENDER_SCALE;
         if (data.MOON_RADII[uuid]) sphereRadius *= MOON_RENDER_SCALE;
@@ -315,7 +315,7 @@
           `✅ Created planet: ${name} (${uuid.substring(
             0,
             8,
-          )}) — Rayon réel: ${radiusKm} km => scène: ${sphereRadius}`,
+          )}) — Rayon réel: ${radiusM} m => scène: ${sphereRadius}`,
         );
       }
 

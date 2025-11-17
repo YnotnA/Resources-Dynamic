@@ -125,8 +125,8 @@ const getObjectData = <T extends Planet | Moon | System | Star>(
   }
 
   let soi: number | undefined;
-  if ("radiusGravityInfluenceKm" in data) {
-    soi = data.radiusGravityInfluenceKm;
+  if ("radiusGravityInfluenceM" in data) {
+    soi = data.radiusGravityInfluenceM;
   }
 
   if ("systemId" in data && data.systemId) {

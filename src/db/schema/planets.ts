@@ -30,9 +30,9 @@ export const planets = pgTable("planets", {
   nodeRad: doublePrecision("node_rad").notNull(),
   argPeriRad: doublePrecision("arg_peri_rad").notNull(),
   meanAnomalyRad: doublePrecision("mean_anomaly_rad").notNull(),
-  radiusKm: doublePrecision("radius_km").notNull(),
-  radiusGravityInfluenceKm: doublePrecision(
-    "radius_gravity_influence_km",
+  radiusM: doublePrecision("radius_m").notNull(),
+  radiusGravityInfluenceM: doublePrecision(
+    "radius_gravity_influence_m",
   ).notNull(),
   tidalLocked: boolean("tidal_locked").notNull(),
   tiltRad: doublePrecision("tilt_rad").notNull(),

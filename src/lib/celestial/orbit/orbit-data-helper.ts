@@ -97,7 +97,7 @@ export class OrbitDataHelper {
    */
   static getOrbitalInfo(elements: PositionObjectType): {
     semiMajorAxisAU: number;
-    semiMajorAxisKm: number;
+    semiMajorAxisM: number;
     eccentricity: number;
     periodDays: number;
     periodYears: number;
@@ -119,7 +119,7 @@ export class OrbitDataHelper {
 
     return {
       semiMajorAxisAU,
-      semiMajorAxisKm: semiMajorAxisM / 1000,
+      semiMajorAxisM,
       eccentricity,
       periodDays: periodS / SECONDS_PER_DAY,
       periodYears: periodS / SECONDS_PER_YEAR,

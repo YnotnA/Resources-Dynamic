@@ -1,5 +1,5 @@
 {
-  "id": "57f70f6a-9023-4d63-aa07-8c42877b6c45",
+  "id": "59bc00c2-9070-4210-a358-af9a9478d360",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -260,14 +260,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "radius_km": {
-          "name": "radius_km",
+        "radius_m": {
+          "name": "radius_m",
           "type": "double precision",
           "primaryKey": false,
           "notNull": true
         },
-        "radius_gravity_influence_km": {
-          "name": "radius_gravity_influence_km",
+        "radius_gravity_influence_m": {
+          "name": "radius_gravity_influence_m",
           "type": "double precision",
           "primaryKey": false,
           "notNull": true
@@ -423,14 +423,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "radius_km": {
-          "name": "radius_km",
+        "radius_m": {
+          "name": "radius_m",
           "type": "double precision",
           "primaryKey": false,
           "notNull": true
         },
-        "radius_gravity_influence_km": {
-          "name": "radius_gravity_influence_km",
+        "radius_gravity_influence_m": {
+          "name": "radius_gravity_influence_m",
           "type": "double precision",
           "primaryKey": false,
           "notNull": true

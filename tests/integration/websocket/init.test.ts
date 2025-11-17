@@ -116,7 +116,7 @@ describe("WebSocket Init", () => {
         `scenes/planet/${mockPlanet.internalName}.tscn`,
       );
       expect(planet.object_data.from_timestamp).toBe(0);
-      expect(planet.object_data.soi).toBe(mockPlanet.radiusGravityInfluenceKm);
+      expect(planet.object_data.soi).toBe(mockPlanet.radiusGravityInfluenceM);
       expect(planet.object_data.positions).toHaveLength(180); // Frequency 60 * Duration 3 = 180 positions
       expect(planet.object_data.rotations).toHaveLength(180); // Frequency 60 * Duration 3 = 180 rotations
       expect(planet.object_data.parent_id).toBe(mockSystem.uuid);
@@ -132,7 +132,7 @@ describe("WebSocket Init", () => {
         `scenes/moon/${mockMoon.internalName}.tscn`,
       );
       expect(moon.object_data.from_timestamp).toBe(0);
-      expect(moon.object_data.soi).toBe(mockMoon.radiusGravityInfluenceKm);
+      expect(moon.object_data.soi).toBe(mockMoon.radiusGravityInfluenceM);
       expect(moon.object_data.positions).toHaveLength(180); // Frequency 60 * Duration 3 = 180 positions
       expect(moon.object_data.rotations).toHaveLength(180); // Frequency 60 * Duration 3 = 180 rotations
       expect(moon.object_data.parent_id).toBe(mockPlanet.uuid);

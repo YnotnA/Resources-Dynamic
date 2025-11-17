@@ -145,9 +145,9 @@ const importPlanetDb = async (
     incRad: convertDegToRad(planet.inclination_deg),
     meanAnomalyRad: convertDegToRad(planet.M0_deg),
     nodeRad: convertDegToRad(planet.ascending_node_deg),
-    radiusKm: planet.radius_km / DISTANCE_FACTOR,
-    radiusGravityInfluenceKm:
-      getRadiusGravityInfluenceKm(planet, star.massKg) / DISTANCE_FACTOR, // Convert to km
+    radiusM: (planet.radius_km * 1000) / DISTANCE_FACTOR,
+    radiusGravityInfluenceM:
+      getRadiusGravityInfluenceM(planet, star.massKg) / DISTANCE_FACTOR,
     rotationH: planet.rotation_h,
     tidalLocked: planet.tidal_locked,
     tiltRad: convertDegToRad(planet.tilt_deg),
@@ -170,10 +170,10 @@ const importMoonDb = async (
     massKg: moon.mass_Me * MASS_EARTH,
     meanAnomalyRad: convertDegToRad(moon.M0_deg),
     nodeRad: convertDegToRad(moon.ascending_node_deg),
-    radiusKm: moon.radius_km / DISTANCE_FACTOR,
+    radiusM: (moon.radius_km * 1000) / DISTANCE_FACTOR,
     planetId: planet.id,
-    radiusGravityInfluenceKm:
-      getRadiusGravityInfluenceKm(moon, planet.massKg) / DISTANCE_FACTOR,
+    radiusGravityInfluenceM:
+      getRadiusGravityInfluenceM(moon, planet.massKg) / DISTANCE_FACTOR,
     rotationH: moon.spin_period_h,
     tidalLocked: moon.spin_locked,
     tiltRad: 0, // TODO: Missing data
@@ -185,22 +185,22 @@ const convertDegToRad = (degree: number): number => {
   return (degree * Math.PI) / 180;
 };
 
-const getRadiusGravityInfluenceKm = (
+const getRadiusGravityInfluenceM = (
   object: MoonType | PlanetType,
   primaryMassKg: number,
 ) => {
-  let radiusGravityInfluenceKm = 0;
+  let radiusGravityInfluenceM = 0;
   const objectMassKg = object.mass_Me * MASS_EARTH;
   const semiMajorAxeM =
     "semi_major_km" in object
       ? object.semi_major_km * 1000
       : object.semi_major_AU * AU;
   if (semiMajorAxeM > 0 && primaryMassKg > 0) {
-    radiusGravityInfluenceKm =
+    radiusGravityInfluenceM =
       semiMajorAxeM * Math.pow(objectMassKg / primaryMassKg, 2 / 5);
   }
 
-  return radiusGravityInfluenceKm;
+  return radiusGravityInfluenceM;
 };
 
 try {
