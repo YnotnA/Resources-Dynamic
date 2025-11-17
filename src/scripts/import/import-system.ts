@@ -132,20 +132,12 @@ const importPlanetDb = async (
   planetNumber: number,
   star: Star,
 ) => {
-  let radiusGravityInfluenceKm = 0;
-  const planetMassKg = planet.mass_Me * MASS_EARTH;
-  const semiMajorAxeM = (planet.semi_major_AU * AU) / DISTANCE_FACTOR;
-  if (semiMajorAxeM > 0 && star.massKg > 0) {
-    radiusGravityInfluenceKm =
-      semiMajorAxeM * Math.pow(planetMassKg / star.massKg, 2 / 5);
-  }
-
   const internalName = `${star.name.toLowerCase()}_${planetNumber}`;
 
   const newPlanet: NewPlanet = {
     name: (getFlatInfo(planetNumber, "Name") ?? internalName).toString(),
     internalName,
-    massKg: planetMassKg,
+    massKg: planet.mass_Me * MASS_EARTH,
     systemId: star.systemId,
     apoapsisAu: planet.apoapsis_AU / DISTANCE_FACTOR,
     periapsisAu: planet.periapsis_AU / DISTANCE_FACTOR,
@@ -154,7 +146,8 @@ const importPlanetDb = async (
     meanAnomalyRad: convertDegToRad(planet.M0_deg),
     nodeRad: convertDegToRad(planet.ascending_node_deg),
     radiusKm: planet.radius_km / DISTANCE_FACTOR,
-    radiusGravityInfluenceKm: radiusGravityInfluenceKm / 1000, // Convert to km
+    radiusGravityInfluenceKm:
+      getRadiusGravityInfluenceKm(planet, star.massKg) / DISTANCE_FACTOR, // Convert to km
     rotationH: planet.rotation_h,
     tidalLocked: planet.tidal_locked,
     tiltRad: convertDegToRad(planet.tilt_deg),
@@ -167,25 +160,6 @@ const importMoonDb = async (
   moonNumber: number,
   planet: Planet,
 ) => {
-  if (
-    !moon.apoapsis_km ||
-    !moon.periapsis_km ||
-    !moon.inclination_deg ||
-    !moon.mass_Me ||
-    !moon.radius_km ||
-    !moon.semi_major_km
-  ) {
-    return null;
-  }
-
-  let radiusGravityInfluenceKm = 0;
-  const moonMassKg = moon.mass_Me * MASS_EARTH;
-  const semiMajorAxeM = (moon.semi_major_km * AU) / DISTANCE_FACTOR;
-  if (semiMajorAxeM > 0 && planet.massKg > 0) {
-    radiusGravityInfluenceKm =
-      semiMajorAxeM * Math.pow(moonMassKg / planet.massKg, 2 / 5);
-  }
-
   const newMoon: NewMoon = {
     name: moon.name,
     apoapsisAu: (moon.apoapsis_km * 1000) / AU / DISTANCE_FACTOR,
@@ -193,12 +167,13 @@ const importMoonDb = async (
     argPeriRad: convertDegToRad(moon.arg_peri_deg),
     incRad: convertDegToRad(moon.inclination_deg),
     internalName: `${planet.internalName.toLowerCase()}_${moonNumber}`,
-    massKg: moonMassKg,
+    massKg: moon.mass_Me * MASS_EARTH,
     meanAnomalyRad: convertDegToRad(moon.M0_deg),
     nodeRad: convertDegToRad(moon.ascending_node_deg),
     radiusKm: moon.radius_km / DISTANCE_FACTOR,
     planetId: planet.id,
-    radiusGravityInfluenceKm: radiusGravityInfluenceKm / 1000,
+    radiusGravityInfluenceKm:
+      getRadiusGravityInfluenceKm(moon, planet.massKg) / DISTANCE_FACTOR,
     rotationH: moon.spin_period_h,
     tidalLocked: moon.spin_locked,
     tiltRad: 0, // TODO: Missing data
@@ -208,6 +183,24 @@ const importMoonDb = async (
 
 const convertDegToRad = (degree: number): number => {
   return (degree * Math.PI) / 180;
+};
+
+const getRadiusGravityInfluenceKm = (
+  object: MoonType | PlanetType,
+  primaryMassKg: number,
+) => {
+  let radiusGravityInfluenceKm = 0;
+  const objectMassKg = object.mass_Me * MASS_EARTH;
+  const semiMajorAxeM =
+    "semi_major_km" in object
+      ? object.semi_major_km * 1000
+      : object.semi_major_AU * AU;
+  if (semiMajorAxeM > 0 && primaryMassKg > 0) {
+    radiusGravityInfluenceKm =
+      semiMajorAxeM * Math.pow(objectMassKg / primaryMassKg, 2 / 5);
+  }
+
+  return radiusGravityInfluenceKm;
 };
 
 try {
