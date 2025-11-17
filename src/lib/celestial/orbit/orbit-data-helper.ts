@@ -1,8 +1,10 @@
 import type { Moon, Planet, Star } from "@db/schema";
-import type { Vector3Type } from "@lib/vector3/schema/vector3.model";
-
-import type { OrbitalObject } from "./kepler-orbit";
-import type { OrbitCalculationParams } from "./kepler-orbit-service";
+import type { PositionObjectType } from "@lib/celestial/orbit/kepler-orbit";
+import type {
+  OrbitCalculationParamsType,
+  OrbitalObjectType,
+} from "@lib/celestial/orbit/orbit-service";
+import type { Vector3Type } from "@lib/math/schema/vector3.model";
 
 /**
  * Helper functions for database integration
@@ -17,13 +19,13 @@ export class OrbitDataHelper {
     startTime: number,
     duration: number,
     frequency: number,
-  ): OrbitCalculationParams {
+  ): OrbitCalculationParamsType {
     return {
       objectId: planet.uuid as string,
       startTime,
       duration,
       frequency,
-      orbitalObject: OrbitDataHelper.planetDBToOrbitalElements(planet, star),
+      orbitalObject: OrbitDataHelper.planetDBToOrbitalObject(planet, star),
     };
   }
 
@@ -36,20 +38,20 @@ export class OrbitDataHelper {
     startTime: number,
     duration: number,
     frequency: number,
-  ): OrbitCalculationParams {
+  ): OrbitCalculationParamsType {
     return {
       objectId: moon.uuid as string,
       startTime,
       duration,
       frequency,
-      orbitalObject: OrbitDataHelper.moonDBToOrbitalElements(moon, planet),
+      orbitalObject: OrbitDataHelper.moonDBToOrbitalObject(moon, planet),
     };
   }
 
   /**
    * Validate orbital elements consistency
    */
-  static validateOrbitalElements(elements: OrbitalObject): {
+  static validateOrbitalElements(elements: PositionObjectType): {
     valid: boolean;
     warnings: string[];
   } {
@@ -72,9 +74,10 @@ export class OrbitDataHelper {
     }
 
     // Check inclination
-    if (elements.inclinationDeg < 0 || elements.inclinationDeg > 180) {
+    if (elements.inclinationRad < 0 || elements.inclinationRad > Math.PI) {
+      const inclinationDeg = (elements.inclinationRad * 180) / Math.PI;
       warnings.push(
-        `Inclination ${elements.inclinationDeg}° should be in [0, 180]`,
+        `Inclination ${inclinationDeg.toFixed(2)}° should be in [0, 180]`,
       );
     }
 
@@ -92,7 +95,7 @@ export class OrbitDataHelper {
   /**
    * Calculate orbital info
    */
-  static getOrbitalInfo(elements: OrbitalObject): {
+  static getOrbitalInfo(elements: PositionObjectType): {
     semiMajorAxisAU: number;
     semiMajorAxisKm: number;
     eccentricity: number;
@@ -159,29 +162,43 @@ export class OrbitDataHelper {
   /**
    * Convert PostgreSQL planet data to OrbitalElements
    */
-  static planetDBToOrbitalElements(object: Planet, star: Star): OrbitalObject {
+  static planetDBToOrbitalObject(
+    object: Planet,
+    star: Star,
+  ): OrbitalObjectType {
     return {
       primaryMassKg: star.massKg,
       objectMassKg: object.massKg,
       periapsisAU: object.periapsisAu,
       apoapsisAU: object.apoapsisAu,
-      inclinationDeg: object.incDeg,
-      longitudeOfAscendingNodeDeg: object.nodeDeg,
-      argumentOfPeriapsisDeg: object.argPeriDeg,
-      meanAnomalyDeg: object.meanAnomalyDeg,
+      inclinationRad: object.incRad,
+      longitudeOfAscendingNodeRad: object.nodeRad,
+      argumentOfPeriapsisRad: object.argPeriRad,
+      meanAnomalyRad: object.meanAnomalyRad,
+      rotationPeriodH: object.rotationH,
+      spinLongitudeRad: 0, // TODO : no data in JSON
+      tidalLocked: object.tidalLocked,
+      tiltRad: object.tiltRad,
     };
   }
 
-  static moonDBToOrbitalElements(object: Moon, planet: Planet): OrbitalObject {
+  static moonDBToOrbitalObject(
+    object: Moon,
+    planet: Planet,
+  ): OrbitalObjectType {
     return {
       primaryMassKg: planet.massKg,
       objectMassKg: object.massKg,
       periapsisAU: object.periapsisAu,
       apoapsisAU: object.apoapsisAu,
-      inclinationDeg: object.incDeg,
-      longitudeOfAscendingNodeDeg: object.nodeDeg,
-      argumentOfPeriapsisDeg: object.argPeriDeg,
-      meanAnomalyDeg: object.meanAnomalyDeg,
+      inclinationRad: object.incRad,
+      longitudeOfAscendingNodeRad: object.nodeRad,
+      argumentOfPeriapsisRad: object.argPeriRad,
+      meanAnomalyRad: object.meanAnomalyRad,
+      rotationPeriodH: object.rotationH,
+      spinLongitudeRad: 0, // TODO : no data in JSON
+      tidalLocked: object.tidalLocked,
+      tiltRad: object.tiltRad,
     };
   }
 }

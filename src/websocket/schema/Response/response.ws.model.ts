@@ -5,11 +5,11 @@ import { errorMessageWsSchema } from "./error.ws.model";
 import { responseInitWsSchema } from "./init.ws.model";
 import { responseUpdateObjectWsSchema } from "./updateObject.ws.model";
 
-export const ResponseWsSchema = z.union([
+export const responseWsSchema = z.union([
   responseInitWsSchema,
   connectedMessageWsSchema,
   errorMessageWsSchema,
   responseUpdateObjectWsSchema,
 ]);
 
-export type ResponseWsType = z.infer<typeof ResponseWsSchema>;
+export type ResponseWsType = z.infer<typeof responseWsSchema>;

@@ -1,9 +1,10 @@
 import { aVector3 } from "@builder/builders";
-import { Basis3D } from "@lib/vector3/basis3d";
+import { Basis3D } from "@lib/math/basis3d";
 import { describe, expect, it } from "vitest";
 
-const vec = (x: number, y: number, z: number) =>
-  aVector3().withCoordinate({ x, y, z }).build();
+const vec = (x: number, y: number, z: number) => {
+  return aVector3().withCoordinate({ x, y, z }).build();
+};
 
 describe("Basis3D", () => {
   it("should construct identity basis by default", () => {

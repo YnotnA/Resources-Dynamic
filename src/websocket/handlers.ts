@@ -1,4 +1,4 @@
-import { getInit, getUpdateObject } from "@lib/celestial-bodies/transforms";
+import { getInit, getUpdateObject } from "@lib/celestial/transforms-service";
 import { createTimer, logError, wsLogger } from "@lib/logger";
 import { decode, encode } from "@msgpack/msgpack";
 import type { WebSocket } from "ws";
@@ -45,11 +45,12 @@ const handleMessage = async (ws: WebSocket, data: unknown) => {
   const client = clients.get(ws);
 
   try {
-    // Decode MessagePack
-    const decoded = decode(new Uint8Array(data as ArrayBuffer));
-
     // Validate with Zod
-    const msg: RequestWsType = requestWsSchema.parse(decoded);
+    const msg: RequestWsType = requestWsSchema.parse(
+      process.env.ENABLE_MSG_PACK === "true"
+        ? decode(new Uint8Array(data as ArrayBuffer))
+        : JSON.parse(data as string),
+    );
 
     wsLogger.debug(
       {
@@ -112,6 +113,7 @@ const handleInit = async (ws: WebSocket, msg: RequestInitWsType) => {
             object.objectType !== "system"
               ? `scenes/${object.objectType}/${object.target.internalName}.tscn`
               : "",
+          ...(object.soi && { soi: object.soi }),
           ...(object.transforms && {
             positions: object.transforms.map((transform) => transform.position),
             rotations: object.transforms.map((transform) => transform.rotation),
@@ -224,7 +226,11 @@ const handleError = (ws: WebSocket, error: Error) => {
 const sendMessage = (ws: WebSocket, data: ResponseWsType) => {
   if (ws.readyState === 1) {
     // OPEN
-    ws.send(encode(data));
+    ws.send(
+      process.env.ENABLE_MSG_PACK === "true"
+        ? encode(data)
+        : JSON.stringify(data),
+    );
   }
 };
 

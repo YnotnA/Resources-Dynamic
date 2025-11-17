@@ -149,12 +149,15 @@ const importPlanetDb = async (
     systemId: star.systemId,
     apoapsisAu: planet.apoapsis_AU / DISTANCE_FACTOR,
     periapsisAu: planet.periapsis_AU / DISTANCE_FACTOR,
-    argPeriDeg: planet.arg_peri_deg,
-    incDeg: planet.inclination_deg,
-    meanAnomalyDeg: planet.M0_deg,
-    nodeDeg: planet.ascending_node_deg,
+    argPeriRad: convertDegToRad(planet.arg_peri_deg),
+    incRad: convertDegToRad(planet.inclination_deg),
+    meanAnomalyRad: convertDegToRad(planet.M0_deg),
+    nodeRad: convertDegToRad(planet.ascending_node_deg),
     radiusKm: planet.radius_km / DISTANCE_FACTOR,
     radiusGravityInfluenceKm: radiusGravityInfluenceKm / 1000, // Convert to km
+    rotationH: planet.rotation_h,
+    tidalLocked: planet.tidal_locked,
+    tiltRad: convertDegToRad(planet.tilt_deg),
   };
   return await createPlanet(newPlanet);
 };
@@ -187,17 +190,24 @@ const importMoonDb = async (
     name: moon.name,
     apoapsisAu: (moon.apoapsis_km * 1000) / AU / DISTANCE_FACTOR,
     periapsisAu: (moon.periapsis_km * 1000) / AU / DISTANCE_FACTOR,
-    argPeriDeg: moon.arg_peri_deg,
-    incDeg: moon.inclination_deg,
+    argPeriRad: convertDegToRad(moon.arg_peri_deg),
+    incRad: convertDegToRad(moon.inclination_deg),
     internalName: `${planet.internalName.toLowerCase()}_${moonNumber}`,
     massKg: moonMassKg,
-    meanAnomalyDeg: moon.M0_deg,
-    nodeDeg: moon.ascending_node_deg,
+    meanAnomalyRad: convertDegToRad(moon.M0_deg),
+    nodeRad: convertDegToRad(moon.ascending_node_deg),
     radiusKm: moon.radius_km / DISTANCE_FACTOR,
     planetId: planet.id,
-    radiusGravityInfluenceKm,
+    radiusGravityInfluenceKm: radiusGravityInfluenceKm / 1000,
+    rotationH: moon.spin_period_h,
+    tidalLocked: moon.spin_locked,
+    tiltRad: 0, // TODO: Missing data
   };
   return await createMoon(newMoon);
+};
+
+const convertDegToRad = (degree: number): number => {
+  return (degree * Math.PI) / 180;
 };
 
 try {

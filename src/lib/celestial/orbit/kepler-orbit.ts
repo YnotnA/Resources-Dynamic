@@ -1,18 +1,18 @@
 import { keplerOrbitLogger } from "@lib/logger";
-import { Basis3D } from "@lib/vector3/basis3d";
-import type { Vector3Type } from "@lib/vector3/schema/vector3.model";
-import { Vector3Math } from "@lib/vector3/vector3Math";
+import { Basis3D } from "@lib/math/basis3d";
+import type { Vector3Type } from "@lib/math/schema/vector3.model";
+import { Vector3 } from "@lib/math/vector3";
 
-export interface OrbitalObject {
+export type PositionObjectType = {
   primaryMassKg: number;
   objectMassKg: number;
   periapsisAU: number;
   apoapsisAU: number;
-  inclinationDeg: number;
-  longitudeOfAscendingNodeDeg: number;
-  argumentOfPeriapsisDeg: number;
-  meanAnomalyDeg: number;
-}
+  inclinationRad: number;
+  longitudeOfAscendingNodeRad: number;
+  argumentOfPeriapsisRad: number;
+  meanAnomalyRad: number;
+};
 
 export class KeplerOrbit {
   private static readonly AU_M = 1.495978707e11;
@@ -28,7 +28,7 @@ export class KeplerOrbit {
   private meanAnomaly: number;
 
   constructor(
-    private elements: OrbitalObject,
+    private elements: PositionObjectType,
     private referenceTimeS: number = 0,
   ) {
     this.orbitCenter = { x: 0, y: 0, z: 0 };
@@ -78,23 +78,22 @@ export class KeplerOrbit {
 
     // Create the orbital rotation base
     this.basis = this.createOrbitBasis(
-      elements.argumentOfPeriapsisDeg,
-      elements.inclinationDeg,
-      elements.longitudeOfAscendingNodeDeg,
+      elements.argumentOfPeriapsisRad,
+      elements.inclinationRad,
+      elements.longitudeOfAscendingNodeRad,
     );
 
-    const M0 = (elements.meanAnomalyDeg * Math.PI) / 180;
     this.meanAnomaly = this.normalizeAngle(
-      M0 + this.meanMotion * referenceTimeS,
+      elements.meanAnomalyRad + this.meanMotion * referenceTimeS,
     );
 
     // Check the calculated initial position
     const initialPos = this.getPosition();
-    const initialDistance = Vector3Math.magnitude(initialPos);
+    const initialDistance = Vector3.magnitude(initialPos);
     keplerOrbitLogger.debug(
       {
         elements,
-        "🎯 Mean anomaly at epoch (T=0)": `${elements.meanAnomalyDeg.toFixed(2)}°`,
+        "🎯 Mean anomaly at epoch (T=0)": `${((elements.meanAnomalyRad * 180) / Math.PI).toFixed(2)}°`,
         "🕐 Reference time": `${referenceTimeS.toFixed(2)}s`,
         "📍 Mean anomaly": `${((this.meanAnomaly * 180) / Math.PI).toFixed(2)}°`,
         distance: `${(initialDistance / 1e9).toFixed(2)} million km`,
@@ -123,15 +122,15 @@ export class KeplerOrbit {
   }
 
   private createOrbitBasis(
-    argPeriDeg: number,
-    incDeg: number,
-    nodeDeg: number,
+    argPeriRad: number,
+    incRad: number,
+    nodeRad: number,
   ): Basis3D {
     let b = Basis3D.identity();
     // Rotation sequence: Rz(Ω) * Rx(i) * Rz(ω)
-    b = b.rotated({ x: 0, y: 0, z: 1 }, (nodeDeg * Math.PI) / 180);
-    b = b.rotated({ x: 1, y: 0, z: 0 }, (incDeg * Math.PI) / 180);
-    b = b.rotated({ x: 0, y: 0, z: 1 }, (argPeriDeg * Math.PI) / 180);
+    b = b.rotated({ x: 0, y: 0, z: 1 }, nodeRad);
+    b = b.rotated({ x: 1, y: 0, z: 0 }, incRad);
+    b = b.rotated({ x: 0, y: 0, z: 1 }, argPeriRad);
     return b;
   }
 
@@ -169,7 +168,7 @@ export class KeplerOrbit {
       this.eccentricity,
       M,
     );
-    return Vector3Math.add(this.orbitCenter, this.basis.transform(posPlane));
+    return Vector3.add(this.orbitCenter, this.basis.transform(posPlane));
   }
 
   advance(dt: number): Vector3Type {

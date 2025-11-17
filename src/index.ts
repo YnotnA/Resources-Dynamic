@@ -8,8 +8,8 @@ import { createStandaloneWebSocket } from "./websocket/server";
 
 dotenv.config();
 
-const WS_PORT = parseInt(process.env.WS_PORT || "3000");
-const API_PORT = parseInt(process.env.API_PORT || "3001");
+const WS_PORT = 9200;
+const API_PORT = 3001;
 
 // Démarrage du serveur
 const start = async () => {

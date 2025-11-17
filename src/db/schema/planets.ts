@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  boolean,
   doublePrecision,
   integer,
   pgTable,
@@ -25,14 +26,17 @@ export const planets = pgTable("planets", {
   massKg: doublePrecision("mass_kg").notNull(),
   periapsisAu: doublePrecision("periapsis_au").notNull(),
   apoapsisAu: doublePrecision("apoapsis_au").notNull(),
-  incDeg: doublePrecision("inc_deg").notNull(),
-  nodeDeg: doublePrecision("node_deg").notNull(),
-  argPeriDeg: doublePrecision("arg_peri_deg").notNull(),
-  meanAnomalyDeg: doublePrecision("mean_anomaly_deg").notNull(),
+  incRad: doublePrecision("inc_rad").notNull(),
+  nodeRad: doublePrecision("node_rad").notNull(),
+  argPeriRad: doublePrecision("arg_peri_rad").notNull(),
+  meanAnomalyRad: doublePrecision("mean_anomaly_rad").notNull(),
   radiusKm: doublePrecision("radius_km").notNull(),
   radiusGravityInfluenceKm: doublePrecision(
     "radius_gravity_influence_km",
   ).notNull(),
+  tidalLocked: boolean("tidal_locked").notNull(),
+  tiltRad: doublePrecision("tilt_rad").notNull(),
+  rotationH: doublePrecision("rotation_h").notNull(),
 });
 
 // Relations

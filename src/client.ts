@@ -2,6 +2,7 @@
 // import type { OrbitCalculationParams } from "@lib/kepler-orbit/kepler-orbit-service";
 // import { keplerOrbitService } from "@lib/kepler-orbit/kepler-orbit-service";
 // import { OrbitDataHelper } from "@lib/kepler-orbit/orbit-data-helper";
+// import type { Vector3Type } from "@lib/math/schema/vector3.model";
 import { decode, encode } from "@msgpack/msgpack";
 import type { RequestInitWsType } from "@websocket/schema/Request/init.ws.model";
 import type { RequestTransformWsType } from "@websocket/schema/Request/transform.ws.model";
@@ -591,56 +592,64 @@ import WebSocket from "ws";
 
 const ws = new WebSocket("ws://localhost:9200");
 
+const DURATION = 5;
+const FREQUENCY = 60;
+
 ws.on("open", () => {
   console.log("✅ Connected to WebSocket server");
 
   const requestInit: RequestInitWsType = {
     event_type: "init",
     data: {
-      duration_s: 3,
-      frequency: 60,
+      duration_s: DURATION,
+      frequency: FREQUENCY,
       from_timestamp: 0,
       system_internal_name: "tarsis",
     },
   };
 
   ws.send(encode(requestInit));
+  // ws.send(JSON.stringify(requestInit));
 
   let fromTime = 0;
   setInterval(() => {
     const nextTicksRequest: RequestTransformWsType = {
       event_type: "transform",
       data: {
-        duration_s: 3,
-        frequency: 60,
+        duration_s: DURATION,
+        frequency: FREQUENCY,
         from_timestamp: fromTime,
-        uuid: "88f3a0af-28c7-42f6-8228-551a98fc55cd",
+        uuid: "88f3a0af-28c7-42f6-8228-551a98fc55cd", // Lune
+        // uuid: "844221a5-e2be-432c-94c2-947462c1c310", // Planet Tarsis 1
       },
     };
-    ws.send(encode(nextTicksRequest));
-    fromTime += 3;
+    // ws.send(encode(nextTicksRequest));
+    ws.send(JSON.stringify(nextTicksRequest));
+    fromTime += DURATION;
   }, 1000);
 });
 
 ws.on("message", (data) => {
   const decoded = decode(data as Buffer) as ResponseWsType;
+  // const decoded = JSON.parse((data as Buffer).toString()) as ResponseWsType;
 
   if ("data" in decoded) {
-    console.log("🎯 Received:", decoded.data);
-    // if ("object_data" in decoded.data) {
-    //   const positions = decoded.data.object_data.positions;
-    //   if (positions) {
-    //     positions.map((position) => console.log(position));
-    //   }
-    //   const rotations = decoded.data.object_data.rotations;
-    //   if (rotations) {
-    //     rotations.map((rotation) => console.log(rotation));
-    //   }
-    // }
+    console.log(decoded.data);
+    // console.log("🎯 Received:", decoded.data[2].object_data.rotations);
+    if ("object_data" in decoded.data) {
+      // const positions = decoded.data.object_data.positions;
+      // const timeS = decoded.data.object_data.from_timestamp;
+      // const rotations = decoded.data.object_data.rotations as Vector3Type[];
+      // const positions = decoded.data.object_data.positions as Vector3Type[];
+      //       if (positions) {
+      //   positions.map((position) => console.log(position));
+      // }
+      // if (rotations) {
+      //   rotations.map((rotation) => console.log(rotation));
+      // }
+      // console.log(timeS);
+    }
   } else {
     console.log("🎯 Received:", decoded);
   }
 });
-
-ws.on("close", () => console.log("🔴 Disconnected"));
-ws.on("error", (err) => console.error("❌ WebSocket error:", err));

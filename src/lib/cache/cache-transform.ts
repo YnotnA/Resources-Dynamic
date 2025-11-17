@@ -1,46 +1,46 @@
-import type { Vector3Type } from "@lib/vector3/schema/vector3.model";
+import { cacheTransformLogger, logError } from "@lib/logger";
+import type { QuaternionType } from "@lib/math/schema/quaternion.model";
+import type { Vector3Type } from "@lib/math/schema/vector3.model";
 
-import { cacheTransformLogger, logError } from "./logger";
-
-export interface Transform {
+export type TransformType = {
   timeS: number;
   position: Vector3Type;
-  rotation: Vector3Type;
-}
+  rotation: QuaternionType;
+};
 
-export interface CacheCalculationParams {
+export type CacheCalculationParamsType = {
   objectId: string;
   startTime: number;
   duration: number;
   frequency: number;
-}
+};
 
-export interface CachedData {
-  params: CacheCalculationParams;
-  transforms: Transform[];
+export type CachedDataType = {
+  params: CacheCalculationParamsType;
+  transforms: TransformType[];
   calculatedAt: Date;
   transformCount: number;
   accessCount: number;
   lastAccessedAt: Date;
-}
+};
 
-export interface SaveCachedData extends Omit<CachedData, "transforms"> {
+export type SaveCachedDataType = Omit<CachedDataType, "transforms"> & {
   transforms: Float64Array;
-}
+};
 
-export interface PrefetchConfig {
+export type PrefetchConfigType = {
   enabled: boolean;
   multiplier: number;
   maxTransformCount: number;
   minDuration: number;
   autoThreshold: number;
-}
+};
 
-export interface CacheStrategy {
+export type CacheStrategyType = {
   maxCacheSize: number;
   cacheExpirationMs: number;
   evictionPolicy: "lru" | "lfu" | "fifo";
-}
+};
 
 /**
  * Use for stat memory
@@ -51,21 +51,22 @@ export interface CacheStrategy {
  * rotation.x	float64	8 octets
  * rotation.y	float64	8 octets
  * rotation.z	float64	8 octets
+ * rotation.w	float64	8 octets
  */
-const BYTES_PER_TRANSFORM = 56;
+const BYTES_PER_TRANSFORM = 64;
 
 export class CacheTransform {
-  private cache: Map<string, SaveCachedData> = new Map();
+  private cache: Map<string, SaveCachedDataType> = new Map();
   private activePrefetches: Map<string, Promise<void>> = new Map();
   private completedPrefetches: Set<string> = new Set();
 
-  private cacheStrategy: CacheStrategy = {
+  private cacheStrategy: CacheStrategyType = {
     maxCacheSize: 100,
     cacheExpirationMs: 60000,
     evictionPolicy: "lru",
   };
 
-  private prefetchConfig: PrefetchConfig = {
+  private prefetchConfig: PrefetchConfigType = {
     enabled: true,
     multiplier: 300,
     maxTransformCount: 10000,
@@ -74,8 +75,8 @@ export class CacheTransform {
   };
 
   constructor(
-    cacheStrategy?: Partial<CacheStrategy>,
-    prefetchConfig?: Partial<PrefetchConfig>,
+    cacheStrategy?: Partial<CacheStrategyType>,
+    prefetchConfig?: Partial<PrefetchConfigType>,
   ) {
     if (cacheStrategy) {
       this.cacheStrategy = { ...this.cacheStrategy, ...cacheStrategy };
@@ -93,7 +94,9 @@ export class CacheTransform {
     return `prefetch:${this.getCacheKey(objectId, frequency)}`;
   }
 
-  private findMatchingCache(params: CacheCalculationParams): CachedData | null {
+  private findMatchingCache(
+    params: CacheCalculationParamsType,
+  ): CachedDataType | null {
     const cacheKey = this.getCacheKey(params.objectId, params.frequency);
 
     const cached = this.getCache(cacheKey);
@@ -211,10 +214,10 @@ export class CacheTransform {
   }
 
   private extractSubset(
-    cached: CachedData,
+    cached: CachedDataType,
     startTime: number,
     duration: number,
-  ): Transform[] {
+  ): TransformType[] {
     const endTime = startTime + duration;
     const timestep = 1 / cached.params.frequency;
 
@@ -284,10 +287,10 @@ export class CacheTransform {
     return finalDuration;
   }
 
-  private normalizeCache(transforms: Transform[]): Float64Array {
-    const arr = new Float64Array(transforms.length * 7);
+  private normalizeCache(transforms: TransformType[]): Float64Array {
+    const arr = new Float64Array(transforms.length * 8);
     transforms.forEach((transform, i) => {
-      const idx = i * 7;
+      const idx = i * 8;
       arr[idx] = transform.timeS;
       arr[idx + 1] = transform.position.x;
       arr[idx + 2] = transform.position.y;
@@ -295,38 +298,49 @@ export class CacheTransform {
       arr[idx + 4] = transform.rotation.x;
       arr[idx + 5] = transform.rotation.y;
       arr[idx + 6] = transform.rotation.z;
+      arr[idx + 7] = transform.rotation.w;
     });
     return arr;
   }
 
-  private denormalizeCache(arr: Float64Array): Transform[] {
-    const transforms: Transform[] = [];
-    for (let i = 0; i < arr.length; i += 7) {
+  private denormalizeCache(arr: Float64Array): TransformType[] {
+    const transforms: TransformType[] = [];
+    for (let i = 0; i < arr.length; i += 8) {
       transforms.push({
         timeS: arr[i],
         position: { x: arr[i + 1], y: arr[i + 2], z: arr[i + 3] },
-        rotation: { x: arr[i + 4], y: arr[i + 5], z: arr[i + 6] },
+        rotation: {
+          x: arr[i + 4],
+          y: arr[i + 5],
+          z: arr[i + 6],
+          w: arr[i + 7],
+        },
       });
     }
     return transforms;
   }
 
-  private setCache(tempKey: string, cachedData: CachedData | SaveCachedData) {
+  private setCache(
+    tempKey: string,
+    cachedData: CachedDataType | SaveCachedDataType,
+  ) {
     if (
       Array.isArray(cachedData.transforms[0]) &&
       cachedData.transforms.length > 0 &&
       "timeS" in cachedData.transforms[0]
     ) {
-      this.cache.set(tempKey, cachedData as SaveCachedData);
+      this.cache.set(tempKey, cachedData as SaveCachedDataType);
     } else {
       this.cache.set(tempKey, {
         ...cachedData,
-        transforms: this.normalizeCache(cachedData.transforms as Transform[]),
+        transforms: this.normalizeCache(
+          cachedData.transforms as TransformType[],
+        ),
       });
     }
   }
 
-  private getCache(tempKey: string): CachedData | null {
+  private getCache(tempKey: string): CachedDataType | null {
     const cache = this.cache.get(tempKey);
     if (!cache) {
       return null;
@@ -351,10 +365,10 @@ export class CacheTransform {
     cache.lastAccessedAt = new Date();
   }
 
-  private checkAndPrefetch<T extends CacheCalculationParams>(
-    cached: CachedData,
-    params: CacheCalculationParams,
-    calculateFn: (params: T) => Transform[],
+  private checkAndPrefetch<T extends CacheCalculationParamsType>(
+    cached: CachedDataType,
+    params: CacheCalculationParamsType,
+    calculateFn: (params: T) => TransformType[],
   ): void {
     const cacheStart = params.startTime + params.duration;
     const cacheEnd = cached.params.startTime + cached.params.duration;
@@ -439,10 +453,10 @@ export class CacheTransform {
     }
   }
 
-  getTransforms<T extends CacheCalculationParams>(
+  getTransforms<T extends CacheCalculationParamsType>(
     params: T,
-    calculateFn: (params: T) => Transform[],
-  ): Transform[] {
+    calculateFn: (params: T) => TransformType[],
+  ): TransformType[] {
     const normalizedParams = { ...params };
 
     const cacheKey = this.getCacheKey(params.objectId, params.frequency);
@@ -530,7 +544,7 @@ export class CacheTransform {
     });
 
     const result = this.extractSubset(
-      this.getCache(cacheKey) as CachedData,
+      this.getCache(cacheKey) as CachedDataType,
       normalizedParams.startTime,
       normalizedParams.duration,
     );
@@ -542,7 +556,7 @@ export class CacheTransform {
     return result;
   }
 
-  updatePrefetchConfig(config: Partial<PrefetchConfig>): void {
+  updatePrefetchConfig(config: Partial<PrefetchConfigType>): void {
     this.prefetchConfig = { ...this.prefetchConfig, ...config };
     cacheTransformLogger.info(
       { prefetchConfig: this.prefetchConfig },
@@ -550,7 +564,7 @@ export class CacheTransform {
     );
   }
 
-  updateCacheStrategy(strategy: Partial<CacheStrategy>): void {
+  updateCacheStrategy(strategy: Partial<CacheStrategyType>): void {
     this.cacheStrategy = { ...this.cacheStrategy, ...strategy };
     cacheTransformLogger.info(
       { cacheStrategy: this.cacheStrategy },

@@ -180,8 +180,8 @@
       const SCALE_RADIUS = 1 / 10000;
       const PLANET_RENDER_SCALE = 1.0; // facteur taille mesh planète (affichage)
       const MOON_RENDER_SCALE = 2; // facteur taille mesh lune (affichage)
-      const DURATION = 43200;
-      const FREQUENCY = 0.002;
+      const DURATION = 43000;
+      const FREQUENCY = 0.004;
 
       let ws = null;
       let isConnected = false;
@@ -238,7 +238,7 @@
       scene.add(glow);
 
       // ===== AXES & GRILLE =====
-      const axesHelper = new THREE.AxesHelper(15);
+      const axesHelper = new THREE.AxesHelper(80);
       scene.add(axesHelper);
 
       const gridHelper = new THREE.GridHelper(40, 20, 0x444444, 0x222222);
@@ -270,6 +270,8 @@
         const geometry = new THREE.SphereGeometry(sphereRadius, 32, 32);
         const material = new THREE.MeshStandardMaterial({ color });
         const mesh = new THREE.Mesh(geometry, material);
+        const axesHelper = new THREE.AxesHelper(sphereRadius * 2);
+        mesh.add(axesHelper);
         scene.add(mesh);
 
         // Create text planet
@@ -313,7 +315,7 @@
           uuid,
           mesh,
           trail,
-          positions: [],
+          transforms: [],
           currentIndex: 0,
           color,
           name,
@@ -340,7 +342,7 @@
                 <div style="margin: 5px 0;">
                   <span style="color: ${color}">⬤</span> ${obj.name || shortUuid}
                   <span style="color: #888; font-size: 10px;">(${
-                    obj.positions.length
+                    obj.transforms.length
                   } pts)</span>
                 </div>
               `;
@@ -359,10 +361,17 @@
         // Sinon, on affiche et met à jour la traînée normalement
         obj.trail.visible = showTrails;
         const start = Math.max(0, idx - TRAIL_LENGTH + 1);
-        const points = obj.positions
+        const transforms = obj.transforms
           .slice(start, idx + 1)
-          .map((p) => new THREE.Vector3(p.x, p.y, p.z));
-        obj.trail.geometry.setFromPoints(points);
+          .map(
+            (transform) =>
+              new THREE.Vector3(
+                transform.position.x,
+                transform.position.y,
+                transform.position.z,
+              ),
+          );
+        obj.trail.geometry.setFromPoints(transforms);
         obj.trail.geometry.attributes.position.needsUpdate = true;
       }
 
@@ -469,9 +478,17 @@
           }
           // Position initiale (absolue, ne pas toucher à l'échelle pour lune)
           const x = objectData.positions[0].x * SCALE_POSITION;
-          const y = objectData.positions[0].z * SCALE_POSITION;
-          const z = objectData.positions[0].y * SCALE_POSITION;
+          const y = objectData.positions[0].y * SCALE_POSITION;
+          const z = objectData.positions[0].z * SCALE_POSITION;
           orbitalObjects.get(objectUuid).mesh.position.set(x, y, z);
+
+          const xr = objectData.rotations[0].x;
+          const yr = objectData.rotations[0].y;
+          const zr = objectData.rotations[0].z;
+          const wr = objectData.rotations[0].w;
+
+          orbitalObjects.get(objectUuid).mesh.quaternion.set(xr, yr, zr, wr);
+          // orbitalObjects.get(objectUuid).mesh.rotation.set(xr, yr, zr, "XYZ");
         });
 
         console.log(`✅ Created ${allPlanetUuids.length} celestial bodies`);
@@ -490,8 +507,8 @@
         allPlanetUuids.forEach((uuid) => {
           const obj = orbitalObjects.get(uuid);
           const lastTime =
-            obj && obj.positions.length > 0
-              ? obj.positions[obj.positions.length - 1].time
+            obj && obj.transforms.length > 0
+              ? obj.transforms[obj.transforms.length - 1].time
               : 0;
 
           const request = {
@@ -514,14 +531,16 @@
         const objectUuid = updateObject.object_uuid;
         const objectData = updateObject.object_data;
         const positions = objectData.positions;
+        const rotations = objectData.rotations;
+        const transformCount = positions.length;
 
-        if (!Array.isArray(positions) || positions.length === 0) {
+        if (!Array.isArray(positions) || transformCount === 0) {
           console.warn("⚠️ Empty tick data");
           return;
         }
 
         console.log(
-          `📥 Received ${positions.length} positions for ${objectUuid.substring(
+          `📥 Received ${transformCount} transforms for ${objectUuid.substring(
             0,
             8,
           )}`,
@@ -534,30 +553,36 @@
           obj = orbitalObjects.get(objectUuid);
         }
 
-        positions.forEach((position, index) => {
+        for (let index = 0; index < transformCount; index++) {
+          const position = positions[index];
+          const rotation = rotations[index];
+
           const newTime = objectData.from_timestamp + index * (1 / FREQUENCY);
-          const newPos = {
-            x: position.x * SCALE_POSITION,
-            y: position.z * SCALE_POSITION,
-            z: position.y * SCALE_POSITION,
+          const newTransform = {
+            position: {
+              x: position.x * SCALE_POSITION,
+              y: position.y * SCALE_POSITION,
+              z: position.z * SCALE_POSITION,
+            },
+            rotation,
             time: newTime,
           };
 
           // Cherche si time existe déjà
-          const existingIdx = obj.positions.findIndex(
+          const existingIdx = obj.transforms.findIndex(
             (p) => p.time === newTime,
           );
 
           if (existingIdx >= 0) {
             // Remplace la position existante
-            obj.positions[existingIdx] = newPos;
+            obj.transforms[existingIdx] = newTransform;
           } else {
             // Ajoute à la fin
-            obj.positions.push(newPos);
+            obj.transforms.push(newTransform);
           }
 
           obj.isFetching = false;
-        });
+        }
 
         updateObjectsList();
       }
@@ -571,19 +596,19 @@
         if (!isPlaying) return;
 
         orbitalObjects.forEach((obj, uuid) => {
-          if (obj.positions.length === 0) return;
+          if (obj.transforms.length === 0) return;
           const idx = Math.floor(obj.currentIndex);
 
-          if (idx >= obj.positions.length - 1) {
-            obj.currentIndex = obj.positions.length - 1;
+          if (idx >= obj.transforms.length - 1) {
+            obj.currentIndex = obj.transforms.length - 1;
             // Tu peux aussi afficher un message "Fin du buffer"
             return;
           }
 
-          if (obj.positions.length > TRAIL_LENGTH + EXTRA_BUFFER) {
+          if (obj.transforms.length > TRAIL_LENGTH + EXTRA_BUFFER) {
             const oldestToKeep = Math.max(0, idx - TRAIL_LENGTH - EXTRA_BUFFER);
             if (oldestToKeep > 0) {
-              obj.positions.splice(0, oldestToKeep);
+              obj.transforms.splice(0, oldestToKeep);
               obj.currentIndex -= oldestToKeep;
               if (obj.currentIndex < 0) obj.currentIndex = 0;
             }
@@ -592,11 +617,11 @@
           if (
             ws &&
             ws.readyState === WebSocket.OPEN &&
-            obj.currentIndex / obj.positions.length > FETCH_THRESHOLD &&
+            obj.currentIndex / obj.transforms.length > FETCH_THRESHOLD &&
             !obj.isFetching // Ajoute un flag pour éviter de spammer
           ) {
             obj.isFetching = true; // marque comme fetch en cours
-            const lastTime = obj.positions[obj.positions.length - 1].time;
+            const lastTime = obj.transforms[obj.transforms.length - 1].time;
             const request = {
               event_type: "transform",
               data: {
@@ -609,35 +634,63 @@
             ws.send(encode(request));
           }
 
-          // if (idx >= obj.positions.length) {
-          //   obj.currentIndex = obj.positions.length - 1;
-          //   return;
-          // }
-
-          const pos = obj.positions[idx];
+          const position = obj.transforms[idx].position;
+          const rotation = obj.transforms[idx].rotation;
 
           // ------ Correction : décalage lune ------
           if (MOON_RADII[uuid] && MOON_PARENT[uuid]) {
             const planetUuid = MOON_PARENT[uuid];
             const planetObj = orbitalObjects.get(planetUuid);
-            if (planetObj && planetObj.mesh) {
-              const planetPos = planetObj.mesh.position;
-              const moonPos = new THREE.Vector3(pos.x, pos.y, pos.z);
-              const direction = moonPos.clone().sub(planetPos).normalize();
+            // Position Global
+            // if (planetObj && planetObj.mesh) {
+            //   const planetPos = planetObj.mesh.position;
+            //   const moonPos = new THREE.Vector3(
+            //     position.x,
+            //     position.y,
+            //     position.z,
+            //   );
+            //   const direction = moonPos.clone().sub(planetPos).normalize();
 
-              // Rayon graphique planète
+            //   // Rayon graphique planète
+            //   const planetRadiusPhys = PLANET_RADII[planetUuid] * SCALE_RADIUS;
+            //   const planetRadiusGraph = planetRadiusPhys * PLANET_RENDER_SCALE;
+
+            //   // Rayon graphique lune
+            //   const moonRadiusPhys = MOON_RADII[uuid] * SCALE_RADIUS;
+            //   const moonRadiusGraph = moonRadiusPhys * MOON_RENDER_SCALE;
+            //   // Espace supplémentaire (ajuste la valeur selon ton rendu souhaité)
+            //   // const space = moonRadiusGraph * 2; // ou une valeur personnalisée
+            //   const space = moonRadiusGraph * 1.2 + planetRadiusGraph * 0.1;
+
+            //   // Décalage total
+            //   const offset = planetRadiusGraph + space;
+            //   const correctedPos = planetPos
+            //     .clone()
+            //     .add(direction.multiplyScalar(offset));
+            //   obj.mesh.position.set(
+            //     correctedPos.x,
+            //     correctedPos.y,
+            //     correctedPos.z,
+            //   );
+            // } else {
+            //   obj.mesh.position.set(position.x, position.y, position.z);
+            // }
+            if (planetObj && planetObj.mesh) {
+              const planetPos = planetObj.mesh.position; // GLOBAL
+              const moonLocal = new THREE.Vector3(
+                position.x,
+                position.y,
+                position.z,
+              ); // RELATIF À PLANÈTE
+              const direction = moonLocal.clone().normalize();
+              // Rayon graphique planète/lune
               const planetRadiusPhys = PLANET_RADII[planetUuid] * SCALE_RADIUS;
               const planetRadiusGraph = planetRadiusPhys * PLANET_RENDER_SCALE;
-
-              // Rayon graphique lune
               const moonRadiusPhys = MOON_RADII[uuid] * SCALE_RADIUS;
               const moonRadiusGraph = moonRadiusPhys * MOON_RENDER_SCALE;
-              // Espace supplémentaire (ajuste la valeur selon ton rendu souhaité)
-              // const space = moonRadiusGraph * 2; // ou une valeur personnalisée
               const space = moonRadiusGraph * 1.2 + planetRadiusGraph * 0.1;
-
-              // Décalage total
               const offset = planetRadiusGraph + space;
+              // Correction
               const correctedPos = planetPos
                 .clone()
                 .add(direction.multiplyScalar(offset));
@@ -647,12 +700,21 @@
                 correctedPos.z,
               );
             } else {
-              obj.mesh.position.set(pos.x, pos.y, pos.z);
+              obj.mesh.position.set(position.x, position.y, position.z);
             }
           } else {
-            obj.mesh.position.set(pos.x, pos.y, pos.z);
+            obj.mesh.position.set(position.x, position.y, position.z);
           }
           // ----------------------------------------
+
+          obj.mesh.quaternion.set(
+            rotation.x,
+            rotation.y,
+            rotation.z,
+            rotation.w,
+          );
+
+          // obj.mesh.rotation.set(rotation.x, rotation.y, rotation.z, "XYZ");
 
           if (showTrails) updateTrail(obj);
 
@@ -663,21 +725,26 @@
         const firstUuid = Array.from(orbitalObjects.keys())[0];
         if (firstUuid) {
           const obj = orbitalObjects.get(firstUuid);
-          if (obj && obj.positions.length > 0) {
+          if (obj && obj.transforms.length > 0) {
             const idx = Math.floor(obj.currentIndex);
-            if (idx < obj.positions.length) {
-              const pos = obj.positions[idx];
-              const distance = Math.sqrt(pos.x ** 2 + pos.y ** 2 + pos.z ** 2);
+            if (idx < obj.transforms.length) {
+              const transform = obj.transforms[idx];
+              const position = transform.position;
+              const distance = Math.sqrt(
+                position.x ** 2 + position.y ** 2 + position.z ** 2,
+              );
               const distanceAU = distance / 10;
 
+              // console.log(pos);
+
               document.getElementById("stats").innerHTML = `
-                    <strong>Time:</strong> ${(pos.time / 86400).toFixed(2)} days<br>
-                    <strong>Buffer:</strong> ${obj.positions.length} positions<br>
-                    <strong>Index:</strong> ${idx}/${obj.positions.length}<br>
+                    <strong>Time:</strong> ${(transform.time / 86400).toFixed(2)} days<br>
+                    <strong>Buffer:</strong> ${obj.transforms.length} positions<br>
+                    <strong>Index:</strong> ${idx}/${obj.transforms.length}<br>
                     <strong>Position (EXACT):</strong><br>
-                    X: ${pos.x.toFixed(2)}<br>
-                    Y: ${pos.y.toFixed(2)}<br>
-                    Z: ${pos.z.toFixed(2)}<br>
+                    X: ${position.x.toFixed(2)}<br>
+                    Y: ${position.y.toFixed(2)}<br>
+                    Z: ${position.z.toFixed(2)}<br>
                     <strong>Distance:</strong> ${distanceAU.toFixed(3)} AU<br>
                     <strong>Speed:</strong> ${animationSpeed}x<br>
                     <strong>Objects:</strong> ${orbitalObjects.size}

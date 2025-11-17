@@ -1,5 +1,5 @@
-import type { Vector3Type } from "./schema/vector3.model";
-import { Vector3Math } from "./vector3Math";
+import type { Vector3Type } from "@lib/math/schema/vector3.model";
+import { Vector3 } from "@lib/math/vector3";
 
 export class Basis3D {
   constructor(
@@ -9,7 +9,6 @@ export class Basis3D {
   ) {}
 
   transform(v: Vector3Type): Vector3Type {
-    // Multiplication matrice-vecteur : M * v
     return {
       x: this.x.x * v.x + this.y.x * v.y + this.z.x * v.z,
       y: this.x.y * v.x + this.y.y * v.y + this.z.y * v.z,
@@ -18,12 +17,12 @@ export class Basis3D {
   }
 
   rotated(axis: Vector3Type, angleRad: number): Basis3D {
-    const magnitude = Vector3Math.magnitude(axis);
+    const magnitude = Vector3.magnitude(axis);
     if (magnitude === 0) {
       return this;
     }
 
-    const axisNorm = Vector3Math.normalize(axis);
+    const axisNorm = Vector3.normalize(axis);
     const cosA = Math.cos(angleRad);
     const sinA = Math.sin(angleRad);
     const { x: ux, y: uy, z: uz } = axisNorm;
