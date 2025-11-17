@@ -5,8 +5,8 @@ import { Vector3 } from "@lib/math/vector3";
 export type RotationObjectType = {
   tidalLocked: boolean;
   rotationPeriodH: number;
-  tiltDeg: number;
-  spinLongitudeDeg: number;
+  tiltRad: number;
+  spinLongitudeRad: number;
 };
 
 export class RotationQuaternion {
@@ -20,9 +20,9 @@ export class RotationQuaternion {
     private elements: RotationObjectType,
     private referenceTimeS: number = 0,
   ) {
-    const { tiltDeg, spinLongitudeDeg, rotationPeriodH } = elements;
-    this.tiltRad = (tiltDeg * Math.PI) / 180;
-    this.spinLongRad = (spinLongitudeDeg * Math.PI) / 180;
+    const { tiltRad, spinLongitudeRad, rotationPeriodH } = elements;
+    this.tiltRad = tiltRad;
+    this.spinLongRad = spinLongitudeRad;
     this.rotationRateRadS = RotationQuaternion.TAU / (rotationPeriodH * 3600);
   }
 

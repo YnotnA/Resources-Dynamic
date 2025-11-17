@@ -1,5 +1,5 @@
 {
-  "id": "b3581ab4-2441-4d84-847a-514abfadaae6",
+  "id": "57f70f6a-9023-4d63-aa07-8c42877b6c45",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -236,26 +236,26 @@
           "primaryKey": false,
           "notNull": true
         },
-        "inc_deg": {
-          "name": "inc_deg",
+        "inc_rad": {
+          "name": "inc_rad",
           "type": "double precision",
           "primaryKey": false,
           "notNull": true
         },
-        "node_deg": {
-          "name": "node_deg",
+        "node_rad": {
+          "name": "node_rad",
           "type": "double precision",
           "primaryKey": false,
           "notNull": true
         },
-        "arg_peri_deg": {
-          "name": "arg_peri_deg",
+        "arg_peri_rad": {
+          "name": "arg_peri_rad",
           "type": "double precision",
           "primaryKey": false,
           "notNull": true
         },
-        "mean_anomaly_deg": {
-          "name": "mean_anomaly_deg",
+        "mean_anomaly_rad": {
+          "name": "mean_anomaly_rad",
           "type": "double precision",
           "primaryKey": false,
           "notNull": true
@@ -278,8 +278,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "tilt_deg": {
-          "name": "tilt_deg",
+        "tilt_rad": {
+          "name": "tilt_rad",
           "type": "double precision",
           "primaryKey": false,
           "notNull": true
@@ -399,26 +399,26 @@
           "primaryKey": false,
           "notNull": true
         },
-        "inc_deg": {
-          "name": "inc_deg",
+        "inc_rad": {
+          "name": "inc_rad",
           "type": "double precision",
           "primaryKey": false,
           "notNull": true
         },
-        "node_deg": {
-          "name": "node_deg",
+        "node_rad": {
+          "name": "node_rad",
           "type": "double precision",
           "primaryKey": false,
           "notNull": true
         },
-        "arg_peri_deg": {
-          "name": "arg_peri_deg",
+        "arg_peri_rad": {
+          "name": "arg_peri_rad",
           "type": "double precision",
           "primaryKey": false,
           "notNull": true
         },
-        "mean_anomaly_deg": {
-          "name": "mean_anomaly_deg",
+        "mean_anomaly_rad": {
+          "name": "mean_anomaly_rad",
           "type": "double precision",
           "primaryKey": false,
           "notNull": true
@@ -441,8 +441,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "tilt_deg": {
-          "name": "tilt_deg",
+        "tilt_rad": {
+          "name": "tilt_rad",
           "type": "double precision",
           "primaryKey": false,
           "notNull": true

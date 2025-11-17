@@ -8,10 +8,10 @@ export type PositionObjectType = {
   objectMassKg: number;
   periapsisAU: number;
   apoapsisAU: number;
-  inclinationDeg: number;
-  longitudeOfAscendingNodeDeg: number;
-  argumentOfPeriapsisDeg: number;
-  meanAnomalyDeg: number;
+  inclinationRad: number;
+  longitudeOfAscendingNodeRad: number;
+  argumentOfPeriapsisRad: number;
+  meanAnomalyRad: number;
 };
 
 export class KeplerOrbit {
@@ -78,14 +78,13 @@ export class KeplerOrbit {
 
     // Create the orbital rotation base
     this.basis = this.createOrbitBasis(
-      elements.argumentOfPeriapsisDeg,
-      elements.inclinationDeg,
-      elements.longitudeOfAscendingNodeDeg,
+      elements.argumentOfPeriapsisRad,
+      elements.inclinationRad,
+      elements.longitudeOfAscendingNodeRad,
     );
 
-    const M0 = (elements.meanAnomalyDeg * Math.PI) / 180;
     this.meanAnomaly = this.normalizeAngle(
-      M0 + this.meanMotion * referenceTimeS,
+      elements.meanAnomalyRad + this.meanMotion * referenceTimeS,
     );
 
     // Check the calculated initial position
@@ -94,7 +93,7 @@ export class KeplerOrbit {
     keplerOrbitLogger.debug(
       {
         elements,
-        "🎯 Mean anomaly at epoch (T=0)": `${elements.meanAnomalyDeg.toFixed(2)}°`,
+        "🎯 Mean anomaly at epoch (T=0)": `${((elements.meanAnomalyRad * 180) / Math.PI).toFixed(2)}°`,
         "🕐 Reference time": `${referenceTimeS.toFixed(2)}s`,
         "📍 Mean anomaly": `${((this.meanAnomaly * 180) / Math.PI).toFixed(2)}°`,
         distance: `${(initialDistance / 1e9).toFixed(2)} million km`,
@@ -123,15 +122,15 @@ export class KeplerOrbit {
   }
 
   private createOrbitBasis(
-    argPeriDeg: number,
-    incDeg: number,
-    nodeDeg: number,
+    argPeriRad: number,
+    incRad: number,
+    nodeRad: number,
   ): Basis3D {
     let b = Basis3D.identity();
     // Rotation sequence: Rz(Ω) * Rx(i) * Rz(ω)
-    b = b.rotated({ x: 0, y: 0, z: 1 }, (nodeDeg * Math.PI) / 180);
-    b = b.rotated({ x: 1, y: 0, z: 0 }, (incDeg * Math.PI) / 180);
-    b = b.rotated({ x: 0, y: 0, z: 1 }, (argPeriDeg * Math.PI) / 180);
+    b = b.rotated({ x: 0, y: 0, z: 1 }, nodeRad);
+    b = b.rotated({ x: 1, y: 0, z: 0 }, incRad);
+    b = b.rotated({ x: 0, y: 0, z: 1 }, argPeriRad);
     return b;
   }
 

@@ -74,9 +74,10 @@ export class OrbitDataHelper {
     }
 
     // Check inclination
-    if (elements.inclinationDeg < 0 || elements.inclinationDeg > 180) {
+    if (elements.inclinationRad < 0 || elements.inclinationRad > Math.PI) {
+      const inclinationDeg = (elements.inclinationRad * 180) / Math.PI;
       warnings.push(
-        `Inclination ${elements.inclinationDeg}° should be in [0, 180]`,
+        `Inclination ${inclinationDeg.toFixed(2)}° should be in [0, 180]`,
       );
     }
 
@@ -170,14 +171,14 @@ export class OrbitDataHelper {
       objectMassKg: object.massKg,
       periapsisAU: object.periapsisAu,
       apoapsisAU: object.apoapsisAu,
-      inclinationDeg: object.incDeg,
-      longitudeOfAscendingNodeDeg: object.nodeDeg,
-      argumentOfPeriapsisDeg: object.argPeriDeg,
-      meanAnomalyDeg: object.meanAnomalyDeg,
+      inclinationRad: object.incRad,
+      longitudeOfAscendingNodeRad: object.nodeRad,
+      argumentOfPeriapsisRad: object.argPeriRad,
+      meanAnomalyRad: object.meanAnomalyRad,
       rotationPeriodH: object.rotationH,
-      spinLongitudeDeg: 0, // TODO : no data in JSON
+      spinLongitudeRad: 0, // TODO : no data in JSON
       tidalLocked: object.tidalLocked,
-      tiltDeg: object.tiltDeg,
+      tiltRad: object.tiltRad,
     };
   }
 
@@ -190,14 +191,14 @@ export class OrbitDataHelper {
       objectMassKg: object.massKg,
       periapsisAU: object.periapsisAu,
       apoapsisAU: object.apoapsisAu,
-      inclinationDeg: object.incDeg,
-      longitudeOfAscendingNodeDeg: object.nodeDeg,
-      argumentOfPeriapsisDeg: object.argPeriDeg,
-      meanAnomalyDeg: object.meanAnomalyDeg,
+      inclinationRad: object.incRad,
+      longitudeOfAscendingNodeRad: object.nodeRad,
+      argumentOfPeriapsisRad: object.argPeriRad,
+      meanAnomalyRad: object.meanAnomalyRad,
       rotationPeriodH: object.rotationH,
-      spinLongitudeDeg: 0, // TODO : no data in JSON
+      spinLongitudeRad: 0, // TODO : no data in JSON
       tidalLocked: object.tidalLocked,
-      tiltDeg: object.tiltDeg,
+      tiltRad: object.tiltRad,
     };
   }
 }
