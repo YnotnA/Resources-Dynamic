@@ -563,21 +563,18 @@
             time: newTime,
           };
 
-          // Cherche si time existe déjà
+          // Ajoute uniquement si le time est INÉDIT (évite les replace intempestifs)
           const existingIdx = obj.transforms.findIndex(
             (p) => p.time === newTime,
           );
-
-          if (existingIdx >= 0) {
-            // Remplace la position existante
-            obj.transforms[existingIdx] = newTransform;
-          } else {
-            // Ajoute à la fin
+          if (existingIdx < 0) {
             obj.transforms.push(newTransform);
+          } else {
+            obj.transforms[existingIdx] = newTransform; // Si données meilleures
           }
-
-          obj.isFetching = false;
         }
+
+        obj.isFetching = false;
 
         updateObjectsList();
       }
@@ -595,7 +592,10 @@
           const idx = Math.floor(obj.currentIndex);
 
           if (idx >= obj.transforms.length - 1) {
-            obj.currentIndex = obj.transforms.length - 1;
+            obj.currentIndex = Math.min(
+              obj.currentIndex,
+              obj.transforms.length - 1,
+            );
             // Tu peux aussi afficher un message "Fin du buffer"
             return;
           }
@@ -612,21 +612,31 @@
           if (
             ws &&
             ws.readyState === WebSocket.OPEN &&
-            obj.currentIndex / obj.transforms.length > FETCH_THRESHOLD &&
-            !obj.isFetching // Ajoute un flag pour éviter de spammer
+            (!obj.isFetching ||
+              (obj.currentIndex >= obj.transforms.length - 1 && obj.isFetching))
           ) {
-            obj.isFetching = true; // marque comme fetch en cours
-            const lastTime = obj.transforms[obj.transforms.length - 1].time;
-            const request = {
-              event_type: "transform",
-              data: {
-                duration_s: DURATION,
-                frequency: FREQUENCY,
-                from_timestamp: lastTime,
-                uuid: uuid,
-              },
-            };
-            ws.send(encode(request));
+            // On peut merge avec le shouldFetch
+            const shouldFetch =
+              obj.currentIndex / obj.transforms.length > FETCH_THRESHOLD ||
+              obj.currentIndex >= obj.transforms.length - 1;
+
+            if (shouldFetch) {
+              obj.isFetching = true;
+              const lastTime =
+                obj.transforms.length > 0
+                  ? obj.transforms[obj.transforms.length - 1].time
+                  : 0;
+              const request = {
+                event_type: "transform",
+                data: {
+                  duration_s: DURATION,
+                  frequency: FREQUENCY,
+                  from_timestamp: lastTime,
+                  uuid: uuid,
+                },
+              };
+              ws.send(encode(request));
+            }
           }
 
           const position = obj.transforms[idx].position;

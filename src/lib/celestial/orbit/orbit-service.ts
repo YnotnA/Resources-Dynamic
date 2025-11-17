@@ -49,10 +49,7 @@ export class OrbitService {
     );
 
     const orbit = new KeplerOrbit(orbitalObject, params.startTime);
-    const orbitRotation = new RotationQuaternion(
-      orbitalObject,
-      params.startTime,
-    );
+    const orbitRotation = new RotationQuaternion(orbitalObject);
     const steps = Math.max(1, Math.ceil(params.duration / timeStep));
     const transforms: TransformType[] = new Array(steps) as TransformType[];
 

@@ -16,10 +16,7 @@ export class RotationQuaternion {
   private spinLongRad: number;
   private rotationRateRadS: number;
 
-  constructor(
-    private elements: RotationObjectType,
-    private referenceTimeS: number = 0,
-  ) {
+  constructor(private elements: RotationObjectType) {
     const { tiltRad, spinLongitudeRad, rotationPeriodH } = elements;
     this.tiltRad = tiltRad;
     this.spinLongRad = spinLongitudeRad;
@@ -39,7 +36,7 @@ export class RotationQuaternion {
   }
 
   getRotation(
-    timeS: number,
+    currentTime: number,
     orbitPos?: Vector3Type,
     orbitPrevPos?: Vector3Type,
   ): Quaternion {
@@ -71,8 +68,7 @@ export class RotationQuaternion {
     }
 
     // ---- CASE 2 : FREE ROTATION ----
-    const dt = timeS - this.referenceTimeS;
-    const spinAngle = this.rotationRateRadS * dt;
+    const spinAngle = this.rotationRateRadS * currentTime;
 
     let q = Quaternion.identity();
     q = q.mul(Quaternion.fromAxisAngle({ x: 0, y: 0, z: 1 }, this.tiltRad));
