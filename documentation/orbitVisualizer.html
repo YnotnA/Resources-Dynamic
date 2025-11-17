@@ -108,6 +108,8 @@
       <button onclick="slowDown()">⏪ Slow Down</button>
       <button onclick="toggleTrails()">✨ Toggle Trails</button>
       <button onclick="toggleLabels()">🔤 Toggle Labels</button>
+      <button onclick="toggleAxes()">🧭 Toggle Axes</button>
+      <button onclick="stopFollowing()">🔓 Stop Following</button>
       <button onclick="clearScene()">🗑️ Clear Scene</button>
     </div>
 
@@ -126,54 +128,6 @@
       import * as THREE from "three";
       import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
-      // ===== CONFIGURATION EN FONCTION DES RAYONS Physiques
-      const PLANET_RADII = {
-        "844221a5-e2be-432c-94c2-947462c1c310": 1559.5745614015168,
-        "fc22a2f0-80be-4da2-89db-bc7a19665e82": 1040.90427704169,
-        "418a2436-81f5-4069-a042-5e33ce313b20": 1958.3333333333333,
-        "3f99e498-31cd-450f-8c72-d7ae2362d27c": 2118.6666666666665,
-        "87720dfc-0699-4cf2-bacb-7e867e272c62": 23097.236010094934,
-        "384b6c37-c8b3-4bad-b338-1b5d09509fed": 8935.4838368668,
-        "8a15cc8a-98c0-4c72-b5d5-f8ec34169d6b": 1171.69893777322,
-        "6d322080-dd78-4961-a895-bdb71c7f53f6": 1155.8318298461465,
-      };
-
-      // Numérique: rayon et parent pour chaque lune
-      const MOON_RADII = {
-        "88f3a0af-28c7-42f6-8228-551a98fc55cd": 500.0,
-        "a1a66614-21d5-4541-8a3e-d4ae350b669c": 233.33333333333334,
-        "77ec9ee3-6e9b-47b5-af82-8f72a57cb4ac": 850.6666666666666,
-        "7eaac45f-2961-4148-9bd0-4e779472a32b": 1966.6666666666667,
-        "bffd7a92-d780-47bb-8aaa-bffe324fe3a9": 1210.6666666666667,
-        "83f14393-7832-4932-8c84-6d2a3f0a2074": 2585.6666666666665,
-        "7be37140-3855-40db-8994-e172be6f7b9f": 269.6666666666667,
-        "1f766843-4283-42f4-9c4f-38e83b3cb97d": 3341.0,
-        "129fdd20-78bf-40f7-98d1-3665692f4106": 1925.0,
-        "8e3330fe-2fb0-4d0e-ab51-d9d1bc7b16e7": 1189.3333333333333,
-      };
-      const MOON_PARENT = {
-        "88f3a0af-28c7-42f6-8228-551a98fc55cd":
-          "3f99e498-31cd-450f-8c72-d7ae2362d27c",
-        "a1a66614-21d5-4541-8a3e-d4ae350b669c":
-          "3f99e498-31cd-450f-8c72-d7ae2362d27c",
-        "77ec9ee3-6e9b-47b5-af82-8f72a57cb4ac":
-          "87720dfc-0699-4cf2-bacb-7e867e272c62",
-        "7eaac45f-2961-4148-9bd0-4e779472a32b":
-          "87720dfc-0699-4cf2-bacb-7e867e272c62",
-        "bffd7a92-d780-47bb-8aaa-bffe324fe3a9":
-          "87720dfc-0699-4cf2-bacb-7e867e272c62",
-        "83f14393-7832-4932-8c84-6d2a3f0a2074":
-          "87720dfc-0699-4cf2-bacb-7e867e272c62",
-        "7be37140-3855-40db-8994-e172be6f7b9f":
-          "87720dfc-0699-4cf2-bacb-7e867e272c62",
-        "1f766843-4283-42f4-9c4f-38e83b3cb97d":
-          "87720dfc-0699-4cf2-bacb-7e867e272c62",
-        "129fdd20-78bf-40f7-98d1-3665692f4106":
-          "8a15cc8a-98c0-4c72-b5d5-f8ec34169d6b",
-        "8e3330fe-2fb0-4d0e-ab51-d9d1bc7b16e7":
-          "8a15cc8a-98c0-4c72-b5d5-f8ec34169d6b",
-      };
-
       // ÉCHELLES
       const AU = 149597870700; // 1 AU en mètres
       const SCALE_POSITION = (1 / AU) * 40;
@@ -187,6 +141,38 @@
       let isConnected = false;
       let allPlanetUuids = [];
 
+      // ===== DATA SETUP =====
+
+      async function fetchPlanetsWithMoons(systemId) {
+        const response = await fetch(
+          `http://localhost:3001/api/planets/system/${systemId}`,
+        );
+        if (!response.ok) throw new Error("Erreur API");
+        const data = await response.json();
+
+        const planetRadiusMap = {};
+        const moonRadiusMap = {};
+        const moonParentMap = {};
+
+        for (const planet of data.data) {
+          planetRadiusMap[planet.uuid] = planet.radiusKm;
+          if (planet.moons && planet.moons.length > 0) {
+            for (const moon of planet.moons) {
+              moonRadiusMap[moon.uuid] = moon.radiusKm;
+              moonParentMap[moon.uuid] = planet.uuid;
+            }
+          }
+        }
+
+        return {
+          PLANET_RADII: planetRadiusMap,
+          MOON_RADII: moonRadiusMap,
+          MOON_PARENT: moonParentMap,
+        };
+      }
+
+      const data = await fetchPlanetsWithMoons(1);
+
       // ===== SCENE SETUP =====
       const scene = new THREE.Scene();
       scene.background = new THREE.Color(0x000011);
@@ -196,7 +182,7 @@
         75,
         window.innerWidth / window.innerHeight,
         0.1,
-        100000,
+        2000,
       );
       camera.position.set(-20, 20, 30);
       camera.lookAt(0, 0, 0);
@@ -250,6 +236,7 @@
       let isPlaying = true;
       let showTrails = true;
       let showLabels = true;
+      let showAxes = true;
 
       const colors = [
         0x0077ff, 0xff0077, 0x00ff77, 0xff7700, 0x7700ff, 0x00ffff, 0xff00ff,
@@ -261,11 +248,11 @@
         const color = colors[colorIndex % colors.length];
         colorIndex++;
 
-        let radiusKm = PLANET_RADII[uuid] || MOON_RADII[uuid] || 6000;
+        let radiusKm = data.PLANET_RADII[uuid] || data.MOON_RADII[uuid] || 6000;
         let sphereRadius = radiusKm * SCALE_RADIUS;
 
-        if (PLANET_RADII[uuid]) sphereRadius *= PLANET_RENDER_SCALE;
-        if (MOON_RADII[uuid]) sphereRadius *= MOON_RENDER_SCALE;
+        if (data.PLANET_RADII[uuid]) sphereRadius *= PLANET_RENDER_SCALE;
+        if (data.MOON_RADII[uuid]) sphereRadius *= MOON_RENDER_SCALE;
 
         const geometry = new THREE.SphereGeometry(sphereRadius, 32, 32);
         const material = new THREE.MeshStandardMaterial({ color });
@@ -300,7 +287,7 @@
         sprite.scale.set(sphereRadius * 3, sphereRadius * 0.75, 1);
         sprite.position.set(0, sphereRadius + sphereRadius * 0.6, 0);
 
-        mesh.add(sprite);
+        scene.add(sprite);
 
         const trailMaterial = new THREE.LineBasicMaterial({
           color,
@@ -314,6 +301,7 @@
         orbitalObjects.set(uuid, {
           uuid,
           mesh,
+          axesHelper,
           trail,
           transforms: [],
           currentIndex: 0,
@@ -339,13 +327,20 @@
           const shortUuid = uuid.substring(0, 8);
           const color = `#${obj.color.toString(16).padStart(6, "0")}`;
           list.innerHTML += `
-                <div style="margin: 5px 0;">
-                  <span style="color: ${color}">⬤</span> ${obj.name || shortUuid}
-                  <span style="color: #888; font-size: 10px;">(${
-                    obj.transforms.length
-                  } pts)</span>
-                </div>
-              `;
+                      <div class="object-item" data-uuid="${uuid}" style="margin: 5px 0; cursor: pointer;">
+                        <span style="color: ${color}">⬤</span> ${obj.name || shortUuid}
+                        <span style="color: #888; font-size: 10px;">(${
+                          obj.transforms.length
+                        } pts)</span>
+                      </div>
+                    `;
+        });
+        document.querySelectorAll(".object-item").forEach((el) => {
+          el.onclick = function () {
+            const uuid = el.getAttribute("data-uuid");
+            centerCameraOnObject(uuid); // fait le zoom +
+            followUuid = uuid; // active le suivi !
+          };
         });
       }
 
@@ -353,7 +348,7 @@
         const idx = Math.floor(obj.currentIndex);
 
         // Si c'est une lune : on masque la trail et on sort (rien à afficher)
-        if (MOON_RADII[obj.uuid] && MOON_PARENT[obj.uuid]) {
+        if (data.MOON_RADII[obj.uuid] && data.MOON_PARENT[obj.uuid]) {
           obj.trail.visible = false;
           return;
         }
@@ -638,8 +633,8 @@
           const rotation = obj.transforms[idx].rotation;
 
           // ------ Correction : décalage lune ------
-          if (MOON_RADII[uuid] && MOON_PARENT[uuid]) {
-            const planetUuid = MOON_PARENT[uuid];
+          if (data.MOON_RADII[uuid] && data.MOON_PARENT[uuid]) {
+            const planetUuid = data.MOON_PARENT[uuid];
             const planetObj = orbitalObjects.get(planetUuid);
             // Position Global
             // if (planetObj && planetObj.mesh) {
@@ -652,11 +647,11 @@
             //   const direction = moonPos.clone().sub(planetPos).normalize();
 
             //   // Rayon graphique planète
-            //   const planetRadiusPhys = PLANET_RADII[planetUuid] * SCALE_RADIUS;
+            //   const planetRadiusPhys = data.PLANET_RADII[planetUuid] * SCALE_RADIUS;
             //   const planetRadiusGraph = planetRadiusPhys * PLANET_RENDER_SCALE;
 
             //   // Rayon graphique lune
-            //   const moonRadiusPhys = MOON_RADII[uuid] * SCALE_RADIUS;
+            //   const moonRadiusPhys = data.MOON_RADII[uuid] * SCALE_RADIUS;
             //   const moonRadiusGraph = moonRadiusPhys * MOON_RENDER_SCALE;
             //   // Espace supplémentaire (ajuste la valeur selon ton rendu souhaité)
             //   // const space = moonRadiusGraph * 2; // ou une valeur personnalisée
@@ -684,9 +679,10 @@
               ); // RELATIF À PLANÈTE
               const direction = moonLocal.clone().normalize();
               // Rayon graphique planète/lune
-              const planetRadiusPhys = PLANET_RADII[planetUuid] * SCALE_RADIUS;
+              const planetRadiusPhys =
+                data.PLANET_RADII[planetUuid] * SCALE_RADIUS;
               const planetRadiusGraph = planetRadiusPhys * PLANET_RENDER_SCALE;
-              const moonRadiusPhys = MOON_RADII[uuid] * SCALE_RADIUS;
+              const moonRadiusPhys = data.MOON_RADII[uuid] * SCALE_RADIUS;
               const moonRadiusGraph = moonRadiusPhys * MOON_RENDER_SCALE;
               const space = moonRadiusGraph * 1.2 + planetRadiusGraph * 0.1;
               const offset = planetRadiusGraph + space;
@@ -718,6 +714,24 @@
 
           if (showTrails) updateTrail(obj);
 
+          if (obj.label) {
+            // up de la scène = Y positif
+            const upScene = new THREE.Vector3(0, 1, 0);
+            const sphereRadius = obj.mesh.geometry.parameters.radius;
+            const offsetDistance = sphereRadius + sphereRadius * 0.6;
+
+            // Position monde du mesh
+            const meshWorldPos = new THREE.Vector3();
+            obj.mesh.getWorldPosition(meshWorldPos);
+
+            // Position du label “au-dessus selon scène”
+            obj.label.position.copy(
+              meshWorldPos.clone().add(upScene.multiplyScalar(offsetDistance)),
+            );
+
+            obj.label.visible = showLabels;
+          }
+
           obj.currentIndex += animationSpeed;
         });
 
@@ -738,23 +752,84 @@
               // console.log(pos);
 
               document.getElementById("stats").innerHTML = `
-                    <strong>Time:</strong> ${(transform.time / 86400).toFixed(2)} days<br>
-                    <strong>Buffer:</strong> ${obj.transforms.length} positions<br>
-                    <strong>Index:</strong> ${idx}/${obj.transforms.length}<br>
-                    <strong>Position (EXACT):</strong><br>
-                    X: ${position.x.toFixed(2)}<br>
-                    Y: ${position.y.toFixed(2)}<br>
-                    Z: ${position.z.toFixed(2)}<br>
-                    <strong>Distance:</strong> ${distanceAU.toFixed(3)} AU<br>
-                    <strong>Speed:</strong> ${animationSpeed}x<br>
-                    <strong>Objects:</strong> ${orbitalObjects.size}
-                  `;
+                          <strong>Time:</strong> ${(transform.time / 86400).toFixed(2)} days<br>
+                          <strong>Buffer:</strong> ${obj.transforms.length} positions<br>
+                          <strong>Index:</strong> ${idx}/${obj.transforms.length}<br>
+                          <strong>Position (EXACT):</strong><br>
+                          X: ${position.x.toFixed(2)}<br>
+                          Y: ${position.y.toFixed(2)}<br>
+                          Z: ${position.z.toFixed(2)}<br>
+                          <strong>Distance:</strong> ${distanceAU.toFixed(3)} AU<br>
+                          <strong>Speed:</strong> ${animationSpeed}x<br>
+                          <strong>Objects:</strong> ${orbitalObjects.size}
+                        `;
             }
           }
         }
       }
 
+      let cameraMoveTarget = null; // { pos: Vector3, target: Vector3 }
+      let cameraMoveProgress = 0;
+      let cameraMoveDuration = 30; // frames (~0.5s)
+      let followUuid = null; // Uuid de l'objet à suivre
+
+      function centerCameraOnObject(uuid) {
+        followUuid = uuid; // Active le suivi
+        const obj = orbitalObjects.get(uuid);
+        if (!obj || !obj.mesh) return;
+
+        // Calcule la position monde du mesh
+        const pos = new THREE.Vector3();
+        obj.mesh.getWorldPosition(pos);
+
+        controls.target.copy(pos); // Centre le contrôle sur l’astre
+
+        // --- Zoom automatique : calcule position caméra ---
+        // Direction actuelle du regard
+        const camDir = camera.position.clone().sub(pos).normalize();
+        // Rayon graphique (adapte le facteur selon ce que tu veux)
+        const radius = obj.mesh.geometry.parameters?.radius || 1;
+        // Nouvelle position caméra : "devant" l’astre, sur l’axe radial
+        const newPos = pos.clone().add(camDir.multiplyScalar(radius * 10));
+
+        // Déplacement immédiat
+        camera.position.copy(newPos);
+        controls.update();
+      }
+
       function animate() {
+        if (cameraMoveTarget && cameraMoveProgress < cameraMoveDuration) {
+          cameraMoveProgress++;
+          // Fraction d'avancement (0 → 1)
+          const t = cameraMoveProgress / cameraMoveDuration;
+          // Interpolation (ease-in/ease-out possible, ici simple linear)
+          camera.position.lerpVectors(
+            cameraMoveTarget.fromPos,
+            cameraMoveTarget.toPos,
+            t,
+          );
+          controls.target.lerpVectors(
+            cameraMoveTarget.fromTarget,
+            cameraMoveTarget.toTarget,
+            t,
+          );
+          // Dès que fini, arrête l'animation
+          if (cameraMoveProgress >= cameraMoveDuration) {
+            cameraMoveTarget = null;
+          }
+        }
+
+        if (followUuid !== null) {
+          const obj = orbitalObjects.get(followUuid);
+          if (obj && obj.mesh) {
+            const pos = new THREE.Vector3();
+            obj.mesh.getWorldPosition(pos);
+
+            controls.target.copy(pos); // centre la vue sur l'astre SUIVI
+            // caméra libre ensuite !
+          }
+        }
+
         requestAnimationFrame(animate);
         updatePlanets();
         controls.update();
@@ -801,6 +876,20 @@
             planet.label.visible = showLabels;
           }
         }
+      };
+
+      window.toggleAxes = function () {
+        showAxes = !showAxes;
+        orbitalObjects.forEach((obj) => {
+          if (obj.axesHelper) {
+            obj.axesHelper.visible = !obj.axesHelper.visible;
+          }
+        });
+        console.log(`🧭 Axes: ${showAxes ? "ON" : "OFF"}`);
+      };
+
+      window.stopFollowing = function () {
+        followUuid = null;
       };
 
       window.clearScene = function () {

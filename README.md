@@ -31,8 +31,6 @@ Copy `.env.example` to `.env` and fill in the required environment variables
 
 A clean SQL is available in `documentation/sql/cleanBdd.sql`. It must be executed with an SQL client (e.g., [DBeaver](https://dbeaver.io/)).
 
-**Info**: All UUID updates are used for the [Orbit Visualizer](#bonus) because the radius of elements (e.g., planets, stars) are hard-coded into the code.
-
 ## WebSocket
 
 - if `ENABLE_MSG_PACK=true` All requests message **must be encoded** with [msgpack](https://msgpack.org/)
