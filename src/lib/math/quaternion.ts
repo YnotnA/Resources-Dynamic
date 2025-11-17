@@ -79,54 +79,11 @@ export class Quaternion {
     );
   }
 
-  // Interpolation sphérique (pour les rotations douces)
-  slerp(target: Quaternion, t: number): Quaternion {
-    if (t <= 0) return this;
-    if (t >= 1) return target;
-
-    let dot =
-      this.x * target.x +
-      this.y * target.y +
-      this.z * target.z +
-      this.w * target.w;
-
-    // Si les quaternions sont opposés, inverser l'un d'eux
-    let q2 = target;
-    if (dot < 0) {
-      dot = -dot;
-      q2 = new Quaternion(-target.x, -target.y, -target.z, -target.w);
-    }
-
-    // Si les quaternions sont très proches, faire une interpolation linéaire
-    if (dot > 0.9995) {
-      return new Quaternion(
-        this.x + t * (q2.x - this.x),
-        this.y + t * (q2.y - this.y),
-        this.z + t * (q2.z - this.z),
-        this.w + t * (q2.w - this.w),
-      ).normalize();
-    }
-
-    // Interpolation sphérique standard
-    const theta = Math.acos(Math.max(-1, Math.min(1, dot)));
-    const sinTheta = Math.sin(theta);
-    const a = Math.sin((1 - t) * theta) / sinTheta;
-    const b = Math.sin(t * theta) / sinTheta;
-
-    return new Quaternion(
-      a * this.x + b * q2.x,
-      a * this.y + b * q2.y,
-      a * this.z + b * q2.z,
-      a * this.w + b * q2.w,
-    );
-  }
-
   // Produit scalaire entre quaternions
   dot(q: Quaternion): number {
     return this.x * q.x + this.y * q.y + this.z * q.z + this.w * q.w;
   }
 
-  // Clone le quaternion
   clone(): Quaternion {
     return new Quaternion(this.x, this.y, this.z, this.w);
   }

@@ -3,7 +3,7 @@ import { Basis3D } from "@lib/math/basis3d";
 import type { Vector3Type } from "@lib/math/schema/vector3.model";
 import { Vector3 } from "@lib/math/vector3";
 
-export interface OrbitalObject {
+export type PositionObjectType = {
   primaryMassKg: number;
   objectMassKg: number;
   periapsisAU: number;
@@ -12,7 +12,7 @@ export interface OrbitalObject {
   longitudeOfAscendingNodeDeg: number;
   argumentOfPeriapsisDeg: number;
   meanAnomalyDeg: number;
-}
+};
 
 export class KeplerOrbit {
   private static readonly AU_M = 1.495978707e11;
@@ -28,7 +28,7 @@ export class KeplerOrbit {
   private meanAnomaly: number;
 
   constructor(
-    private elements: OrbitalObject,
+    private elements: PositionObjectType,
     private referenceTimeS: number = 0,
   ) {
     this.orbitCenter = { x: 0, y: 0, z: 0 };

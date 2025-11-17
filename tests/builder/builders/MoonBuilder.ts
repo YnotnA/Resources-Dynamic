@@ -20,6 +20,9 @@ export class MoonBuilder extends BuilderBase<typeof moonSchema> {
       meanAnomalyDeg: faker.number.int({ min: -360, max: 360 }),
       radiusKm: faker.number.float(),
       radiusGravityInfluenceKm: faker.number.float(),
+      rotationH: faker.number.int({ min: 1, max: 360 }),
+      tidalLocked: faker.datatype.boolean(),
+      tiltDeg: faker.number.int({ min: -360, max: 360 }),
     });
   }
 

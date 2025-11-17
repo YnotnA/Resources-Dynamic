@@ -1,6 +1,6 @@
 import { getSystemWithDetailsByInternalName } from "@db/queries";
 import type { Moon, Planet, Star, System } from "@db/schema";
-import type { Transform } from "@lib/cache/cache-transform";
+import type { TransformType } from "@lib/cache/cache-transform";
 import { OrbitDataHelper } from "@lib/celestial/orbit/orbit-data-helper";
 import { keplerOrbitService } from "@lib/celestial/orbit/orbit-service";
 import { createTimer, logError, logPerformance, logger } from "@lib/logger";
@@ -24,7 +24,7 @@ type ObjectTypeFrom<T extends Planet | Moon | System | Star> = T extends Planet
 
 type TransformsResultType<T extends Planet | Moon | System | Star> = {
   object: T;
-  transforms: Transform[];
+  transforms: TransformType[];
 };
 
 type ObjectDataType<T extends Planet | Moon | System | Star> = {
@@ -32,7 +32,7 @@ type ObjectDataType<T extends Planet | Moon | System | Star> = {
   parentId: string;
   objectType: ObjectTypeFrom<T>;
   soi?: number;
-  transforms?: Transform[];
+  transforms?: TransformType[];
 };
 
 export const getInit = async (requestInitData: RequestInitWsType["data"]) => {
@@ -105,7 +105,7 @@ const getObjectData = <T extends Planet | Moon | System | Star>(
     timesteps: number,
   ) => TransformsResultType<T>,
 ): ObjectDataType<T> => {
-  let transforms: Transform[] | undefined;
+  let transforms: TransformType[] | undefined;
   if (nextTicksCn) {
     const objectNextTicks = nextTicksCn(
       data.uuid as string,

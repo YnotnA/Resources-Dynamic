@@ -1,32 +1,36 @@
 import type {
-  CacheCalculationParams,
-  CacheStrategy,
-  PrefetchConfig,
-  Transform,
+  CacheCalculationParamsType,
+  CacheStrategyType,
+  PrefetchConfigType,
+  TransformType,
 } from "@lib/cache/cache-transform";
 import { CacheTransform } from "@lib/cache/cache-transform";
+import type { RotationObjectType } from "@lib/celestial/rotation-quaternion";
+import { RotationQuaternion } from "@lib/celestial/rotation-quaternion";
 import { keplerOrbitServiceLogger, logPerformance } from "@lib/logger";
 import type { Vector3Type } from "@lib/math/schema/vector3.model";
 
-import type { RotationObject } from "../rotation-quaternion";
-import { RotationQuaternion } from "../rotation-quaternion";
-import { KeplerOrbit, type OrbitalObject } from "./kepler-orbit";
+import { KeplerOrbit, type PositionObjectType } from "./kepler-orbit";
 
-export interface OrbitCalculationParams extends CacheCalculationParams {
-  orbitalObject: OrbitalObject & RotationObject;
-}
+export type OrbitalObjectType = PositionObjectType & RotationObjectType;
+
+export type OrbitCalculationParamsType = CacheCalculationParamsType & {
+  orbitalObject: OrbitalObjectType;
+};
 
 export class OrbitService {
   private cacheTransform: CacheTransform;
 
   constructor(
-    cacheStrategy?: Partial<CacheStrategy>,
-    prefetchConfig?: Partial<PrefetchConfig>,
+    cacheStrategy?: Partial<CacheStrategyType>,
+    prefetchConfig?: Partial<PrefetchConfigType>,
   ) {
     this.cacheTransform = new CacheTransform(cacheStrategy, prefetchConfig);
   }
 
-  private calculateInternal = (params: OrbitCalculationParams): Transform[] => {
+  private calculateInternal = (
+    params: OrbitCalculationParamsType,
+  ): TransformType[] => {
     const startTime = performance.now();
 
     const timeStep = 1 / params.frequency;
@@ -50,7 +54,7 @@ export class OrbitService {
       params.startTime,
     );
     const steps = Math.max(1, Math.ceil(params.duration / timeStep));
-    const transforms: Transform[] = new Array(steps) as Transform[];
+    const transforms: TransformType[] = new Array(steps) as TransformType[];
 
     let currentTime = params.startTime;
     let posPrev: Vector3Type | undefined;
@@ -93,7 +97,7 @@ export class OrbitService {
   /**
    * Get orbital transform
    */
-  getTransforms(params: OrbitCalculationParams): Transform[] {
+  getTransforms(params: OrbitCalculationParamsType): TransformType[] {
     // keplerOrbitServiceLogger.debug(
     //   { cacheStats: this.cachePosition.getCacheStats() },
     //   "Stats for cache",

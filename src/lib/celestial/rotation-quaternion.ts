@@ -2,12 +2,12 @@ import { Quaternion } from "@lib/math/quaternion";
 import type { Vector3Type } from "@lib/math/schema/vector3.model";
 import { Vector3 } from "@lib/math/vector3";
 
-export interface RotationObject {
+export type RotationObjectType = {
   tidalLocked: boolean;
   rotationPeriodH: number;
   tiltDeg: number;
   spinLongitudeDeg: number;
-}
+};
 
 export class RotationQuaternion {
   private static readonly TAU = 2 * Math.PI;
@@ -17,7 +17,7 @@ export class RotationQuaternion {
   private rotationRateRadS: number;
 
   constructor(
-    private elements: RotationObject,
+    private elements: RotationObjectType,
     private referenceTimeS: number = 0,
   ) {
     const { tiltDeg, spinLongitudeDeg, rotationPeriodH } = elements;
@@ -27,7 +27,7 @@ export class RotationQuaternion {
   }
 
   // Crée un quaternion qui aligne l'axe X local avec "right" et Y avec "up"
-  lookRotationX(right: Vector3Type, up: Vector3Type): Quaternion {
+  lookTarget(right: Vector3Type, up: Vector3Type): Quaternion {
     right = Vector3.normalize(right);
     up = Vector3.normalize(up);
 
@@ -58,7 +58,7 @@ export class RotationQuaternion {
         orbitPrevPos ?? { x: 0, y: 0, z: 0 },
       );
 
-      let targetRotation = this.lookRotationX(towardParent, globalUp);
+      let targetRotation = this.lookTarget(towardParent, globalUp);
 
       targetRotation = targetRotation.mul(
         Quaternion.fromAxisAngle({ x: 0, y: 0, z: 1 }, this.tiltRad),

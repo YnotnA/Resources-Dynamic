@@ -21,8 +21,6 @@ vi.mock("@lib/logger", () => {
   return {
     logger: createMockLogger(),
     wsLogger: createMockLogger(),
-    duckDbLogger: createMockLogger(),
-    duckQueryLogger: createMockLogger(),
     pgDbLogger: createMockLogger(),
     apiLogger: createMockLogger(),
     cacheLogger: createMockLogger(),
@@ -44,11 +42,6 @@ vi.mock("@db/queries/systems.ts", () => {
     getAllSystemsWithDetails: vi.fn(() =>
       Promise.resolve(mockSystemsWithDetails),
     ),
-  };
-});
-
-vi.mock("@db/queries/systems.ts", () => {
-  return {
     getSystemWithDetailsByInternalName: vi.fn(() =>
       Promise.resolve(mockSystemsWithDetails[0] ?? undefined),
     ),

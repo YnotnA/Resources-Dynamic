@@ -1,9 +1,10 @@
 import type { Moon, Planet, Star } from "@db/schema";
+import type { PositionObjectType } from "@lib/celestial/orbit/kepler-orbit";
+import type {
+  OrbitCalculationParamsType,
+  OrbitalObjectType,
+} from "@lib/celestial/orbit/orbit-service";
 import type { Vector3Type } from "@lib/math/schema/vector3.model";
-
-import type { RotationObject } from "../rotation-quaternion";
-import type { OrbitalObject } from "./kepler-orbit";
-import type { OrbitCalculationParams } from "./orbit-service";
 
 /**
  * Helper functions for database integration
@@ -18,13 +19,13 @@ export class OrbitDataHelper {
     startTime: number,
     duration: number,
     frequency: number,
-  ): OrbitCalculationParams {
+  ): OrbitCalculationParamsType {
     return {
       objectId: planet.uuid as string,
       startTime,
       duration,
       frequency,
-      orbitalObject: OrbitDataHelper.planetDBToOrbitalElements(planet, star),
+      orbitalObject: OrbitDataHelper.planetDBToOrbitalObject(planet, star),
     };
   }
 
@@ -37,20 +38,20 @@ export class OrbitDataHelper {
     startTime: number,
     duration: number,
     frequency: number,
-  ): OrbitCalculationParams {
+  ): OrbitCalculationParamsType {
     return {
       objectId: moon.uuid as string,
       startTime,
       duration,
       frequency,
-      orbitalObject: OrbitDataHelper.moonDBToOrbitalElements(moon, planet),
+      orbitalObject: OrbitDataHelper.moonDBToOrbitalObject(moon, planet),
     };
   }
 
   /**
    * Validate orbital elements consistency
    */
-  static validateOrbitalElements(elements: OrbitalObject): {
+  static validateOrbitalElements(elements: PositionObjectType): {
     valid: boolean;
     warnings: string[];
   } {
@@ -93,7 +94,7 @@ export class OrbitDataHelper {
   /**
    * Calculate orbital info
    */
-  static getOrbitalInfo(elements: OrbitalObject): {
+  static getOrbitalInfo(elements: PositionObjectType): {
     semiMajorAxisAU: number;
     semiMajorAxisKm: number;
     eccentricity: number;
@@ -160,10 +161,10 @@ export class OrbitDataHelper {
   /**
    * Convert PostgreSQL planet data to OrbitalElements
    */
-  static planetDBToOrbitalElements(
+  static planetDBToOrbitalObject(
     object: Planet,
     star: Star,
-  ): OrbitalObject & RotationObject {
+  ): OrbitalObjectType {
     return {
       primaryMassKg: star.massKg,
       objectMassKg: object.massKg,
@@ -180,10 +181,10 @@ export class OrbitDataHelper {
     };
   }
 
-  static moonDBToOrbitalElements(
+  static moonDBToOrbitalObject(
     object: Moon,
     planet: Planet,
-  ): OrbitalObject & RotationObject {
+  ): OrbitalObjectType {
     return {
       primaryMassKg: planet.massKg,
       objectMassKg: object.massKg,
