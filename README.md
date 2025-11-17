@@ -37,6 +37,7 @@ A clean SQL is available in `documentation/sql/cleanBdd.sql`. It must be execute
 
 - if `ENABLE_MSG_PACK=true` All requests message **must be encoded** with [msgpack](https://msgpack.org/)
 - if `ENABLE_MSG_PACK=true` All responses message are encoded with [msgpack](https://msgpack.org/)
+- **IMPORTANT** : All distances are in **meters**.
 
 ### Message "Connected"
 
@@ -90,6 +91,7 @@ Used to retrieve all information concerning stellar objects, including their pos
       "scenename": "<string>",
       "parent_id": "<uuid>",
       "from_timestamp": "<number>",
+      "soi": "<number>",
       "positions": [
         {
           "x": "<number>",
@@ -111,6 +113,7 @@ Used to retrieve all information concerning stellar objects, including their pos
 ```
 
 - **parent_id** : Empty for "system"
+- **soi**: Missing for "system" and "star" (Sphere Of Influence)
 - **positions** : Missing for "system" and "star" (Vector3)
 - **rotations** : Missing for "system" and "star" (Quaternion)
 
