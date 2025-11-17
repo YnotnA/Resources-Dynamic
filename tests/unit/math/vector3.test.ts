@@ -2,8 +2,9 @@ import { aVector3 } from "@builder/builders";
 import { Vector3 } from "@lib/math/vector3";
 import { describe, expect, it } from "vitest";
 
-const vec = (x: number, y: number, z: number) =>
-  aVector3().withCoordinate({ x, y, z }).build();
+const vec = (x: number, y: number, z: number) => {
+  return aVector3().withCoordinate({ x, y, z }).build();
+};
 
 describe("Vector3", () => {
   it("create should return correct vector", () => {
