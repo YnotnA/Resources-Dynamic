@@ -14,7 +14,8 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "import-system": "NODE_ENV=production tsup && node dist/scripts/import/import-system.mjs"
+    "import-system": "NODE_ENV=production tsup && node dist/scripts/import/import-system.mjs",
+    "reset-db": "NODE_ENV=production tsup && node dist/scripts/db/reset-db.mjs"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.6",

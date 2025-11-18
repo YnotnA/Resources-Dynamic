@@ -120,6 +120,23 @@ db-import-system: check-env ## Import JSON data from data/system/ folder
 	@echo "$(CYAN)📥 Importing JSON data from data/system/ folder...$(RESET)"
 	@$(COMPOSE) exec $(DEV_SERVICE) sh -c "corepack enable && corepack install && pnpm import-system"
 
+.PHONY: db-reset
+db-reset: check-env ## Reset the database (⚠️ WARNING: This will delete all data! ⚠️)
+	@echo "$(CYAN)💥 Resetting database...$(RESET)"
+	@$(COMPOSE) exec $(DEV_SERVICE) sh -c "corepack enable && corepack install && pnpm reset-db"
+
+.PHONY: db-full-reset
+db-full-reset: check-env ## Reset the database, apply Drizzle migrations and import the JSON data from data/system/ folder
+	@read -p "$$CYAN ⚠️  Are you sure you want to reset the database? (yes/no): $$RESET" confirm && \
+	if [ "$$confirm" = "yes" ]; then \
+		$(MAKE) db-reset; \
+		$(MAKE) db-migrate; \
+		$(MAKE) db-import-system; \
+		echo "$$GREEN 🎉 Database completely reset!$$RESET"; \
+	else \
+		echo "$$CYAN 🚫 Operation canceled.$$RESET"; \
+	fi
+
 # =============================================================================
 # Utility commands
 # =============================================================================
@@ -183,7 +200,10 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(CYAN)%-15s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST) | grep -E "(up|down|pnpm)"
 	@echo ""
 	@echo "$(YELLOW)Utilities:$(RESET)"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(CYAN)%-15s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST) | grep -E "(logs|shell|status|clean-volumes|db)"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(CYAN)%-15s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST) | grep -E "(logs|shell|status|clean-volumes)"
+	@echo ""
+	@echo "$(YELLOW)Database:$(RESET)"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(CYAN)%-15s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST) | grep -E "(db)"
 	@echo ""
 	@echo "$(YELLOW)Examples:$(RESET)"
 	@echo "  $(CYAN)make start$(RESET)          # Start app for testing (CP/PO/Others)"

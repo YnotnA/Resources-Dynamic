@@ -29,7 +29,11 @@ Copy `.env.example` to `.env` and fill in the required environment variables
 
 ## Database
 
-A clean SQL is available in `documentation/sql/cleanBdd.sql`. It must be executed with an SQL client (e.g., [DBeaver](https://dbeaver.io/)).
+All commands are accessible with `make` command in the `Database` section.
+
+It is possible to reset the database using the command `make db-full-reset`.
+
+**Please note that this operation is irreversible.**
 
 ## WebSocket
 
@@ -57,7 +61,7 @@ Message received after connection
 
 ### Message "Init"
 
-Used to retrieve all information concerning stellar objects, including their position and rotation at T0.
+Used to retrieve all information concerning stellar objects, including their position and rotation.
 
 #### Request :
 

@@ -1,7 +1,11 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/index.ts", "src/scripts/import/import-system.ts"],
+  entry: [
+    "src/index.ts",
+    "src/scripts/import/import-system.ts",
+    "src/scripts/db/reset-db.ts",
+  ],
   format: ["esm"],
   dts: false,
   splitting: false,
